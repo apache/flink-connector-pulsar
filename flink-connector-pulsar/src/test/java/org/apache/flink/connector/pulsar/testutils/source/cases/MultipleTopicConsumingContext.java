@@ -16,43 +16,63 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.testutils.cases;
+package org.apache.flink.connector.pulsar.testutils.source.cases;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
+import org.apache.flink.connector.pulsar.testutils.source.PulsarSourceTestContext;
 
 import org.apache.pulsar.client.api.SubscriptionType;
 
-import java.net.URL;
-import java.util.Collections;
-import java.util.List;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 
 /**
  * Pulsar external context that will create multiple topics with only one partitions as source
  * splits.
  */
-public class MultipleTopicConsumingContext extends MultipleTopicTemplateContext {
+public class MultipleTopicConsumingContext extends PulsarSourceTestContext {
+
+    private final String topicPrefix = "flink-multiple-topic-" + randomAlphabetic(8) + "-";
+    private final SubscriptionType subscriptionType;
+
+    private int index = 0;
 
     public MultipleTopicConsumingContext(PulsarTestEnvironment environment) {
-        this(environment, Collections.emptyList());
+        this(environment, SubscriptionType.Exclusive);
     }
 
     public MultipleTopicConsumingContext(
-            PulsarTestEnvironment environment, List<URL> connectorJarPaths) {
-        super(environment, connectorJarPaths);
+            PulsarTestEnvironment environment, SubscriptionType subscriptionType) {
+        super(environment);
+        this.subscriptionType = subscriptionType;
     }
 
     @Override
     protected String displayName() {
-        return "consuming message on multiple topic";
+        return "consume message on multiple topic";
+    }
+
+    @Override
+    protected String topicPattern() {
+        return topicPrefix + ".+";
     }
 
     @Override
     protected String subscriptionName() {
-        return "flink-pulsar-multiple-topic-test";
+        return "flink-multiple-topic-test";
     }
 
     @Override
     protected SubscriptionType subscriptionType() {
-        return SubscriptionType.Exclusive;
+        return subscriptionType;
+    }
+
+    @Override
+    protected String generatePartitionName() {
+        String topic = topicPrefix + index;
+        operator.createTopic(topic, 1);
+        index++;
+
+        return topicNameWithPartition(topic, 0);
     }
 }
