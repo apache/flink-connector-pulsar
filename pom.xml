@@ -50,6 +50,13 @@ under the License.
     <properties>
         <flink.version>1.16.0</flink.version>
 
+        <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
+        <grpc-bom.version>1.45.1</grpc-bom.version>
+        <bouncycastle.version>1.69</bouncycastle.version>
+        <google.auth.version>1.4.0</google.auth.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
+        <simpleclient.version>0.8.1</simpleclient.version>
+        <junit4.version>4.13.2</junit4.version>
         <junit5.version>5.8.1</junit5.version>
         <assertj.version>3.23.1</assertj.version>
         <archunit.version>0.22.0</archunit.version>
@@ -306,6 +313,303 @@ under the License.
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
                 <version>${junit5.version}</version>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.checkerframework</groupId>
+                <artifactId>checker-qual</artifactId>
+                <version>3.10.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protoc.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protoc.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.0.1-jre</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For dependency convergence -->
+            <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>1.5.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>4.4</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.8.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>commons-logging</groupId>
+                <artifactId>commons-logging</artifactId>
+                <version>1.2</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For dependency convergence -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.21</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>5.8.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.javassist</groupId>
+                <artifactId>javassist</artifactId>
+                <version>3.25.0-GA</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.8.3</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For dependency convergence -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <type>pom</type>
+                <scope>import</scope>
+                <version>${jackson-bom.version}</version>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.11</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.conscrypt</groupId>
+                <artifactId>conscrypt-openjdk-uber</artifactId>
+                <version>2.5.2</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>2.8.9</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-ext-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For dependency convergence -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <type>pom</type>
+                <scope>import</scope>
+                <version>${grpc-bom.version}</version>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${jetty.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${jetty.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-credentials</artifactId>
+                <version>${google.auth.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>${google.auth.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.http-client</groupId>
+                <artifactId>google-http-client</artifactId>
+                <version>1.41.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.perfmark</groupId>
+                <artifactId>perfmark-api</artifactId>
+                <version>0.19.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_httpserver</artifactId>
+                <version>${simpleclient.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_hotspot</artifactId>
+                <version>${simpleclient.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient</artifactId>
+                <version>${simpleclient.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_common</artifactId>
+                <version>${simpleclient.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>2.9.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.31</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit4.version}</version>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.6.3</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>1.10.14</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.auto.value</groupId>
+                <artifactId>auto-value-annotations</artifactId>
+                <version>1.9</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_annotations</artifactId>
+                <version>2.7.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- For test dependency convergence -->
+            <dependency>
+                <groupId>io.opencensus</groupId>
+                <artifactId>opencensus-contrib-http-util</artifactId>
+                <version>0.28.0</version>
+                <scope>test</scope>
             </dependency>
 
         </dependencies>
