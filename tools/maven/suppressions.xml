@@ -23,4 +23,8 @@ under the License.
 		"http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
+	<!-- Pulsar broker required to handle Netty EventLoopGroup -->
+	<suppress
+			files="MockBookKeeperClientFactory.java"
+			checks="IllegalImport"/>
 </suppressions>

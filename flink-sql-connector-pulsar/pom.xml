@@ -24,9 +24,9 @@ under the License.
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<artifactId>flink-connectors</artifactId>
 		<groupId>org.apache.flink</groupId>
-		<version>1.16-SNAPSHOT</version>
+		<artifactId>flink-connector-pulsar-parent</artifactId>
+		<version>3.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>flink-sql-connector-pulsar</artifactId>
