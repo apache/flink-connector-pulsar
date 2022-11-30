@@ -48,7 +48,7 @@ under the License.
     </modules>
 
     <properties>
-        <flink.version>1.16.0</flink.version>
+        <flink.version>1.17-SNAPSHOT</flink.version>
 
         <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
         <grpc-bom.version>1.45.1</grpc-bom.version>
