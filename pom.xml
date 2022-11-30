@@ -54,10 +54,10 @@ under the License.
         <grpc-bom.version>1.45.1</grpc-bom.version>
         <bouncycastle.version>1.69</bouncycastle.version>
         <google.auth.version>1.4.0</google.auth.version>
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.48.v20220622</jetty.version>
         <simpleclient.version>0.8.1</simpleclient.version>
         <junit4.version>4.13.2</junit4.version>
-        <junit5.version>5.8.1</junit5.version>
+        <junit5.version>5.9.1</junit5.version>
         <assertj.version>3.23.1</assertj.version>
         <archunit.version>0.22.0</archunit.version>
         <testcontainers.version>1.17.2</testcontainers.version>
@@ -313,6 +313,13 @@ under the License.
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
                 <version>${junit5.version}</version>
+            </dependency>
+
+            <!-- For dependency convergence -->
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-commons</artifactId>
+                <version>1.9.1</version>
             </dependency>
 
             <!-- For test dependency convergence -->
