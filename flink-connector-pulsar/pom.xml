@@ -35,7 +35,6 @@ under the License.
 	<packaging>jar</packaging>
 
 	<properties>
-		<pulsar.version>2.10.1</pulsar.version>
 		<protoc.version>3.21.7</protoc.version>
 
 		<!-- Test Libraries -->
