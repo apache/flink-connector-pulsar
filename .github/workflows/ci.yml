@@ -38,7 +38,7 @@ jobs:
     strategy:
       matrix:
         jdk: [8, 11]
-    timeout-minutes: 40
+    timeout-minutes: 80
     env:
       MVN_COMMON_OPTIONS: -U -B --no-transfer-progress -Dflink.version=${{ inputs.flink_version }}
       MVN_CONNECTION_OPTIONS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
@@ -80,7 +80,7 @@ jobs:
         run: wget -q -c ${{ inputs.flink_url }} -O - | tar -xz
 
       - name: Compile and test flink-connector-pulsar
-        timeout-minutes: 30
+        timeout-minutes: 60
         run: |
           set -o pipefail
 
