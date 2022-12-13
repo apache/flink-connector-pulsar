@@ -28,3 +28,5 @@ jobs:
       flink_version: 1.17-SNAPSHOT
       flink_url: https://s3.amazonaws.com/flink-nightly/flink-1.17-SNAPSHOT-bin-scala_2.12.tgz
       cache_flink_binary: false
+      timeout_global: 80
+      timeout_test: 60
