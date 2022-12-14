@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   compile_and_test:
-    uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml
+    uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: 1.17-SNAPSHOT
       flink_url: https://s3.amazonaws.com/flink-nightly/flink-1.17-SNAPSHOT-bin-scala_2.12.tgz
