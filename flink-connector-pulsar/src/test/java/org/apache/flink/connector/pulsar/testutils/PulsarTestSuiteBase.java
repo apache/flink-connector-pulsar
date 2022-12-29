@@ -55,7 +55,7 @@ public abstract class PulsarTestSuiteBase {
      * pulsar broker. Override this method when needs.
      */
     protected PulsarRuntime runtime() {
-        return PulsarRuntime.mock();
+        return PulsarRuntime.container();
     }
 
     /** Operate pulsar by acquiring a runtime operator. */

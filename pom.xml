@@ -7,7 +7,9 @@ regarding copyright ownership.  The ASF licenses this file
 to you under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance
 with the License.  You may obtain a copy of the License at
+
   http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -19,13 +21,13 @@ under the License.
         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
         xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>io.github.zentol.flink</groupId>
         <artifactId>flink-connector-parent</artifactId>
         <version>1.0</version>
     </parent>
-
-    <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-connector-pulsar-parent</artifactId>
@@ -51,25 +53,31 @@ under the License.
     <properties>
         <flink.version>1.17-SNAPSHOT</flink.version>
         <pulsar.version>2.10.2</pulsar.version>
-
-        <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
-        <grpc-bom.version>1.45.1</grpc-bom.version>
         <bouncycastle.version>1.69</bouncycastle.version>
-        <google.auth.version>1.4.0</google.auth.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
-        <simpleclient.version>0.8.1</simpleclient.version>
-        <junit4.version>4.13.2</junit4.version>
+
+        <jsr305.version>1.3.9</jsr305.version>
         <junit5.version>5.9.1</junit5.version>
+        <junit5-platform.version>1.9.1</junit5-platform.version>
         <assertj.version>3.23.1</assertj.version>
-        <archunit.version>1.0.0</archunit.version>
-        <testcontainers.version>1.17.2</testcontainers.version>
-        <mockito.version>2.21.0</mockito.version>
+        <mockito.version>4.11.0</mockito.version>
+        <archunit.version>1.0.1</archunit.version>
+        <testcontainers.version>1.17.6</testcontainers.version>
 
         <japicmp.skip>false</japicmp.skip>
         <japicmp.referenceVersion>1.16.0</japicmp.referenceVersion>
 
+        <protobuf.version>3.21.9</protobuf.version>
         <slf4j.version>1.7.36</slf4j.version>
         <log4j.version>2.17.2</log4j.version>
+        <jaxb-api.version>2.3.1</jaxb-api.version>
+        <commons-compress.version>1.22</commons-compress.version>
+        <byte-buddy.version>1.12.20</byte-buddy.version>
+        <kryo.version>2.24.0</kryo.version>
+        <objenesis.version>3.3</objenesis.version>
+
+        <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
+        <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.3.0</build-helper-maven-plugin.version>
 
         <flink.parent.artifactId>flink-connector-pulsar-parent</flink.parent.artifactId>
     </properties>
@@ -78,6 +86,7 @@ under the License.
         <!-- Root dependencies for all projects -->
 
         <!-- Logging API -->
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -85,6 +94,7 @@ under the License.
         </dependency>
 
         <!-- 'javax.annotation' classes like '@Nullable' -->
+
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
@@ -92,25 +102,22 @@ under the License.
         </dependency>
 
         <!-- Test dependencies -->
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>${junit5.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
-            <type>jar</type>
             <scope>test</scope>
         </dependency>
 
@@ -147,86 +154,122 @@ under the License.
         </dependency>
 
         <!-- ArchUit test dependencies -->
+
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-architecture-tests-test</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-architecture-tests-production</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <!-- This section defines the module versions that are used if nothing else is specified. -->
 
     <dependencyManagement>
-
         <dependencies>
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-client-all</artifactId>
+                <version>${pulsar.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.activation</groupId>
+                        <artifactId>javax.activation</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jakarta.activation</groupId>
+                        <artifactId>jakarta.activation-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jakarta.ws.rs</groupId>
+                        <artifactId>jakarta.ws.rs-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>jakarta.xml.bind</groupId>
+                        <artifactId>jakarta.xml.bind-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.validation</groupId>
+                        <artifactId>validation-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>net.jcip</groupId>
+                        <artifactId>jcip-annotations</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.pulsar</groupId>
+                        <artifactId>pulsar-package-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.beust</groupId>
+                        <artifactId>jcommander</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <!-- Flink dependencies -->
 
             <dependency>
                 <groupId>org.apache.flink</groupId>
                 <artifactId>flink-test-utils</artifactId>
                 <version>${flink.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.flink</groupId>
                 <artifactId>flink-test-utils-junit</artifactId>
                 <version>${flink.version}</version>
-                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-connector-test-utils</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-core</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-streaming-java</artifactId>
+                <version>${flink.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-connector-base</artifactId>
+                <version>${flink.version}</version>
             </dependency>
 
             <!-- Flink ArchUnit -->
 
             <dependency>
                 <groupId>org.apache.flink</groupId>
-                <artifactId>flink-architecture-tests-base</artifactId>
-                <version>${flink.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.flink</groupId>
                 <artifactId>flink-architecture-tests-test</artifactId>
                 <version>${flink.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.flink</groupId>
                 <artifactId>flink-architecture-tests-production</artifactId>
                 <version>${flink.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <!-- This manages the 'javax.annotation' annotations (JSR305) -->
+
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
-                <version>1.3.9</version>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>1.15</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <version>4.4.14</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>4.5.13</version>
+                <version>${jsr305.version}</version>
             </dependency>
 
             <dependency>
@@ -269,363 +312,111 @@ under the License.
             </dependency>
 
             <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit</artifactId>
                 <version>${archunit.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit-junit5</artifactId>
                 <version>${archunit.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <!-- For dependency convergence -->
+
             <dependency>
                 <groupId>org.junit.platform</groupId>
                 <artifactId>junit-platform-engine</artifactId>
-                <version>1.8.1</version>
+                <version>${junit5-platform.version}</version>
             </dependency>
 
             <!-- For dependency convergence -->
-            <dependency>
-                <groupId>com.esotericsoftware.kryo</groupId>
-                <artifactId>kryo</artifactId>
-                <version>2.24.0</version>
-            </dependency>
 
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>org.objenesis</groupId>
-                <artifactId>objenesis</artifactId>
-                <version>2.6</version>
-            </dependency>
-
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.12.10</version>
-            </dependency>
-
-            <!-- For dependency convergence -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-api</artifactId>
+                <artifactId>junit-jupiter</artifactId>
                 <version>${junit5.version}</version>
             </dependency>
 
             <!-- For dependency convergence -->
-            <dependency>
-                <groupId>org.junit.platform</groupId>
-                <artifactId>junit-platform-commons</artifactId>
-                <version>1.9.1</version>
-            </dependency>
 
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.checkerframework</groupId>
-                <artifactId>checker-qual</artifactId>
-                <version>3.10.0</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protoc.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protoc.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>31.0.1-jre</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>commons-cli</groupId>
-                <artifactId>commons-cli</artifactId>
-                <version>1.5.0</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-collections4</artifactId>
-                <version>4.4</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.8.0</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>commons-logging</groupId>
-                <artifactId>commons-logging</artifactId>
-                <version>1.2</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For dependency convergence -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.21</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>net.java.dev.jna</groupId>
-                <artifactId>jna</artifactId>
-                <version>5.8.0</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.javassist</groupId>
-                <artifactId>javassist</artifactId>
-                <version>3.25.0-GA</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.xerial.snappy</groupId>
-                <artifactId>snappy-java</artifactId>
-                <version>1.1.8.3</version>
-                <scope>test</scope>
+                <version>${commons-compress.version}</version>
             </dependency>
 
             <!-- For dependency convergence -->
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <type>pom</type>
-                <scope>import</scope>
-                <version>${jackson-bom.version}</version>
-            </dependency>
 
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.11</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.conscrypt</groupId>
-                <artifactId>conscrypt-openjdk-uber</artifactId>
-                <version>2.5.2</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-                <version>2.8.9</version>
-            </dependency>
-
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-ext-jdk15on</artifactId>
-                <version>${bouncycastle.version}</version>
-                <scope>compile</scope>
-            </dependency>
-
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
-                <version>${bouncycastle.version}</version>
-                <scope>compile</scope>
-            </dependency>
-
-            <!-- For dependency convergence -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-bom</artifactId>
-                <type>pom</type>
-                <scope>import</scope>
-                <version>${grpc-bom.version}</version>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-servlet</artifactId>
-                <version>${jetty.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-server</artifactId>
-                <version>${jetty.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.auth</groupId>
-                <artifactId>google-auth-library-credentials</artifactId>
-                <version>${google.auth.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.auth</groupId>
-                <artifactId>google-auth-library-oauth2-http</artifactId>
-                <version>${google.auth.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.google.http-client</groupId>
-                <artifactId>google-http-client</artifactId>
-                <version>1.41.0</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>io.perfmark</groupId>
-                <artifactId>perfmark-api</artifactId>
-                <version>0.19.0</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_httpserver</artifactId>
-                <version>${simpleclient.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_hotspot</artifactId>
-                <version>${simpleclient.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient</artifactId>
-                <version>${simpleclient.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_common</artifactId>
-                <version>${simpleclient.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>com.github.ben-manes.caffeine</groupId>
-                <artifactId>caffeine</artifactId>
-                <version>2.9.1</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>1.33</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit4.version}</version>
-            </dependency>
-
-            <!-- For test dependency convergence -->
-            <dependency>
-                <groupId>org.apache.zookeeper</groupId>
-                <artifactId>zookeeper</artifactId>
-                <version>3.6.3</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- For test dependency convergence -->
             <dependency>
                 <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy-agent</artifactId>
-                <version>1.10.14</version>
-                <scope>test</scope>
+                <artifactId>byte-buddy</artifactId>
+                <version>${byte-buddy.version}</version>
             </dependency>
 
-            <!-- For test dependency convergence -->
+            <!-- For dependency convergence -->
+
             <dependency>
-                <groupId>com.google.auto.value</groupId>
-                <artifactId>auto-value-annotations</artifactId>
-                <version>1.9</version>
-                <scope>test</scope>
+                <groupId>com.esotericsoftware.kryo</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kryo.version}</version>
             </dependency>
 
-            <!-- For test dependency convergence -->
+            <!-- For dependency convergence -->
+
             <dependency>
-                <groupId>com.google.errorprone</groupId>
-                <artifactId>error_prone_annotations</artifactId>
-                <version>2.7.1</version>
-                <scope>test</scope>
+                <groupId>org.objenesis</groupId>
+                <artifactId>objenesis</artifactId>
+                <version>${objenesis.version}</version>
             </dependency>
 
-            <!-- For test dependency convergence -->
             <dependency>
-                <groupId>io.opencensus</groupId>
-                <artifactId>opencensus-contrib-http-util</artifactId>
-                <version>0.28.0</version>
-                <scope>test</scope>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 
     <build>
-        <plugins>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>${os-maven-plugin.version}</version>
+            </extension>
+        </extensions>
 
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.xolstice.maven.plugins</groupId>
+                    <artifactId>protobuf-maven-plugin</artifactId>
+                    <version>${protobuf-maven-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build-helper-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -655,6 +446,7 @@ under the License.
                 <artifactId>apache-rat-plugin</artifactId>
                 <inherited>false</inherited>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -666,10 +458,12 @@ under the License.
                     </sourceDirectories>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

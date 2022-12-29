@@ -45,7 +45,7 @@ public class PulsarUnorderedSourceITCase extends UnorderedSourceTestSuiteBase<St
 
     // Defines pulsar running environment
     @TestExternalSystem
-    PulsarTestEnvironment pulsar = new PulsarTestEnvironment(PulsarRuntime.mock());
+    PulsarTestEnvironment pulsar = new PulsarTestEnvironment(PulsarRuntime.container());
 
     @TestSemantics
     CheckpointingMode[] semantics = new CheckpointingMode[] {CheckpointingMode.EXACTLY_ONCE};
