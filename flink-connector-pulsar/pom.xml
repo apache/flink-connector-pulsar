@@ -34,17 +34,6 @@ under the License.
 
 	<packaging>jar</packaging>
 
-	<properties>
-		<protoc.version>3.21.7</protoc.version>
-
-		<!-- Test Libraries -->
-		<protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
-		<os-maven-plugin.version>1.7.0</os-maven-plugin.version>
-		<pulsar-netty.version>4.1.77.Final</pulsar-netty.version>
-		<pulsar-grpc.version>1.45.1</pulsar-grpc.version>
-		<pulsar-caffeine.version>2.9.1</pulsar-caffeine.version>
-	</properties>
-
 	<dependencies>
 
 		<!-- Core -->
@@ -52,7 +41,6 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-base</artifactId>
-			<version>${flink.version}</version>
 		</dependency>
 
 		<!-- Connectors -->
@@ -60,7 +48,6 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-streaming-java</artifactId>
-			<version>${flink.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -69,9 +56,15 @@ under the License.
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java</artifactId>
-			<version>${protoc.version}</version>
 			<scope>provided</scope>
 			<optional>true</optional>
+		</dependency>
+
+		<!-- Pulsar Client -->
+
+		<dependency>
+			<groupId>org.apache.pulsar</groupId>
+			<artifactId>pulsar-client-all</artifactId>
 		</dependency>
 
 		<!-- Tests -->
@@ -95,7 +88,6 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-test-utils</artifactId>
-			<version>${flink.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -106,131 +98,13 @@ under the License.
 			<artifactId>pulsar</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-		<!-- Pulsar bundles the latest bookkeeper -->
-		<!-- we don't override the version here. -->
-		<dependency>
-			<groupId>org.apache.pulsar</groupId>
-			<artifactId>testmocks</artifactId>
-			<version>${pulsar.version}</version>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.testng</groupId>
-					<artifactId>testng</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.powermock</groupId>
-					<artifactId>powermock-module-testng</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.zookeeper</groupId>
-					<artifactId>zookeeper</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.pulsar</groupId>
-			<artifactId>pulsar-broker</artifactId>
-			<version>${pulsar.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.github.ben-manes.caffeine</groupId>
-			<artifactId>caffeine</artifactId>
-			<version>${pulsar-caffeine.version}</version>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- Add Pulsar 2.x as a dependency. -->
-		<!-- Move this to button for avoiding class conflicts with pulsar-broker. -->
-
-		<dependency>
-			<groupId>org.apache.pulsar</groupId>
-			<artifactId>pulsar-client-all</artifactId>
-			<version>${pulsar.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.sun.activation</groupId>
-					<artifactId>javax.activation</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>jakarta.activation</groupId>
-					<artifactId>jakarta.activation-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>jakarta.ws.rs</groupId>
-					<artifactId>jakarta.ws.rs-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>jakarta.xml.bind</groupId>
-					<artifactId>jakarta.xml.bind-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>javax.validation</groupId>
-					<artifactId>validation-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>net.jcip</groupId>
-					<artifactId>jcip-annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.pulsar</groupId>
-					<artifactId>pulsar-package-core</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.beust</groupId>
-					<artifactId>jcommander</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<!-- ArchUit test dependencies -->
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-architecture-tests-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
 
-
-	<dependencyManagement>
-		<dependencies>
-			<!-- Pulsar use higher gRPC version. -->
-			<dependency>
-				<groupId>io.grpc</groupId>
-				<artifactId>grpc-bom</artifactId>
-				<version>${pulsar-grpc.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
-			<!-- Pulsar use higher netty version. -->
-			<dependency>
-				<groupId>io.netty</groupId>
-				<artifactId>netty-bom</artifactId>
-				<version>${pulsar-netty.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
-
 	<build>
-		<extensions>
-			<extension>
-				<groupId>kr.motd.maven</groupId>
-				<artifactId>os-maven-plugin</artifactId>
-				<version>${os-maven-plugin.version}</version>
-			</extension>
-		</extensions>
-
 		<plugins>
 			<plugin>
 				<groupId>org.xolstice.maven.plugins</groupId>
 				<artifactId>protobuf-maven-plugin</artifactId>
-				<version>${protobuf-maven-plugin.version}</version>
 				<extensions>true</extensions>
 				<configuration>
 					<!-- Currently Flink azure test pipeline would first pre-compile and then upload the compiled
@@ -247,7 +121,7 @@ under the License.
 						${project.build.directory}/generated-test-sources/protobuf/java
 					</outputDirectory>
 					<protocArtifact>
-						com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}
+						com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}
 					</protocArtifact>
 				</configuration>
 				<executions>

@@ -20,7 +20,6 @@ package org.apache.flink.connector.pulsar.testutils.runtime.container;
 
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
-import org.apache.flink.util.DockerImageVersions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ import org.testcontainers.utility.DockerImageName;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.flink.util.DockerImageVersions.PULSAR;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
@@ -54,12 +52,11 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     // This url is used on the container side.
     private static final String PULSAR_ADMIN_URL =
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);
+    private static final DockerImageName PULSAR_IMAGE =
+            DockerImageName.parse("apachepulsar/pulsar:2.10.2");
 
-    /**
-     * Create a pulsar container provider by a predefined version, this constance {@link
-     * DockerImageVersions#PULSAR} should be bumped after the new pulsar release.
-     */
-    private final PulsarContainer container = new PulsarContainer(DockerImageName.parse(PULSAR));
+    /** Create a pulsar container provider by a predefined version. */
+    private final PulsarContainer container = new PulsarContainer(PULSAR_IMAGE);
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 

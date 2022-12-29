@@ -30,7 +30,7 @@ under the License.
 	</parent>
 
 	<artifactId>flink-sql-connector-pulsar</artifactId>
-	<name>Flink : Connectors : SQL : Pulsar</name>
+	<name>Flink : Connectors : Pulsar : SQL</name>
 
 	<packaging>jar</packaging>
 
