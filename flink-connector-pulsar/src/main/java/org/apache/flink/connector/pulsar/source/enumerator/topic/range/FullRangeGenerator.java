@@ -40,9 +40,4 @@ public class FullRangeGenerator implements RangeGenerator {
     public List<TopicRange> range(TopicMetadata metadata, int parallelism) {
         return singletonList(TopicRange.createFullRange());
     }
-
-    @Override
-    public KeySharedMode keyShareMode(TopicMetadata metadata, int parallelism) {
-        return KeySharedMode.SPLIT;
-    }
 }

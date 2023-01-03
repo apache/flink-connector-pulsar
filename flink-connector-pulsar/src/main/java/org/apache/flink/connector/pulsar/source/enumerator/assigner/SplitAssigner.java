@@ -19,8 +19,11 @@
 package org.apache.flink.connector.pulsar.source.enumerator.assigner;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
+import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState;
+import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
@@ -63,4 +66,14 @@ public interface SplitAssigner {
 
     /** Expose this for standard flink metrics. */
     long getUnassignedSplitCount();
+
+    /** The factory for creating split assigner. */
+    static SplitAssigner createAssigner(
+            StopCursor stopCursor,
+            SourceConfiguration sourceConfiguration,
+            SplitEnumeratorContext<PulsarPartitionSplit> context,
+            PulsarSourceEnumState enumState) {
+        boolean enablePartitionDiscovery = sourceConfiguration.isEnablePartitionDiscovery();
+        return new SplitAssignerImpl(stopCursor, enablePartitionDiscovery, context, enumState);
+    }
 }

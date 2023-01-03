@@ -63,7 +63,6 @@ PulsarSource<String> source = PulsarSource.builder()
     .setTopics("my-topic")
     .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
     .setSubscriptionName("my-subscription")
-    .setSubscriptionType(SubscriptionType.Exclusive)
     .build();
 
 env.fromSource(source, WatermarkStrategy.noWatermarks(), "Pulsar Source");
@@ -81,7 +80,6 @@ pulsar_source = PulsarSource.builder() \
     .set_deserialization_schema(
         PulsarDeserializationSchema.flink_schema(SimpleStringSchema())) \
     .set_subscription_name('my-subscription') \
-    .set_subscription_type(SubscriptionType.Exclusive) \
     .build()
 
 env.from_source(source=pulsar_source,
@@ -261,70 +259,11 @@ If you want to deserialize the Pulsar message by these properties, you need to i
 Ensure that the `TypeInformation` from the `PulsarDeserializationSchema.getProducedType()` is correct.
 Flink uses this `TypeInformation` to pass the messages to downstream operators.
 
-### Pulsar Subscriptions
+### Define a RangeGenerator
 
-A Pulsar subscription is a named configuration rule that determines how messages are delivered to Flink readers.
-The subscription name is required for consuming messages. Pulsar connector supports four subscription types:
-
-- [Exclusive](https://pulsar.apache.org/docs/en/concepts-messaging/#exclusive)
-- [Shared](https://pulsar.apache.org/docs/en/concepts-messaging/#shared)
-- [Failover](https://pulsar.apache.org/docs/en/concepts-messaging/#failover)
-- [Key_Shared](https://pulsar.apache.org/docs/en/concepts-messaging/#key_shared)
-
-There is no difference between `Exclusive` and `Failover` in the Pulsar connector.
-When a Flink reader crashes, all (non-acknowledged and subsequent) messages are redelivered to the available Flink readers.
-
-By default, if no subscription type is defined, Pulsar source uses the `Shared` subscription type.
-
-{{< tabs "pulsar-subscriptions" >}}
-{{< tab "Java" >}}
-
-```java
-// Shared subscription with name "my-shared"
-PulsarSource.builder().setSubscriptionName("my-shared");
-
-// Exclusive subscription with name "my-exclusive"
-PulsarSource.builder().setSubscriptionName("my-exclusive").setSubscriptionType(SubscriptionType.Exclusive);
-```
-
-{{< /tab >}}
-{{< tab "Python" >}}
-
-```python
-# Shared subscription with name "my-shared"
-PulsarSource.builder().set_subscription_name("my-shared")
-
-# Exclusive subscription with name "my-exclusive"
-PulsarSource.builder().set_subscription_name("my-exclusive").set_subscription_type(SubscriptionType.Exclusive)
-```
-
-{{< /tab >}}
-{{< /tabs >}}
-
-#### Key_Shared subscriptions
-
-All the Pulsar's messages will be calculated with a key hash in Key_Shared subscription.
-The hash range must be 0 to 65535. We try to compute the key hash in the order of `Message.getOrderingKey()`,
-`Message.getKey()` or `Message.getKeyBytes()`. We will use `"NO_KEY"` str as the message key if none of these keys has been provided.
-
-Pulsar's Key_Shared subscription comes in two forms in Connector, the `KeySharedMode.SPLIT` and `KeySharedMode.JOIN`.
-Different `KeySharedMode` means different split assignment behaviors. If you only consume a subset of Pulsar's key hash range,
-remember to use the `KeySharedMode.JOIN` which will subscribe all the range in only one reader.
-Otherwise, when the ranges can join into a full Pulsar key hash range (0~65535) you should use `KeySharedMode.SPLIT`
-mode for sharing the splits among all the backend readers.
-
-In the `KeySharedMode.SPLIT` mode. The topic will be subscribed by multiple readers.
-But Pulsar has one limit in this situation. That is if a Message can't find the corresponding reader by the key hash range.
-No messages will be delivered to the current readers, until there is a reader which can subscribe to such messages.
-
-##### Define a RangeGenerator
-
-Ensure that you have provided a `RangeGenerator` implementation if you want to use the `Key_Shared` subscription type on the Pulsar connector.
+Ensure that you have provided a `RangeGenerator` implementation if you want to consume a subset of keys on the Pulsar connector.
 The `RangeGenerator` generates a set of key hash ranges so that a respective reader subtask only dispatches
 messages where the hash of the message key is contained in the specified range.
-
-The Pulsar connector uses `SplitRangeGenerator` that divides the range by the Flink source
-parallelism if no `RangeGenerator` is provided in the `Key_Shared` subscription type.
 
 Since the Pulsar didn't expose the key hash range method. We have to provide an `FixedKeysRangeGenerator` for end-user.
 You can add the keys you want to consume, no need to calculate any hash ranges.

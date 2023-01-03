@@ -22,7 +22,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.common.naming.TopicName;
@@ -63,9 +62,8 @@ public class TopicListSubscriber extends BasePulsarSubscriber {
         for (String topic : fullTopicNames) {
             TopicMetadata metadata = queryTopicMetadata(pulsarAdmin, topic);
             List<TopicRange> ranges = rangeGenerator.range(metadata, parallelism);
-            KeySharedMode mode = rangeGenerator.keyShareMode(metadata, parallelism);
 
-            results.addAll(toTopicPartitions(metadata, ranges, mode));
+            results.addAll(toTopicPartitions(metadata, ranges));
         }
 
         for (String partition : partitions) {
@@ -75,9 +73,8 @@ public class TopicListSubscriber extends BasePulsarSubscriber {
 
             TopicMetadata metadata = queryTopicMetadata(pulsarAdmin, name);
             List<TopicRange> ranges = rangeGenerator.range(metadata, parallelism);
-            KeySharedMode mode = rangeGenerator.keyShareMode(metadata, parallelism);
 
-            results.addAll(toTopicPartitions(name, index, ranges, mode));
+            results.add(new TopicPartition(name, index, ranges));
         }
 
         return results;

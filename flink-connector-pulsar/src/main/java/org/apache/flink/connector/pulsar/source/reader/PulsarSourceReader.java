@@ -16,22 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.reader.source;
+package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
+import org.apache.flink.connector.base.source.reader.SourceReaderBase;
+import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
-import org.apache.flink.connector.pulsar.source.reader.emitter.PulsarRecordEmitter;
-import org.apache.flink.connector.pulsar.source.reader.fetcher.PulsarOrderedFetcherManager;
-import org.apache.flink.connector.pulsar.source.reader.split.PulsarOrderedPartitionSplitReader;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitState;
 import org.apache.flink.core.io.InputStatus;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Message;
@@ -40,6 +41,7 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -54,39 +56,52 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createAdmin;
+import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
+
 /**
  * The source reader for pulsar subscription Failover and Exclusive, which consumes the ordered
  * messages.
+ *
+ * @param <OUT> The output message type for flink.
  */
 @Internal
-public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> {
-    private static final Logger LOG = LoggerFactory.getLogger(PulsarOrderedSourceReader.class);
+public class PulsarSourceReader<OUT>
+        extends SourceReaderBase<
+                Message<byte[]>, OUT, PulsarPartitionSplit, PulsarPartitionSplitState> {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceReader.class);
 
+    private final SourceConfiguration sourceConfiguration;
+    private final PulsarClient pulsarClient;
+    private final PulsarAdmin pulsarAdmin;
     @VisibleForTesting final SortedMap<Long, Map<TopicPartition, MessageId>> cursorsToCommit;
     private final ConcurrentMap<TopicPartition, MessageId> cursorsOfFinishedSplits;
-    private final AtomicReference<Throwable> cursorCommitThrowable = new AtomicReference<>();
+    private final AtomicReference<Throwable> cursorCommitThrowable;
+
     private ScheduledExecutorService cursorScheduler;
 
-    public PulsarOrderedSourceReader(
+    private PulsarSourceReader(
             FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue,
-            Supplier<PulsarOrderedPartitionSplitReader> splitReaderSupplier,
-            PulsarRecordEmitter<OUT> recordEmitter,
-            SourceReaderContext context,
+            PulsarSourceFetcherManager fetcherManager,
+            PulsarDeserializationSchema<OUT> deserializationSchema,
             SourceConfiguration sourceConfiguration,
             PulsarClient pulsarClient,
-            PulsarAdmin pulsarAdmin) {
+            PulsarAdmin pulsarAdmin,
+            SourceReaderContext context) {
         super(
                 elementsQueue,
-                new PulsarOrderedFetcherManager(
-                        elementsQueue, splitReaderSupplier::get, context.getConfiguration()),
-                recordEmitter,
-                context,
+                fetcherManager,
+                new PulsarRecordEmitter<>(deserializationSchema),
                 sourceConfiguration,
-                pulsarClient,
-                pulsarAdmin);
+                context);
+
+        this.sourceConfiguration = sourceConfiguration;
+        this.pulsarClient = pulsarClient;
+        this.pulsarAdmin = pulsarAdmin;
 
         this.cursorsToCommit = Collections.synchronizedSortedMap(new TreeMap<>());
         this.cursorsOfFinishedSplits = new ConcurrentHashMap<>();
+        this.cursorCommitThrowable = new AtomicReference<>();
     }
 
     @Override
@@ -106,14 +121,20 @@ public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> 
 
     @Override
     public InputStatus pollNext(ReaderOutput<OUT> output) throws Exception {
-        checkErrorAndRethrow();
+        Throwable cause = cursorCommitThrowable.get();
+        if (cause != null) {
+            throw new FlinkRuntimeException("An error occurred in acknowledge message.", cause);
+        }
+
         return super.pollNext(output);
     }
 
     @Override
     protected void onSplitFinished(Map<String, PulsarPartitionSplitState> finishedSplitIds) {
         // Close all the finished splits.
-        closeFinishedSplits(finishedSplitIds.keySet());
+        for (String splitId : finishedSplitIds.keySet()) {
+            ((PulsarSourceFetcherManager) splitFetcherManager).closeFetcher(splitId);
+        }
 
         // We don't require new splits, all the splits are pre-assigned by source enumerator.
         if (LOG.isDebugEnabled()) {
@@ -127,6 +148,23 @@ public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> 
                 cursorsOfFinishedSplits.put(state.getPartition(), latestConsumedId);
             }
         }
+    }
+
+    @Override
+    protected PulsarPartitionSplitState initializedState(PulsarPartitionSplit split) {
+        return new PulsarPartitionSplitState(split);
+    }
+
+    @Override
+    protected PulsarPartitionSplit toSplitType(
+            String splitId, PulsarPartitionSplitState splitState) {
+        return splitState.toPulsarPartitionSplit();
+    }
+
+    @Override
+    public void pauseOrResumeSplits(
+            Collection<String> splitsToPause, Collection<String> splitsToResume) {
+        splitFetcherManager.pauseOrResumeSplits(splitsToPause, splitsToResume);
     }
 
     @Override
@@ -154,7 +192,7 @@ public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> 
         LOG.debug("Committing cursors for checkpoint {}", checkpointId);
         Map<TopicPartition, MessageId> cursors = cursorsToCommit.get(checkpointId);
         try {
-            ((PulsarOrderedFetcherManager) splitFetcherManager).acknowledgeMessages(cursors);
+            ((PulsarSourceFetcherManager) splitFetcherManager).acknowledgeMessages(cursors);
             LOG.debug("Successfully acknowledge cursors for checkpoint {}", checkpointId);
 
             // Clean up the cursors.
@@ -172,17 +210,15 @@ public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> 
             cursorScheduler.shutdown();
         }
 
+        // Close the all the consumers.
         super.close();
+
+        // Close shared pulsar resources.
+        pulsarClient.shutdown();
+        pulsarAdmin.close();
     }
 
     // ----------------- helper methods --------------
-
-    private void checkErrorAndRethrow() {
-        Throwable cause = cursorCommitThrowable.get();
-        if (cause != null) {
-            throw new RuntimeException("An error occurred in acknowledge message.", cause);
-        }
-    }
 
     /** Acknowledge the pulsar topic partition cursor by the last consumed message id. */
     private void cumulativeAcknowledgmentMessage() {
@@ -199,12 +235,49 @@ public class PulsarOrderedSourceReader<OUT> extends PulsarSourceReaderBase<OUT> 
         }
 
         try {
-            ((PulsarOrderedFetcherManager) splitFetcherManager).acknowledgeMessages(cursors);
+            ((PulsarSourceFetcherManager) splitFetcherManager).acknowledgeMessages(cursors);
             // Clean up the finish splits.
             cursorsOfFinishedSplits.keySet().removeAll(cursors.keySet());
         } catch (Exception e) {
             LOG.error("Fail in auto cursor commit.", e);
             cursorCommitThrowable.compareAndSet(null, e);
         }
+    }
+
+    /** Factory method for creating PulsarSourceReader. */
+    public static <OUT> PulsarSourceReader<OUT> create(
+            SourceConfiguration sourceConfiguration,
+            PulsarDeserializationSchema<OUT> deserializationSchema,
+            SourceReaderContext readerContext) {
+
+        // Create a message queue with the predefined source option.
+        int queueCapacity = sourceConfiguration.getMessageQueueCapacity();
+        FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue =
+                new FutureCompletingBlockingQueue<>(queueCapacity);
+
+        PulsarClient pulsarClient = createClient(sourceConfiguration);
+        PulsarAdmin pulsarAdmin = createAdmin(sourceConfiguration);
+
+        // Create an ordered split reader supplier.
+        Supplier<SplitReader<Message<byte[]>, PulsarPartitionSplit>> splitReaderSupplier =
+                () ->
+                        new PulsarPartitionSplitReader(
+                                pulsarClient,
+                                pulsarAdmin,
+                                sourceConfiguration,
+                                readerContext.metricGroup());
+
+        PulsarSourceFetcherManager fetcherManager =
+                new PulsarSourceFetcherManager(
+                        elementsQueue, splitReaderSupplier, readerContext.getConfiguration());
+
+        return new PulsarSourceReader<>(
+                elementsQueue,
+                fetcherManager,
+                deserializationSchema,
+                sourceConfiguration,
+                pulsarClient,
+                pulsarAdmin,
+                readerContext);
     }
 }

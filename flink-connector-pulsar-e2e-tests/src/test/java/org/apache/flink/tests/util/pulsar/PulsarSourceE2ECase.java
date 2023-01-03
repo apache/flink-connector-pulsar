@@ -19,13 +19,13 @@
 package org.apache.flink.tests.util.pulsar;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
-import org.apache.flink.connector.pulsar.testutils.source.UnorderedSourceTestSuiteBase;
-import org.apache.flink.connector.pulsar.testutils.source.cases.KeySharedSubscriptionContext;
-import org.apache.flink.connector.pulsar.testutils.source.cases.SharedSubscriptionContext;
+import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicConsumingContext;
+import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
+import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerWithPulsarEnvironment;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
@@ -33,12 +33,12 @@ import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 import org.junit.jupiter.api.Tag;
 
 /**
- * Pulsar E2E test based on connector testing framework. It's used for Shared & Key_Shared
+ * Pulsar E2E test based on connector testing framework. It's used for Failover & Exclusive
  * subscription.
  */
 @SuppressWarnings("unused")
 @Tag("org.apache.flink.testutils.junit.FailsOnJava11")
-public class PulsarSourceUnorderedE2ECase extends UnorderedSourceTestSuiteBase<String> {
+public class PulsarSourceE2ECase extends SourceTestSuiteBase<String> {
 
     // Defines the Semantic.
     @TestSemantics
@@ -46,7 +46,7 @@ public class PulsarSourceUnorderedE2ECase extends UnorderedSourceTestSuiteBase<S
 
     // Defines TestEnvironment.
     @TestEnv
-    FlinkContainerWithPulsarEnvironment flink = new FlinkContainerWithPulsarEnvironment(1, 8);
+    FlinkContainerWithPulsarEnvironment flink = new FlinkContainerWithPulsarEnvironment(1, 6);
 
     // Defines ConnectorExternalSystem.
     @TestExternalSystem
@@ -54,10 +54,10 @@ public class PulsarSourceUnorderedE2ECase extends UnorderedSourceTestSuiteBase<S
 
     // Defines a set of external context Factories for different test cases.
     @TestContext
-    PulsarTestContextFactory<String, SharedSubscriptionContext> shared =
-            new PulsarTestContextFactory<>(pulsar, SharedSubscriptionContext::new);
+    PulsarTestContextFactory<String, MultipleTopicConsumingContext> multipleTopic =
+            new PulsarTestContextFactory<>(pulsar, MultipleTopicConsumingContext::new);
 
     @TestContext
-    PulsarTestContextFactory<String, KeySharedSubscriptionContext> keyShared =
-            new PulsarTestContextFactory<>(pulsar, KeySharedSubscriptionContext::new);
+    PulsarTestContextFactory<String, PartialKeysConsumingContext> partialKeys =
+            new PulsarTestContextFactory<>(pulsar, PartialKeysConsumingContext::new);
 }

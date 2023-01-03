@@ -59,21 +59,14 @@ public class FixedKeysRangeGenerator implements RangeGenerator {
     private static final long serialVersionUID = 2372969466289052100L;
 
     private final List<TopicRange> ranges;
-    private final KeySharedMode sharedMode;
 
-    private FixedKeysRangeGenerator(List<TopicRange> ranges, KeySharedMode sharedMode) {
+    public FixedKeysRangeGenerator(List<TopicRange> ranges) {
         this.ranges = ranges;
-        this.sharedMode = sharedMode;
     }
 
     @Override
     public List<TopicRange> range(TopicMetadata metadata, int parallelism) {
         return ranges;
-    }
-
-    @Override
-    public KeySharedMode keyShareMode(TopicMetadata metadata, int parallelism) {
-        return sharedMode;
     }
 
     public static FixedKeysRangeGeneratorBuilder builder() {
@@ -85,7 +78,6 @@ public class FixedKeysRangeGenerator implements RangeGenerator {
     public static class FixedKeysRangeGeneratorBuilder {
 
         private final SortedSet<Integer> keyHashes = new TreeSet<>();
-        private KeySharedMode sharedMode = KeySharedMode.JOIN;
 
         private FixedKeysRangeGeneratorBuilder() {
             // No public for builder
@@ -138,12 +130,6 @@ public class FixedKeysRangeGenerator implements RangeGenerator {
             return this;
         }
 
-        /** Override the default {@link KeySharedMode#JOIN} to the mode your have provided. */
-        public FixedKeysRangeGeneratorBuilder keySharedMode(KeySharedMode sharedMode) {
-            this.sharedMode = sharedMode;
-            return this;
-        }
-
         /** Create the FixedKeysRangeGenerator by the given keys. */
         public FixedKeysRangeGenerator build() {
             List<TopicRange> ranges = new ArrayList<>();
@@ -178,8 +164,8 @@ public class FixedKeysRangeGenerator implements RangeGenerator {
                 ranges.add(range);
             }
 
-            validateTopicRanges(ranges, sharedMode);
-            return new FixedKeysRangeGenerator(ranges, sharedMode);
+            validateTopicRanges(ranges);
+            return new FixedKeysRangeGenerator(ranges);
         }
     }
 }

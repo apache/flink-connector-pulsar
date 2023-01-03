@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.source.split;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import org.apache.pulsar.client.api.MessageId;
@@ -50,7 +49,7 @@ public class PulsarPartitionSplitSerializer
             new PulsarPartitionSplitSerializer();
 
     // This version should be bumped after modifying the PulsarPartitionSplit.
-    public static final int CURRENT_VERSION = 1;
+    public static final int CURRENT_VERSION = 2;
 
     private PulsarPartitionSplitSerializer() {
         // Singleton instance.
@@ -141,7 +140,7 @@ public class PulsarPartitionSplitSerializer
 
     public void serializeTopicPartition(DataOutputStream out, TopicPartition partition)
             throws IOException {
-        // VERSION 1 serialization
+        // VERSION 2 serialization
         out.writeUTF(partition.getTopic());
         out.writeInt(partition.getPartitionId());
         serializeList(
@@ -151,7 +150,6 @@ public class PulsarPartitionSplitSerializer
                     o.writeInt(r.getStart());
                     o.writeInt(r.getEnd());
                 });
-        out.writeInt(partition.getMode().ordinal());
     }
 
     public TopicPartition deserializeTopicPartition(int version, DataInputStream in)
@@ -159,16 +157,14 @@ public class PulsarPartitionSplitSerializer
         String topic = in.readUTF();
         int partitionId = in.readInt();
         List<TopicRange> ranges;
-        KeySharedMode keySharedMode;
         if (version == 0) {
             // VERSION 0 deserialization
             int start = in.readInt();
             int end = in.readInt();
             TopicRange range = new TopicRange(start, end);
             ranges = singletonList(range);
-            keySharedMode = KeySharedMode.SPLIT;
         } else {
-            // VERSION 1 deserialization
+            // VERSION 1/2 deserialization
             ranges =
                     deserializeList(
                             in,
@@ -177,9 +173,11 @@ public class PulsarPartitionSplitSerializer
                                 int end = i.readInt();
                                 return new TopicRange(start, end);
                             });
-            keySharedMode = KeySharedMode.values()[in.readInt()];
+            if (version == 1) {
+                in.readInt();
+            }
         }
 
-        return new TopicPartition(topic, partitionId, ranges, keySharedMode);
+        return new TopicPartition(topic, partitionId, ranges);
     }
 }

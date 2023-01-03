@@ -21,8 +21,6 @@ package org.apache.flink.connector.pulsar.testutils.source.cases;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.source.PulsarSourceTestContext;
 
-import org.apache.pulsar.client.api.SubscriptionType;
-
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 
@@ -53,11 +51,6 @@ public class SingleTopicConsumingContext extends PulsarSourceTestContext {
     @Override
     protected String subscriptionName() {
         return "pulsar-single-topic-test";
-    }
-
-    @Override
-    protected SubscriptionType subscriptionType() {
-        return SubscriptionType.Exclusive;
     }
 
     @Override

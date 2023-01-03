@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.reader.fetcher;
+package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.Configuration;
@@ -26,9 +26,14 @@ import org.apache.flink.connector.base.source.reader.fetcher.SplitFetcher;
 import org.apache.flink.connector.base.source.reader.fetcher.SplitFetcherManager;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
+import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -37,10 +42,15 @@ import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 
-/** Common fetcher manager abstraction for both ordered & unordered message. */
+/**
+ * Pulsar's FetcherManager implementation for ordered consuming. This class is needed to help
+ * acknowledge the message to Pulsar using the {@link Consumer} inside the {@link
+ * PulsarPartitionSplitReader}.
+ */
 @Internal
-public abstract class PulsarFetcherManagerBase
+public class PulsarSourceFetcherManager
         extends SplitFetcherManager<Message<byte[]>, PulsarPartitionSplit> {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceFetcherManager.class);
 
     private final Map<String, Integer> splitFetcherMapping = new HashMap<>();
     private final Map<Integer, Boolean> fetcherStatus = new HashMap<>();
@@ -53,7 +63,7 @@ public abstract class PulsarFetcherManagerBase
      *     the same queue instance that is also passed to the {@link SourceReaderBase}.
      * @param splitReaderSupplier The factory for the split reader that connects to the source
      */
-    protected PulsarFetcherManagerBase(
+    public PulsarSourceFetcherManager(
             FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue,
             Supplier<SplitReader<Message<byte[]>, PulsarPartitionSplit>> splitReaderSupplier,
             Configuration configuration) {
@@ -95,8 +105,27 @@ public abstract class PulsarFetcherManagerBase
         }
     }
 
-    protected SplitFetcher<Message<byte[]>, PulsarPartitionSplit> getOrCreateFetcher(
-            String splitId) {
+    public void acknowledgeMessages(Map<TopicPartition, MessageId> cursorsToCommit) {
+        LOG.debug("Acknowledge messages {}", cursorsToCommit);
+        cursorsToCommit.forEach(
+                (partition, messageId) -> {
+                    SplitFetcher<Message<byte[]>, PulsarPartitionSplit> fetcher =
+                            getOrCreateFetcher(partition.toString());
+                    triggerAcknowledge(fetcher, partition, messageId);
+                });
+    }
+
+    private void triggerAcknowledge(
+            SplitFetcher<Message<byte[]>, PulsarPartitionSplit> splitFetcher,
+            TopicPartition partition,
+            MessageId messageId) {
+        PulsarPartitionSplitReader splitReader =
+                (PulsarPartitionSplitReader) splitFetcher.getSplitReader();
+        splitReader.notifyCheckpointComplete(partition, messageId);
+        startFetcher(splitFetcher);
+    }
+
+    private SplitFetcher<Message<byte[]>, PulsarPartitionSplit> getOrCreateFetcher(String splitId) {
         SplitFetcher<Message<byte[]>, PulsarPartitionSplit> fetcher;
         Integer fetcherId = splitFetcherMapping.get(splitId);
 

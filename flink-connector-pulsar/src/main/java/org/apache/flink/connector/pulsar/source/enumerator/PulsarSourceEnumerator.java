@@ -48,7 +48,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createAdmin;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyAdmin;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState.initialState;
-import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssignerFactory.createAssigner;
+import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssigner.createAssigner;
 
 /** The enumerator class for the pulsar source. */
 @Internal

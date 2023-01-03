@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
-import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode.JOIN;
 import static org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer.INSTANCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -39,21 +38,56 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 class PulsarPartitionSplitSerializerTest {
 
     @Test
-    void version1SerializeAndDeserialize() throws Exception {
+    void version2SerializeAndDeserialize() throws Exception {
         PulsarPartitionSplit split =
                 new PulsarPartitionSplit(
                         new TopicPartition(
-                                randomAlphabetic(10),
-                                10,
-                                singletonList(new TopicRange(400, 5000)),
-                                JOIN),
+                                randomAlphabetic(10), 10, singletonList(new TopicRange(400, 5000))),
                         StopCursor.defaultStopCursor());
 
         byte[] bytes = INSTANCE.serialize(split);
-        PulsarPartitionSplit split1 = INSTANCE.deserialize(1, bytes);
+        PulsarPartitionSplit split1 = INSTANCE.deserialize(2, bytes);
 
         assertEquals(split, split1);
         assertNotSame(split, split1);
+    }
+
+    @Test
+    void version1Deserialize() throws Exception {
+        DataOutputSerializer serializer = new DataOutputSerializer(4096);
+        serializer.writeUTF("topic44");
+        serializer.writeInt(2);
+        serializer.writeInt(1);
+        serializer.writeInt(122);
+        serializer.writeInt(12233);
+        serializer.writeInt(0);
+
+        byte[] stopCursorBytes = InstantiationUtil.serializeObject(StopCursor.latest());
+        serializer.writeInt(stopCursorBytes.length);
+        serializer.write(stopCursorBytes);
+
+        serializer.writeBoolean(true);
+        byte[] messageIdBytes = MessageId.latest.toByteArray();
+        serializer.writeInt(messageIdBytes.length);
+        serializer.write(messageIdBytes);
+
+        serializer.writeBoolean(true);
+        serializer.writeLong(1000);
+        serializer.writeLong(2000);
+
+        byte[] bytes = serializer.getSharedBuffer();
+
+        PulsarPartitionSplit split = INSTANCE.deserialize(1, bytes);
+
+        PulsarPartitionSplit expectedSplit =
+                new PulsarPartitionSplit(
+                        new TopicPartition("topic44", 2, singletonList(new TopicRange(122, 12233))),
+                        StopCursor.latest(),
+                        MessageId.latest,
+                        new TxnID(1000, 2000));
+
+        assertEquals(split, expectedSplit);
+        assertNotSame(split, expectedSplit);
     }
 
     @Test

@@ -27,6 +27,7 @@ import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.DeadLetterPolicy;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +62,6 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_RETRY_LETTER_TOPIC;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_TICK_DURATION_MILLIS;
 
 /** Create source related {@link Consumer} and validate config. */
@@ -100,7 +100,6 @@ public final class PulsarSourceConfigUtils {
         configuration.useOption(
                 PULSAR_NEGATIVE_ACK_REDELIVERY_DELAY_MICROS,
                 v -> builder.negativeAckRedeliveryDelay(v, MICROSECONDS));
-        configuration.useOption(PULSAR_SUBSCRIPTION_TYPE, builder::subscriptionType);
         configuration.useOption(PULSAR_SUBSCRIPTION_MODE, builder::subscriptionMode);
         configuration.useOption(PULSAR_CRYPTO_FAILURE_ACTION, builder::cryptoFailureAction);
         configuration.useOption(PULSAR_RECEIVER_QUEUE_SIZE, builder::receiverQueueSize);
@@ -134,6 +133,9 @@ public final class PulsarSourceConfigUtils {
         if (!properties.isEmpty()) {
             builder.properties(properties);
         }
+
+        // We only use exclusive subscription.
+        builder.subscriptionType(SubscriptionType.Exclusive);
 
         // Flink connector doesn't need any batch receiving behaviours.
         // Disable the batch-receive timer for the Consumer instance.

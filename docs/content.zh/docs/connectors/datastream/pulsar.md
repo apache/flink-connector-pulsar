@@ -59,7 +59,6 @@ PulsarSource<String> source = PulsarSource.builder()
     .setTopics("my-topic")
     .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
     .setSubscriptionName("my-subscription")
-    .setSubscriptionType(SubscriptionType.Exclusive)
     .build();
 
 env.fromSource(source, WatermarkStrategy.noWatermarks(), "Pulsar Source");
@@ -77,7 +76,6 @@ pulsar_source = PulsarSource.builder() \
     .set_deserialization_schema(
         PulsarDeserializationSchema.flink_schema(SimpleStringSchema())) \
     .set_subscription_name('my-subscription') \
-    .set_subscription_type(SubscriptionType.Exclusive) \
     .build()
 
 env.from_source(source=pulsar_source,
@@ -235,57 +233,9 @@ Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.ap
 
 如果用户需要基于这些额外的属性来解析一条消息，可以实现 `PulsarDeserializationSchema` 接口。并一定要确保 `PulsarDeserializationSchema.getProducedType()` 方法返回的 `TypeInformation` 是正确的结果。Flink 使用 `TypeInformation` 将解析出来的结果序列化传递到下游算子。
 
-### Pulsar 订阅
-
-订阅是命名好的配置规则，指导消息如何投递给消费者。Pulsar Source 需要提供一个独立的订阅名称,支持 Pulsar 的四种订阅模式：
-
-- [exclusive（独占）](https://pulsar.apache.org/docs/zh-CN/concepts-messaging/#exclusive)
-- [shared（共享）](https://pulsar.apache.org/docs/zh-CN/concepts-messaging/#shared%E5%85%B1%E4%BA%AB)
-- [failover（灾备）](https://pulsar.apache.org/docs/zh-CN/concepts-messaging/#failover%E7%81%BE%E5%A4%87)
-- [key_shared（key 共享）](https://pulsar.apache.org/docs/zh-CN/concepts-messaging/#key_shared)
-
-当前 Pulsar Source 里，`独占` 和 `灾备` 的实现没有区别，如果 Flink 的一个 reader 挂了，Pulsar Source 会把所有未消费的数据交给其他的 reader 来消费数据。
-
-默认情况下，如果没有指定订阅类型，Pulsar Source 使用共享订阅类型（`SubscriptionType.Shared`）。
-
-{{< tabs "pulsar-subscriptions" >}}
-{{< tab "Java" >}}
-
-```java
-// 名为 "my-shared" 的共享订阅
-PulsarSource.builder().setSubscriptionName("my-shared");
-
-// 名为 "my-exclusive" 的独占订阅
-PulsarSource.builder().setSubscriptionName("my-exclusive").setSubscriptionType(SubscriptionType.Exclusive);
-```
-
-{{< /tab >}}
-{{< tab "Python" >}}
-
-```python
-# 名为 "my-shared" 的共享订阅
-PulsarSource.builder().set_subscription_name("my-shared")
-
-# 名为 "my-exclusive" 的独占订阅
-PulsarSource.builder().set_subscription_name("my-exclusive").set_subscription_type(SubscriptionType.Exclusive)
-```
-
-{{< /tab >}}
-{{< /tabs >}}
-
-#### Key_Shared 订阅
-
-当时用 Key_Shared 订阅时，Pulsar 将会基于 Message 的 key 去计算对应的 Hash 值，Hash 取值范围为（0～65535）。我们首先会使用 `Message.getOrderingKey()` 计算 Hash，如果没有则会依次使用 `Message.getKey()` 和 `Message.getKeyBytes()`。对于上述 key 都找不到的消息，我们会使用字符串 `"NO_KEY"` 来计算消息的 Hash 值。
-
-在 Flink Connector 中针对 Key_Shared 订阅提供了两种消费模式，分别是 `KeySharedMode.SPLIT` 和 `KeySharedMode.JOIN`，它们的实际消费行为并不相同。`KeySharedMode.JOIN` 会把所有的给定的 Hash 范围放于一个 Reader 中进行消费，而 `KeySharedMode.SPLIT` 会打散给定的 Hash 范围于不同的 Reader 中消费。
-
-之所以这么设计的主要原因是因为，在 Key_Shared 的订阅模式中，如果一条消息找不到对应的消费者，所有的消息都不会继续往下发送。所以我们提供了 `KeySharedMode.JOIN` 模式，允许用户只消费部分 Hash 范围的消息。
-
-##### 定义 RangeGenerator
+### 定义 RangeGenerator
 
 如果想在 Pulsar Source 里面使用 `Key_Shared` 订阅，需要提供 `RangeGenerator` 实例。`RangeGenerator` 会生成一组消息 key 的 hash 范围，Pulsar Source 会基于给定的范围来消费数据。
-
-Pulsar Source 也提供了一个名为 `SplitRangeGenerator` 的默认实现，它会基于 flink 数据源的并行度将 hash 范围均分。
 
 由于 Pulsar 并未提供 Key 的 Hash 计算方法，所以我们在 Flink 中提供了名为 `FixedKeysRangeGenerator` 的实现，你可以在 builder 中依次提供需要消费的 Key 内容即可。但需要注意的是，Pulsar 的 Key Hash 值并不对应唯一的一个 Key，所以如果你只想消费某几个 Key 的消息，还需要在后面的代码中使用 `DataStream.filter()` 方法来过滤出对应的消息。
 

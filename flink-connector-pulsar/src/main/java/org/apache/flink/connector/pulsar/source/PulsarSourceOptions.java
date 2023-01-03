@@ -124,6 +124,8 @@ public final class PulsarSourceOptions {
                                             " We would automatically commit the cursor using the given period (in ms).")
                                     .build());
 
+    /** @deprecated We no longer need transactions for consuming messages. */
+    @Deprecated
     public static final ConfigOption<Long> PULSAR_READ_TRANSACTION_TIMEOUT =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "transactionTimeoutMillis")
                     .longType()
@@ -140,14 +142,6 @@ public final class PulsarSourceOptions {
                                     .text(
                                             "The value (in ms) should be greater than the checkpoint interval.")
                                     .build());
-
-    /**
-     * @deprecated Use {@link #PULSAR_READ_TRANSACTION_TIMEOUT} instead. This would be removed in
-     *     the next release.
-     */
-    @Deprecated
-    public static final ConfigOption<Long> PULSAR_TRANSACTION_TIMEOUT_MILLIS =
-            PULSAR_READ_TRANSACTION_TIMEOUT;
 
     public static final ConfigOption<Long> PULSAR_MAX_FETCH_TIME =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "maxFetchTime")
@@ -236,6 +230,8 @@ public final class PulsarSourceOptions {
                                             " This argument is required when constructing the consumer.")
                                     .build());
 
+    /** @deprecated This config option is no longer supported. */
+    @Deprecated
     public static final ConfigOption<SubscriptionType> PULSAR_SUBSCRIPTION_TYPE =
             ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "subscriptionType")
                     .enumType(SubscriptionType.class)
