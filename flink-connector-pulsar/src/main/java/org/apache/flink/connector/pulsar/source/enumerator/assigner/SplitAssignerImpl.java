@@ -35,17 +35,17 @@ import java.util.Optional;
 import java.util.Set;
 
 /** Common abstraction for split assigner. */
-abstract class SplitAssignerBase implements SplitAssigner {
+class SplitAssignerImpl implements SplitAssigner {
 
-    protected final StopCursor stopCursor;
-    protected final boolean enablePartitionDiscovery;
-    protected final SplitEnumeratorContext<PulsarPartitionSplit> context;
-    protected final Set<TopicPartition> appendedPartitions;
-    protected final Map<Integer, Set<PulsarPartitionSplit>> pendingPartitionSplits;
+    private final StopCursor stopCursor;
+    private final boolean enablePartitionDiscovery;
+    private final SplitEnumeratorContext<PulsarPartitionSplit> context;
+    private final Set<TopicPartition> appendedPartitions;
+    private final Map<Integer, Set<PulsarPartitionSplit>> pendingPartitionSplits;
 
-    protected boolean initialized;
+    private boolean initialized;
 
-    protected SplitAssignerBase(
+    SplitAssignerImpl(
             StopCursor stopCursor,
             boolean enablePartitionDiscovery,
             SplitEnumeratorContext<PulsarPartitionSplit> context,
@@ -56,6 +56,37 @@ abstract class SplitAssignerBase implements SplitAssigner {
         this.appendedPartitions = enumState.getAppendedPartitions();
         this.pendingPartitionSplits = new HashMap<>(context.currentParallelism());
         this.initialized = false;
+    }
+
+    @Override
+    public List<TopicPartition> registerTopicPartitions(Set<TopicPartition> fetchedPartitions) {
+        List<TopicPartition> newPartitions = new ArrayList<>();
+
+        for (TopicPartition partition : fetchedPartitions) {
+            if (!appendedPartitions.contains(partition)) {
+                appendedPartitions.add(partition);
+                newPartitions.add(partition);
+
+                // Calculate the reader id by the current parallelism.
+                int readerId = partitionOwner(partition);
+                PulsarPartitionSplit split = new PulsarPartitionSplit(partition, stopCursor);
+                addSplitToPendingList(readerId, split);
+            }
+        }
+
+        if (!initialized) {
+            initialized = true;
+        }
+
+        return newPartitions;
+    }
+
+    @Override
+    public void addSplitsBack(List<PulsarPartitionSplit> splits, int subtaskId) {
+        for (PulsarPartitionSplit split : splits) {
+            int readerId = partitionOwner(split.getPartition());
+            addSplitToPendingList(readerId, split);
+        }
     }
 
     @Override
@@ -100,7 +131,7 @@ abstract class SplitAssignerBase implements SplitAssigner {
     }
 
     /** Add split to pending lists. */
-    protected void addSplitToPendingList(int readerId, PulsarPartitionSplit split) {
+    private void addSplitToPendingList(int readerId, PulsarPartitionSplit split) {
         Set<PulsarPartitionSplit> splits =
                 pendingPartitionSplits.computeIfAbsent(readerId, i -> new HashSet<>());
         splits.add(split);
@@ -123,7 +154,7 @@ abstract class SplitAssignerBase implements SplitAssigner {
      * @param partition The Pulsar partition to assign.
      * @return The id of the reader that owns this partition.
      */
-    protected int partitionOwner(TopicPartition partition) {
+    private int partitionOwner(TopicPartition partition) {
         return calculatePartitionOwner(
                 partition.getTopic(), partition.getPartitionId(), context.currentParallelism());
     }

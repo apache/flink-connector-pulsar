@@ -41,7 +41,7 @@ public class PulsarSourceEnumStateSerializer
         implements SimpleVersionedSerializer<PulsarSourceEnumState> {
 
     // This version should be bumped after modifying the PulsarSourceEnumState.
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
 
     public static final PulsarSourceEnumStateSerializer INSTANCE =
             new PulsarSourceEnumStateSerializer();
@@ -75,7 +75,9 @@ public class PulsarSourceEnumStateSerializer
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 DataInputStream in = new DataInputStream(bais)) {
             Set<TopicPartition> partitions = null;
-            if (version == 2) {
+            if (version == 3) {
+                partitions = deserializeSet(in, deserializePartition(2));
+            } else if (version == 2) {
                 partitions = deserializeSet(in, deserializePartition(1));
             } else {
                 partitions = deserializeSet(in, deserializePartition(0));

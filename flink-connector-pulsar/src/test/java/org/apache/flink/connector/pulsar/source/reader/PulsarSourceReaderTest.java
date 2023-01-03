@@ -16,13 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.reader.source;
+package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.ReaderOutput;
+import org.apache.flink.api.connector.source.SourceReaderContext;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchemaInitializationContext;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.connector.pulsar.testutils.extension.SubType;
+import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
+import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
+import org.apache.flink.connector.testutils.source.reader.TestingReaderContext;
 import org.apache.flink.connector.testutils.source.reader.TestingReaderOutput;
 import org.apache.flink.core.io.InputStatus;
 import org.apache.flink.core.testutils.CommonTestUtils;
@@ -31,18 +38,31 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.MessageIdImpl;
-import org.junit.jupiter.api.TestTemplate;
+import org.apache.pulsar.common.policies.data.SubscriptionStats;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
+import static org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.pulsarSchema;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.createPartitionSplit;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.createPartitionSplits;
 import static org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator.DEFAULT_PARTITIONS;
@@ -50,19 +70,52 @@ import static org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeO
 import static org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
-class PulsarOrderedSourceReaderTest extends PulsarSourceReaderTestBase {
+/** Unit test for {@link PulsarSourceReader}. */
+class PulsarSourceReaderTest extends PulsarTestSuiteBase {
 
     private static final int MAX_EMPTY_POLLING_TIMES = 10;
 
-    @SubType SubscriptionType subscriptionType = SubscriptionType.Failover;
+    @Test
+    void assignZeroSplitsCreatesZeroSubscription() throws Exception {
+        String topicName = topicName();
+        PulsarSourceReader<Integer> reader = sourceReader();
 
-    @TestTemplate
-    void consumeMessagesAndCommitOffsets(
-            PulsarSourceReaderBase<Integer> baseReader, Boundedness boundedness, String topicName)
-            throws Exception {
+        reader.snapshotState(100L);
+        reader.notifyCheckpointComplete(100L);
+        // Verify the committed offsets.
+        reader.close();
+        for (int i = 0; i < PulsarRuntimeOperator.DEFAULT_PARTITIONS; i++) {
+            verifyNoSubscriptionCreated(TopicNameUtils.topicNameWithPartition(topicName, i));
+        }
+    }
+
+    @Test
+    void assigningEmptySplits() throws Exception {
+        String topicName = topicName();
+        PulsarSourceReader<Integer> reader = sourceReader();
+
+        final PulsarPartitionSplit emptySplit =
+                createPartitionSplit(
+                        topicName, 0, Boundedness.CONTINUOUS_UNBOUNDED, MessageId.latest);
+
+        reader.addSplits(singletonList(emptySplit));
+
+        TestingReaderOutput<Integer> output = new TestingReaderOutput<>();
+        InputStatus status = reader.pollNext(output);
+        assertThat(status).isEqualTo(InputStatus.NOTHING_AVAILABLE);
+        reader.close();
+    }
+
+    @Test
+    void consumeMessagesAndCommitOffsets() throws Exception {
+        String topicName = topicName();
+        PulsarSourceReader<Integer> reader = sourceReader();
+
         // set up the partition
-        PulsarOrderedSourceReader<Integer> reader = (PulsarOrderedSourceReader<Integer>) baseReader;
         setupSourceReader(reader, topicName, 0, Boundedness.CONTINUOUS_UNBOUNDED);
 
         // waiting for results
@@ -86,11 +139,11 @@ class PulsarOrderedSourceReaderTest extends PulsarSourceReaderTestBase {
                 NUM_RECORDS_PER_PARTITION, TopicNameUtils.topicNameWithPartition(topicName, 0));
     }
 
-    @TestTemplate
-    void offsetCommitOnCheckpointComplete(
-            PulsarSourceReaderBase<Integer> baseReader, Boundedness boundedness, String topicName)
-            throws Exception {
-        PulsarOrderedSourceReader<Integer> reader = (PulsarOrderedSourceReader<Integer>) baseReader;
+    @Test
+    void offsetCommitOnCheckpointComplete() throws Exception {
+        String topicName = topicName();
+        PulsarSourceReader<Integer> reader = sourceReader();
+
         // consume more than 1 partition
         reader.addSplits(
                 createPartitionSplits(
@@ -132,48 +185,79 @@ class PulsarOrderedSourceReaderTest extends PulsarSourceReaderTestBase {
         }
     }
 
-    @TestTemplate
+    @ParameterizedTest
+    @EnumSource(Boundedness.class)
     @Timeout(600)
-    void supportsPausingOrResumingSplits(
-            PulsarSourceReaderBase<Integer> reader, Boundedness boundedness, String topicName)
-            throws Exception {
-        final PulsarPartitionSplit split =
+    void supportsPausingOrResumingSplits(Boundedness boundedness) throws Exception {
+        String topicName = topicName();
+        PulsarSourceReader<Integer> reader = sourceReader();
+
+        PulsarPartitionSplit split =
                 createPartitionSplit(topicName, 0, boundedness, MessageId.earliest);
 
-        reader.addSplits(Collections.singletonList(split));
+        reader.addSplits(singletonList(split));
 
         TestingReaderOutput<Integer> output = new TestingReaderOutput<>();
 
-        reader.pauseOrResumeSplits(
-                Collections.singletonList(split.splitId()), Collections.emptyList());
+        reader.pauseOrResumeSplits(singletonList(split.splitId()), emptyList());
 
         InputStatus status = reader.pollNext(output);
-        assertThat(status).isEqualTo(InputStatus.NOTHING_AVAILABLE);
+        assertEquals(InputStatus.NOTHING_AVAILABLE, status);
 
-        reader.pauseOrResumeSplits(Collections.emptyList(), Collections.singleton(split.splitId()));
+        reader.pauseOrResumeSplits(emptyList(), Collections.singleton(split.splitId()));
 
         do {
             status = reader.pollNext(output);
             Thread.sleep(5);
         } while (status != InputStatus.MORE_AVAILABLE);
 
-        assertThat(status).isEqualTo(InputStatus.MORE_AVAILABLE);
+        assertEquals(InputStatus.MORE_AVAILABLE, status);
 
         reader.close();
     }
 
+    private String topicName() {
+        String topicName = randomAlphabetic(20);
+        Random random = new Random(System.currentTimeMillis());
+        operator().setupTopic(topicName, Schema.INT32, () -> random.nextInt(20));
+
+        return topicName;
+    }
+
+    private PulsarSourceReader<Integer> sourceReader() {
+        Configuration configuration = operator().config();
+
+        configuration.set(PULSAR_MAX_FETCH_RECORDS, 1);
+        configuration.set(PULSAR_MAX_FETCH_TIME, 1000L);
+        configuration.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
+
+        PulsarDeserializationSchema<Integer> deserializationSchema = pulsarSchema(Schema.INT32);
+        SourceReaderContext context = new TestingReaderContext();
+        try {
+            deserializationSchema.open(
+                    new PulsarDeserializationSchemaInitializationContext(context),
+                    mock(SourceConfiguration.class));
+        } catch (Exception e) {
+            fail("Error while opening deserializationSchema");
+        }
+
+        SourceConfiguration sourceConfiguration = new SourceConfiguration(configuration);
+
+        return PulsarSourceReader.create(sourceConfiguration, deserializationSchema, context);
+    }
+
     private void setupSourceReader(
-            PulsarSourceReaderBase<Integer> reader,
+            PulsarSourceReader<Integer> reader,
             String topicName,
             int partitionId,
             Boundedness boundedness) {
         PulsarPartitionSplit split = createPartitionSplit(topicName, partitionId, boundedness);
-        reader.addSplits(Collections.singletonList(split));
+        reader.addSplits(singletonList(split));
         reader.notifyNoMoreSplits();
     }
 
     private void pollUntil(
-            PulsarSourceReaderBase<Integer> reader,
+            PulsarSourceReader<Integer> reader,
             ReaderOutput<Integer> output,
             Supplier<Boolean> condition,
             String errorMessage)
@@ -194,8 +278,7 @@ class PulsarOrderedSourceReaderTest extends PulsarSourceReaderTestBase {
     }
 
     private void verifyAllMessageAcknowledged(int expectedMessages, String partitionName)
-            throws PulsarAdminException, PulsarClientException {
-
+            throws PulsarClientException {
         Consumer<byte[]> consumer =
                 operator()
                         .client()
@@ -206,7 +289,13 @@ class PulsarOrderedSourceReaderTest extends PulsarSourceReaderTestBase {
                         .topic(partitionName)
                         .subscribe();
 
-        assertThat(((MessageIdImpl) consumer.getLastMessageId()).getEntryId())
-                .isEqualTo(expectedMessages - 1);
+        assertEquals(
+                expectedMessages - 1, ((MessageIdImpl) consumer.getLastMessageId()).getEntryId());
+    }
+
+    private void verifyNoSubscriptionCreated(String partitionName) throws PulsarAdminException {
+        Map<String, ? extends SubscriptionStats> subscriptionStats =
+                operator().admin().topics().getStats(partitionName, true, true).getSubscriptions();
+        assertThat(subscriptionStats).isEmpty();
     }
 }

@@ -37,7 +37,7 @@ under the License.
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-pulsar</artifactId>
+			<artifactId>flink-sql-connector-pulsar</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
@@ -136,98 +136,17 @@ under the License.
 					<artifactItems>
 						<artifactItem>
 							<groupId>org.apache.flink</groupId>
-							<artifactId>flink-connector-test-utils</artifactId>
-							<version>${flink.version}</version>
-							<destFileName>flink-connector-testing.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies
-							</outputDirectory>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.flink</groupId>
-							<artifactId>flink-connector-pulsar</artifactId>
+							<artifactId>flink-sql-connector-pulsar</artifactId>
 							<version>${project.version}</version>
 							<destFileName>pulsar-connector.jar</destFileName>
 							<type>jar</type>
 							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
 						</artifactItem>
 						<artifactItem>
-							<groupId>org.apache.pulsar</groupId>
-							<artifactId>pulsar-client-all</artifactId>
-							<version>${pulsar.version}</version>
-							<destFileName>pulsar-client-all.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pulsar</groupId>
-							<artifactId>pulsar-client-api</artifactId>
-							<version>${pulsar.version}</version>
-							<destFileName>pulsar-client-api.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</artifactItem>
-						<artifactItem>
-							<groupId>org.apache.pulsar</groupId>
-							<artifactId>pulsar-client-admin-api</artifactId>
-							<version>${pulsar.version}</version>
-							<destFileName>pulsar-admin-api.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</artifactItem>
-						<dependency>
-							<groupId>org.apache.pulsar</groupId>
-							<artifactId>bouncy-castle-bc</artifactId>
-							<version>${pulsar.version}</version>
-							<destFileName>bouncy-castle-bc.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<dependency>
-							<groupId>org.bouncycastle</groupId>
-							<artifactId>bcpkix-jdk15on</artifactId>
-							<version>${bouncycastle.version}</version>
-							<destFileName>bcpkix-jdk15on.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<dependency>
-							<groupId>org.bouncycastle</groupId>
-							<artifactId>bcprov-jdk15on</artifactId>
-							<version>${bouncycastle.version}</version>
-							<destFileName>bcprov-jdk15on.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<dependency>
-							<groupId>org.bouncycastle</groupId>
-							<artifactId>bcutil-jdk15on</artifactId>
-							<version>${bouncycastle.version}</version>
-							<destFileName>bcutil-jdk15on.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<dependency>
-							<groupId>org.bouncycastle</groupId>
-							<artifactId>bcprov-ext-jdk15on</artifactId>
-							<version>${bouncycastle.version}</version>
-							<destFileName>bcprov-ext-jdk15on.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<dependency>
-							<groupId>javax.xml.bind</groupId>
-							<artifactId>jaxb-api</artifactId>
-							<version>${jaxb-api.version}</version>
-							<destFileName>jaxb-api.jar</destFileName>
-							<type>jar</type>
-							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-						</dependency>
-						<artifactItem>
-							<groupId>org.slf4j</groupId>
-							<artifactId>jul-to-slf4j</artifactId>
-							<version>${slf4j.version}</version>
-							<destFileName>jul-to-slf4j.jar</destFileName>
+							<groupId>org.apache.flink</groupId>
+							<artifactId>flink-connector-test-utils</artifactId>
+							<version>${flink.version}</version>
+							<destFileName>flink-connector-testing.jar</destFileName>
 							<type>jar</type>
 							<outputDirectory>${project.build.directory}/dependencies</outputDirectory>
 						</artifactItem>

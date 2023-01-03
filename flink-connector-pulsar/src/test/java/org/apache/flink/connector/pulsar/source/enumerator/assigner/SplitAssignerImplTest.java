@@ -31,6 +31,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -39,11 +42,14 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState.initialState;
+import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssignerImpl.calculatePartitionOwner;
 import static org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor.defaultStopCursor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Test utils for split assigners. */
-abstract class SplitAssignerTestBase extends TestLogger {
+/** Unit tests for {@link SplitAssignerImpl}. */
+class SplitAssignerImplTest extends TestLogger {
 
     private static final List<MockSplitEnumeratorContext<PulsarPartitionSplit>> enumeratorContexts =
             new ArrayList<>();
@@ -91,37 +97,97 @@ abstract class SplitAssignerTestBase extends TestLogger {
         assertThat(assignment).isNotPresent();
     }
 
-    protected Set<TopicPartition> createPartitions(String topic, int partitionId) {
-        TopicPartition p1 = new TopicPartition(topic, partitionId);
-        return singleton(p1);
+    @Test
+    void noMoreSplits() {
+        SplitAssigner assigner = splitAssigner(true, 4);
+        assertFalse(assigner.noMoreSplits(3));
+
+        assigner = splitAssigner(false, 4);
+        assertFalse(assigner.noMoreSplits(3));
+
+        Set<TopicPartition> partitions = createPartitions("persistent://public/default/f", 8);
+        int owner = calculatePartitionOwner("persistent://public/default/f", 8, 4);
+
+        assigner.registerTopicPartitions(partitions);
+        assertFalse(assigner.noMoreSplits(owner));
+
+        assigner.createAssignment(singletonList(owner));
+        assertTrue(assigner.noMoreSplits(owner));
     }
 
-    protected SplitAssigner splitAssigner(boolean discovery, int parallelism) {
-        MockSplitEnumeratorContext<PulsarPartitionSplit> context =
-                new MockSplitEnumeratorContext<>(parallelism);
-        enumeratorContexts.add(context);
-        return createAssigner(defaultStopCursor(), discovery, context, initialState());
-    }
+    @Test
+    void partitionsAssignment() {
+        SplitAssigner assigner = splitAssigner(true, 4);
+        assigner.registerTopicPartitions(createPartitions("persistent://public/default/d", 4));
+        int owner = calculatePartitionOwner("persistent://public/default/d", 4, 4);
+        List<Integer> readers = Arrays.asList(owner, owner + 1);
 
-    protected SplitAssigner splitAssigner(
-            boolean discovery, int parallelism, Set<TopicPartition> partitions) {
-        MockSplitEnumeratorContext<PulsarPartitionSplit> context =
-                new MockSplitEnumeratorContext<>(parallelism);
-        enumeratorContexts.add(context);
-        return createAssigner(
-                defaultStopCursor(), discovery, context, new PulsarSourceEnumState(partitions));
-    }
+        // Assignment with initial states.
+        Optional<SplitsAssignment<PulsarPartitionSplit>> assignment =
+                assigner.createAssignment(readers);
+        assertThat(assignment).isPresent();
+        assertThat(assignment.get().assignment()).hasSize(1);
 
-    protected abstract SplitAssigner createAssigner(
-            StopCursor stopCursor,
-            boolean enablePartitionDiscovery,
-            SplitEnumeratorContext<PulsarPartitionSplit> context,
-            PulsarSourceEnumState enumState);
+        // Reassignment with the same readers.
+        assignment = assigner.createAssignment(readers);
+        assertThat(assignment).isNotPresent();
+
+        // Register new partition and assign.
+        assigner.registerTopicPartitions(createPartitions("persistent://public/default/e", 5));
+        assigner.registerTopicPartitions(createPartitions("persistent://public/default/f", 1));
+        assigner.registerTopicPartitions(createPartitions("persistent://public/default/g", 3));
+        assigner.registerTopicPartitions(createPartitions("persistent://public/default/h", 4));
+
+        Set<Integer> owners = new HashSet<>();
+        owners.add(calculatePartitionOwner("persistent://public/default/e", 5, 4));
+        owners.add(calculatePartitionOwner("persistent://public/default/f", 1, 4));
+        owners.add(calculatePartitionOwner("persistent://public/default/g", 3, 4));
+        owners.add(calculatePartitionOwner("persistent://public/default/h", 4, 4));
+        readers = new ArrayList<>(owners);
+
+        assignment = assigner.createAssignment(readers);
+        assertThat(assignment).isPresent();
+        assertThat(assignment.get().assignment()).hasSize(readers.size());
+
+        // Assign to new readers.
+        readers = Collections.singletonList(5);
+        assignment = assigner.createAssignment(readers);
+        assertThat(assignment).isNotPresent();
+    }
 
     @AfterAll
     static void afterAll() throws Exception {
         for (MockSplitEnumeratorContext<PulsarPartitionSplit> context : enumeratorContexts) {
             context.close();
         }
+    }
+
+    private SplitAssigner createAssigner(
+            StopCursor stopCursor,
+            boolean enablePartitionDiscovery,
+            SplitEnumeratorContext<PulsarPartitionSplit> context,
+            PulsarSourceEnumState enumState) {
+        return new SplitAssignerImpl(stopCursor, enablePartitionDiscovery, context, enumState);
+    }
+
+    private Set<TopicPartition> createPartitions(String topic, int partitionId) {
+        TopicPartition p1 = new TopicPartition(topic, partitionId);
+        return singleton(p1);
+    }
+
+    private SplitAssigner splitAssigner(boolean discovery, int parallelism) {
+        MockSplitEnumeratorContext<PulsarPartitionSplit> context =
+                new MockSplitEnumeratorContext<>(parallelism);
+        enumeratorContexts.add(context);
+        return createAssigner(defaultStopCursor(), discovery, context, initialState());
+    }
+
+    private SplitAssigner splitAssigner(
+            boolean discovery, int parallelism, Set<TopicPartition> partitions) {
+        MockSplitEnumeratorContext<PulsarPartitionSplit> context =
+                new MockSplitEnumeratorContext<>(parallelism);
+        enumeratorContexts.add(context);
+        return createAssigner(
+                defaultStopCursor(), discovery, context, new PulsarSourceEnumState(partitions));
     }
 }

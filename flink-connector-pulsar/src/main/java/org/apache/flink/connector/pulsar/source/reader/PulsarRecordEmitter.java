@@ -16,22 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.reader.emitter;
+package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
-import org.apache.flink.connector.pulsar.source.reader.source.PulsarOrderedSourceReader;
-import org.apache.flink.connector.pulsar.source.reader.source.PulsarUnorderedSourceReader;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitState;
 import org.apache.flink.util.Collector;
 
 import org.apache.pulsar.client.api.Message;
 
 /**
- * The {@link RecordEmitter} implementation for both {@link PulsarOrderedSourceReader} and {@link
- * PulsarUnorderedSourceReader}. We would always update the last consumed message id in this
- * emitter.
+ * The {@link RecordEmitter} implementation for {@link PulsarSourceReader}. We would always update
+ * the last consumed message id in this emitter.
  */
 public class PulsarRecordEmitter<T>
         implements RecordEmitter<Message<byte[]>, T, PulsarPartitionSplitState> {

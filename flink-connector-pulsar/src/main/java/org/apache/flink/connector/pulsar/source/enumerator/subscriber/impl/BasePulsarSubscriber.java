@@ -23,7 +23,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -57,35 +56,17 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     }
 
     protected List<TopicPartition> toTopicPartitions(
-            TopicMetadata metadata, List<TopicRange> ranges, KeySharedMode mode) {
+            TopicMetadata metadata, List<TopicRange> ranges) {
         if (!metadata.isPartitioned()) {
             // For non-partitioned topic.
-            return toTopicPartitions(metadata.getName(), -1, ranges, mode);
+            return singletonList(new TopicPartition(metadata.getName(), -1, ranges));
         } else {
             // For partitioned topic.
             List<TopicPartition> partitions = new ArrayList<>();
             for (int i = 0; i < metadata.getPartitionSize(); i++) {
-                partitions.addAll(toTopicPartitions(metadata.getName(), i, ranges, mode));
+                partitions.add(new TopicPartition(metadata.getName(), i, ranges));
             }
             return partitions;
-        }
-    }
-
-    protected List<TopicPartition> toTopicPartitions(
-            String topic, int partitionId, List<TopicRange> ranges, KeySharedMode mode) {
-        switch (mode) {
-            case JOIN:
-                return singletonList(new TopicPartition(topic, partitionId, ranges, mode));
-            case SPLIT:
-                List<TopicPartition> partitions = new ArrayList<>(ranges.size());
-                for (TopicRange range : ranges) {
-                    TopicPartition partition =
-                            new TopicPartition(topic, partitionId, singletonList(range), mode);
-                    partitions.add(partition);
-                }
-                return partitions;
-            default:
-                throw new UnsupportedOperationException(mode + " isn't supported.");
         }
     }
 }

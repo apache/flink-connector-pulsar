@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 class PulsarSourceEnumStateSerializerTest {
 
     @Test
-    void version2SerializeAndDeserialize() throws Exception {
+    void version3SerializeAndDeserialize() throws Exception {
         Set<TopicPartition> partitions =
                 Sets.newHashSet(
                         new TopicPartition(
@@ -55,10 +55,40 @@ class PulsarSourceEnumStateSerializerTest {
         PulsarSourceEnumState state = new PulsarSourceEnumState(partitions);
 
         byte[] bytes = INSTANCE.serialize(state);
-        PulsarSourceEnumState state1 = INSTANCE.deserialize(2, bytes);
+        PulsarSourceEnumState state1 = INSTANCE.deserialize(3, bytes);
 
         assertEquals(state.getAppendedPartitions(), state1.getAppendedPartitions());
         assertNotSame(state, state1);
+    }
+
+    @Test
+    void version2Deserialize() throws Exception {
+        // Serialize in version 2 logic.
+        DataOutputSerializer serializer = new DataOutputSerializer(4096);
+        serializer.writeInt(2);
+        serializer.writeUTF("topic44");
+        serializer.writeInt(2);
+        serializer.writeInt(1);
+        serializer.writeInt(122);
+        serializer.writeInt(12233);
+        serializer.writeInt(0);
+        serializer.writeUTF("topic33");
+        serializer.writeInt(2);
+        serializer.writeInt(1);
+        serializer.writeInt(1222);
+        serializer.writeInt(22233);
+        serializer.writeInt(0);
+        byte[] bytes = serializer.getSharedBuffer();
+
+        PulsarSourceEnumState state = INSTANCE.deserialize(2, bytes);
+        Set<TopicPartition> partitions = state.getAppendedPartitions();
+        Set<TopicPartition> expectedPartitions =
+                Sets.newHashSet(
+                        new TopicPartition("topic44", 2, singletonList(new TopicRange(122, 12233))),
+                        new TopicPartition(
+                                "topic33", 2, singletonList(new TopicRange(1222, 22233))));
+
+        assertEquals(partitions, expectedPartitions);
     }
 
     @Test

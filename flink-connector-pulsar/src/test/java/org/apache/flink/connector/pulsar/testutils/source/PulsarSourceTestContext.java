@@ -32,7 +32,6 @@ import org.apache.flink.connector.testframe.external.source.DataStreamSourceExte
 import org.apache.flink.connector.testframe.external.source.TestingSourceSettings;
 
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionType;
 
 import java.util.List;
 import java.util.Random;
@@ -66,7 +65,6 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
                         .setServiceUrl(operator.serviceUrl())
                         .setAdminUrl(operator.adminUrl())
                         .setTopicPattern(topicPattern(), AllTopics)
-                        .setSubscriptionType(subscriptionType())
                         .setSubscriptionName(subscriptionName())
                         .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL);
 
@@ -126,9 +124,6 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
 
     /** The subscription name used in Pulsar consumer. */
     protected abstract String subscriptionName();
-
-    /** The subscription type used in Pulsar consumer. */
-    protected abstract SubscriptionType subscriptionType();
 
     /**
      * Dynamic generate a partition related topic in Pulsar. This topic should be pre-created in

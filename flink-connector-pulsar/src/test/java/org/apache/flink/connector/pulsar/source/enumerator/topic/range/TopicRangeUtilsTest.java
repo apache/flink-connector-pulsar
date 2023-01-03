@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode.JOIN;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.isFullTopicRanges;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.validateTopicRanges;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -40,16 +39,16 @@ class TopicRangeUtilsTest {
     @Test
     void testValidateTopicRanges() {
         List<TopicRange> ranges1 = Arrays.asList(new TopicRange(1, 2), new TopicRange(2, 3));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges1, JOIN));
+        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges1));
 
         List<TopicRange> ranges2 = Arrays.asList(new TopicRange(1, 14), new TopicRange(2, 5));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges2, JOIN));
+        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges2));
 
         List<TopicRange> ranges3 = Arrays.asList(new TopicRange(1, 14), new TopicRange(5, 30));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges3, JOIN));
+        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges3));
 
         List<TopicRange> ranges4 = Arrays.asList(new TopicRange(1, 14), new TopicRange(15, 30));
-        assertDoesNotThrow(() -> validateTopicRanges(ranges4, JOIN));
+        assertDoesNotThrow(() -> validateTopicRanges(ranges4));
     }
 
     @Test

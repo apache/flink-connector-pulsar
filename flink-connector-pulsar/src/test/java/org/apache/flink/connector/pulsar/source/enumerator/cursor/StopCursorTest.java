@@ -23,7 +23,7 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
-import org.apache.flink.connector.pulsar.source.reader.split.PulsarOrderedPartitionSplitReader;
+import org.apache.flink.connector.pulsar.source.reader.PulsarPartitionSplitReader;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
@@ -53,8 +53,8 @@ class StopCursorTest extends PulsarTestSuiteBase {
         String topicName = randomAlphanumeric(5);
         operator().createTopic(topicName, 2);
 
-        PulsarOrderedPartitionSplitReader splitReader =
-                new PulsarOrderedPartitionSplitReader(
+        PulsarPartitionSplitReader splitReader =
+                new PulsarPartitionSplitReader(
                         operator().client(),
                         operator().admin(),
                         sourceConfig(),

@@ -54,15 +54,7 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
      * @param configuration The Pulsar related source configuration.
      */
     default void open(InitializationContext context, SourceConfiguration configuration)
-            throws Exception {
-        open(context);
-    }
-
-    /** @deprecated Use {{@link #open(InitializationContext, SourceConfiguration)}} instead. */
-    @Deprecated
-    default void open(InitializationContext context) throws Exception {
-        // Nothing to do here for the default implementation.
-    }
+            throws Exception {}
 
     /**
      * Deserializes the pulsar message. This message could be a raw byte message or some parsed

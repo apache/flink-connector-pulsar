@@ -34,9 +34,7 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableSet;
 
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
-import org.apache.pulsar.client.api.SubscriptionType;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,7 +48,6 @@ import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState.initialState;
 import static org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber.getTopicPatternSubscriber;
 import static org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator.DEFAULT_PARTITIONS;
@@ -68,20 +65,14 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
     private static final boolean ENABLE_PERIODIC_PARTITION_DISCOVERY = true;
     private static final boolean DISABLE_PERIODIC_PARTITION_DISCOVERY = false;
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void startWithDiscoverPartitionsOnce(SubscriptionType subscriptionType) throws Exception {
+    @Test
+    void startWithDiscoverPartitionsOnce() throws Exception {
         Set<String> preexistingTopics = setupPreexistingTopics();
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                preexistingTopics,
-                                context,
-                                DISABLE_PERIODIC_PARTITION_DISCOVERY)) {
+                                preexistingTopics, context, DISABLE_PERIODIC_PARTITION_DISCOVERY)) {
 
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
@@ -93,20 +84,14 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void startWithPeriodicPartitionDiscovery(SubscriptionType subscriptionType) throws Exception {
+    @Test
+    void startWithPeriodicPartitionDiscovery() throws Exception {
         Set<String> preexistingTopics = setupPreexistingTopics();
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                preexistingTopics,
-                                context,
-                                ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
+                                preexistingTopics, context, ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
 
             enumerator.start();
             assertThat(context.getOneTimeCallables()).isEmpty();
@@ -116,20 +101,14 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void discoverPartitionsTriggersAssignments(SubscriptionType subscriptionType) throws Throwable {
+    @Test
+    void discoverPartitionsTriggersAssignments() throws Throwable {
         Set<String> preexistingTopics = setupPreexistingTopics();
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                preexistingTopics,
-                                context,
-                                DISABLE_PERIODIC_PARTITION_DISCOVERY)) {
+                                preexistingTopics, context, DISABLE_PERIODIC_PARTITION_DISCOVERY)) {
 
             enumerator.start();
 
@@ -141,15 +120,12 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
             // Run the partition discover callable and check the partition assignment.
             runOneTimePartitionDiscovery(context);
-            verifyAllReaderAssignments(subscriptionType, context, preexistingTopics, 1);
+            verifyAllReaderAssignments(context, preexistingTopics, 1);
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void discoverPartitionsPeriodically(SubscriptionType subscriptionType) throws Throwable {
+    @Test
+    void discoverPartitionsPeriodically() throws Throwable {
         String dynamicTopic = "topic3-" + randomAlphabetic(10);
         Set<String> preexistingTopics = setupPreexistingTopics();
         Set<String> topicsToSubscribe = new HashSet<>(preexistingTopics);
@@ -158,13 +134,9 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                topicsToSubscribe,
-                                context,
-                                ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
+                                topicsToSubscribe, context, ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
 
-            testRegisterReadersForPreexistingTopics(
-                    subscriptionType, preexistingTopics, context, enumerator);
+            testRegisterReadersForPreexistingTopics(preexistingTopics, context, enumerator);
 
             // invoke partition discovery callable again and there should be no new assignments.
             runPeriodicPartitionDiscovery(context);
@@ -185,27 +157,20 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
                     break;
                 }
             }
-            verifyAllReaderAssignments(subscriptionType, context, topicsToSubscribe, 4);
+            verifyAllReaderAssignments(context, topicsToSubscribe, 4);
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void addSplitsBack(SubscriptionType subscriptionType) throws Throwable {
+    @Test
+    void addSplitsBack() throws Throwable {
         Set<String> preexistingTopics = setupPreexistingTopics();
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                preexistingTopics,
-                                context,
-                                ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
+                                preexistingTopics, context, ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
 
-            testRegisterReadersForPreexistingTopics(
-                    subscriptionType, preexistingTopics, context, enumerator);
+            testRegisterReadersForPreexistingTopics(preexistingTopics, context, enumerator);
 
             // Simulate a reader failure.
             context.unregisterReader(READER0);
@@ -218,27 +183,20 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
             // Simulate a reader recovery.
             registerReader(context, enumerator, READER0);
-            verifyAllReaderAssignments(subscriptionType, context, preexistingTopics, 3 + 1);
+            verifyAllReaderAssignments(context, preexistingTopics, 3 + 1);
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void workWithPreexistingAssignments(SubscriptionType subscriptionType) throws Throwable {
+    @Test
+    void workWithPreexistingAssignments() throws Throwable {
         Set<String> preexistingTopics = setupPreexistingTopics();
         PulsarSourceEnumState preexistingAssignments;
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context1 =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
-                                preexistingTopics,
-                                context1,
-                                ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
-            testRegisterReadersForPreexistingTopics(
-                    subscriptionType, preexistingTopics, context1, enumerator);
+                                preexistingTopics, context1, ENABLE_PERIODIC_PARTITION_DISCOVERY)) {
+            testRegisterReadersForPreexistingTopics(preexistingTopics, context1, enumerator);
             preexistingAssignments =
                     asEnumState(context1.getSplitsAssignmentSequence().get(0).assignment());
         }
@@ -247,7 +205,6 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
                         createEnumerator(
-                                subscriptionType,
                                 preexistingTopics,
                                 context2,
                                 ENABLE_PERIODIC_PARTITION_DISCOVERY,
@@ -256,24 +213,17 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
             runPeriodicPartitionDiscovery(context2);
 
             registerReader(context2, enumerator, READER0);
-            if (subscriptionType == SubscriptionType.Shared) {
-                verifyAllReaderAssignments(subscriptionType, context2, preexistingTopics, 1);
-            } else {
-                assertThat(context2.getSplitsAssignmentSequence()).isEmpty();
-            }
+            assertThat(context2.getSplitsAssignmentSequence()).isEmpty();
         }
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = SubscriptionType.class,
-            names = {"Failover", "Shared"})
-    void snapshotState(SubscriptionType subscriptionType) throws Throwable {
+    @Test
+    void snapshotState() throws Throwable {
         Set<String> preexistingTopics = setupPreexistingTopics();
         try (MockSplitEnumeratorContext<PulsarPartitionSplit> context =
                         new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
                 PulsarSourceEnumerator enumerator =
-                        createEnumerator(subscriptionType, preexistingTopics, context, false)) {
+                        createEnumerator(preexistingTopics, context, false)) {
             enumerator.start();
 
             // No reader is registered, so the state should be empty
@@ -302,7 +252,6 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
     }
 
     private void testRegisterReadersForPreexistingTopics(
-            SubscriptionType subscriptionType,
             Set<String> topics,
             MockSplitEnumeratorContext<PulsarPartitionSplit> context,
             PulsarSourceEnumerator enumerator)
@@ -315,31 +264,22 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
         // Run the partition discover callable and check the partition assignment.
         runPeriodicPartitionDiscovery(context);
-        if (subscriptionType == SubscriptionType.Shared) {
-            verifyAllReaderAssignments(subscriptionType, context, topics, 1);
-        }
 
         registerReader(context, enumerator, READER1);
         registerReader(context, enumerator, READER2);
 
-        verifyAllReaderAssignments(subscriptionType, context, topics, 3);
+        verifyAllReaderAssignments(context, topics, 3);
     }
 
     private PulsarSourceEnumerator createEnumerator(
-            SubscriptionType subscriptionType,
             Set<String> topics,
             MockSplitEnumeratorContext<PulsarPartitionSplit> enumContext,
             boolean enablePeriodicPartitionDiscovery) {
         return createEnumerator(
-                subscriptionType,
-                topics,
-                enumContext,
-                enablePeriodicPartitionDiscovery,
-                initialState());
+                topics, enumContext, enablePeriodicPartitionDiscovery, initialState());
     }
 
     private PulsarSourceEnumerator createEnumerator(
-            SubscriptionType subscriptionType,
             Set<String> topicsToSubscribe,
             MockSplitEnumeratorContext<PulsarPartitionSplit> enumContext,
             boolean enablePeriodicPartitionDiscovery,
@@ -352,7 +292,6 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
                 getTopicPatternSubscriber(topicPattern, RegexSubscriptionMode.AllTopics);
 
         Configuration configuration = operator().config();
-        configuration.set(PULSAR_SUBSCRIPTION_TYPE, subscriptionType);
         configuration.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
         if (enablePeriodicPartitionDiscovery) {
             configuration.set(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, 60L);
@@ -379,7 +318,6 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
     }
 
     private void verifyAllReaderAssignments(
-            SubscriptionType subscriptionType,
             MockSplitEnumeratorContext<PulsarPartitionSplit> context,
             Set<String> topics,
             int expectedAssignmentSeqSize) {
@@ -398,15 +336,8 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
         // Compare assigned partitions with desired partitions.
         Set<TopicPartition> expectedTopicPartitions = getExpectedTopicPartitions(topics);
-        if (subscriptionType == SubscriptionType.Failover) {
-            int actualSize = assignments.values().stream().mapToInt(Set::size).sum();
-            assertThat(actualSize).isEqualTo(expectedTopicPartitions.size());
-        } else if (subscriptionType == SubscriptionType.Shared) {
-            assignments
-                    .values()
-                    .forEach(
-                            (splits) -> assertThat(splits).hasSize(expectedTopicPartitions.size()));
-        }
+        int actualSize = assignments.values().stream().mapToInt(Set::size).sum();
+        assertThat(actualSize).isEqualTo(expectedTopicPartitions.size());
     }
 
     private Set<TopicPartition> getExpectedTopicPartitions(Set<String> topics) {

@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.source.enumerator.topic.range;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessageBuilder;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 
 import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.Message;
@@ -56,14 +55,12 @@ public final class TopicRangeUtils {
     }
 
     /** Make sure all the ranges should be valid in Pulsar Key Shared Policy. */
-    public static void validateTopicRanges(List<TopicRange> ranges, KeySharedMode sharedMode) {
+    public static void validateTopicRanges(List<TopicRange> ranges) {
         List<Range> pulsarRanges = ranges.stream().map(TopicRange::toPulsarRange).collect(toList());
         KeySharedPolicy.stickyHashRange().ranges(pulsarRanges).validate();
 
-        if (!isFullTopicRanges(ranges) && KeySharedMode.SPLIT == sharedMode) {
-            LOG.warn(
-                    "You have provided a partial key hash range with KeySharedMode.SPLIT. "
-                            + "You can't consume any message if there are any messages with keys that are out of the given ranges.");
+        if (isFullTopicRanges(ranges)) {
+            LOG.warn("You have provided a full key hash range.");
         }
     }
 

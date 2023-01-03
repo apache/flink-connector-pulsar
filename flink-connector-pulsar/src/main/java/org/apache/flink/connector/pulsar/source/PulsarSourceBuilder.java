@@ -33,7 +33,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.FullRangeGenerator;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.SplitRangeGenerator;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
@@ -48,19 +47,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
-import static java.lang.Boolean.FALSE;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_TRANSACTION;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_CONSUMER_NAME;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_TRANSACTION_TIMEOUT;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
 import static org.apache.flink.connector.pulsar.source.config.PulsarSourceConfigUtils.SOURCE_CONFIG_VALIDATOR;
 import static org.apache.flink.util.InstantiationUtil.isSerializable;
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -177,9 +171,11 @@ public final class PulsarSourceBuilder<OUT> {
      * @return this PulsarSourceBuilder.
      * @see <a href="https://pulsar.apache.org/docs/en/concepts-messaging/#subscriptions">Pulsar
      *     Subscriptions</a>
+     * @deprecated We don't support setting the subscription type now.
      */
+    @Deprecated
     public PulsarSourceBuilder<OUT> setSubscriptionType(SubscriptionType subscriptionType) {
-        return setConfig(PULSAR_SUBSCRIPTION_TYPE, subscriptionType);
+        return this;
     }
 
     /**
@@ -278,23 +274,13 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
-     * Set a topic range generator for Key_Shared subscription.
+     * Set a topic range generator for consuming a sub set of keys.
      *
      * @param rangeGenerator A generator which would generate a set of {@link TopicRange} for given
      *     topic.
      * @return this PulsarSourceBuilder.
      */
     public PulsarSourceBuilder<OUT> setRangeGenerator(RangeGenerator rangeGenerator) {
-        if (configBuilder.contains(PULSAR_SUBSCRIPTION_TYPE)) {
-            SubscriptionType subscriptionType = configBuilder.get(PULSAR_SUBSCRIPTION_TYPE);
-            checkArgument(
-                    subscriptionType == SubscriptionType.Key_Shared,
-                    "Key_Shared subscription should be used for custom rangeGenerator instead of %s",
-                    subscriptionType);
-        } else {
-            LOG.warn("No subscription type provided, set it to Key_Shared.");
-            setSubscriptionType(SubscriptionType.Key_Shared);
-        }
         this.rangeGenerator = checkNotNull(rangeGenerator);
         return this;
     }
@@ -383,6 +369,9 @@ public final class PulsarSourceBuilder<OUT> {
      */
     public PulsarSourceBuilder<OUT> setAuthentication(
             String authPluginClassName, String authParamsString) {
+        checkArgument(
+                !configBuilder.contains(PULSAR_AUTH_PARAM_MAP),
+                "Duplicated authentication setting.");
         configBuilder.set(PULSAR_AUTH_PLUGIN_CLASS_NAME, authPluginClassName);
         configBuilder.set(PULSAR_AUTH_PARAMS, authParamsString);
         return this;
@@ -397,6 +386,8 @@ public final class PulsarSourceBuilder<OUT> {
      */
     public PulsarSourceBuilder<OUT> setAuthentication(
             String authPluginClassName, Map<String, String> authParams) {
+        checkArgument(
+                !configBuilder.contains(PULSAR_AUTH_PARAMS), "Duplicated authentication setting.");
         configBuilder.set(PULSAR_AUTH_PLUGIN_CLASS_NAME, authPluginClassName);
         configBuilder.set(PULSAR_AUTH_PARAM_MAP, authParams);
         return this;
@@ -450,20 +441,12 @@ public final class PulsarSourceBuilder<OUT> {
      */
     @SuppressWarnings("java:S3776")
     public PulsarSource<OUT> build() {
-
         // Ensure the topic subscriber for pulsar.
         checkNotNull(subscriber, "No topic names or topic pattern are provided.");
 
-        SubscriptionType subscriptionType = configBuilder.get(PULSAR_SUBSCRIPTION_TYPE);
-        if (subscriptionType == SubscriptionType.Key_Shared) {
-            if (rangeGenerator == null) {
-                LOG.warn(
-                        "No range generator provided for key_shared subscription,"
-                                + " we would use the SplitRangeGenerator as the default range generator.");
-                this.rangeGenerator = new SplitRangeGenerator();
-            }
-        } else {
-            // Override the range generator.
+        if (rangeGenerator == null) {
+            LOG.warn(
+                    "No range generator provided, we would use the FullRangeGenerator as the default range generator.");
             this.rangeGenerator = new FullRangeGenerator();
         }
 
@@ -480,28 +463,6 @@ public final class PulsarSourceBuilder<OUT> {
         }
 
         checkNotNull(deserializationSchema, "deserializationSchema should be set.");
-
-        // Enable transaction if the cursor auto commit is disabled for Key_Shared & Shared.
-        if (FALSE.equals(configBuilder.get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE))
-                && (subscriptionType == SubscriptionType.Key_Shared
-                        || subscriptionType == SubscriptionType.Shared)) {
-            LOG.info(
-                    "Pulsar cursor auto commit is disabled, make sure checkpoint is enabled "
-                            + "and your pulsar cluster is support the transaction.");
-            configBuilder.override(PULSAR_ENABLE_TRANSACTION, true);
-
-            if (!configBuilder.contains(PULSAR_READ_TRANSACTION_TIMEOUT)) {
-                LOG.warn(
-                        "The default pulsar transaction timeout is 3 hours, "
-                                + "make sure it was greater than your checkpoint interval.");
-            } else {
-                Long timeout = configBuilder.get(PULSAR_READ_TRANSACTION_TIMEOUT);
-                LOG.warn(
-                        "The configured transaction timeout is {} mille seconds, "
-                                + "make sure it was greater than your checkpoint interval.",
-                        timeout);
-            }
-        }
 
         if (!configBuilder.contains(PULSAR_CONSUMER_NAME)) {
             LOG.warn(

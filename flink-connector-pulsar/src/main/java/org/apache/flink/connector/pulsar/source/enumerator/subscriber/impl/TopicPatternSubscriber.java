@@ -22,7 +22,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -75,9 +74,7 @@ public class TopicPatternSubscriber extends BasePulsarSubscriber {
                             metadata -> {
                                 List<TopicRange> ranges =
                                         rangeGenerator.range(metadata, parallelism);
-                                KeySharedMode mode =
-                                        rangeGenerator.keyShareMode(metadata, parallelism);
-                                return toTopicPartitions(metadata, ranges, mode).stream();
+                                return toTopicPartitions(metadata, ranges).stream();
                             })
                     .collect(toSet());
         } catch (PulsarAdminException e) {

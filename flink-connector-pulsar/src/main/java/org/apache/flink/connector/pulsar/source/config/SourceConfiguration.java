@@ -19,7 +19,6 @@
 package org.apache.flink.connector.pulsar.source.config;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;
@@ -42,10 +41,8 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_TRANSACTION_TIMEOUT;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_TYPE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_VERIFY_INITIAL_OFFSETS;
 
 /** The configuration class for pulsar source. */
@@ -57,12 +54,10 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final long partitionDiscoveryIntervalMs;
     private final boolean enableAutoAcknowledgeMessage;
     private final long autoCommitCursorInterval;
-    private final long transactionTimeoutMillis;
     private final Duration maxFetchTime;
     private final int maxFetchRecords;
     private final CursorVerification verifyInitialOffsets;
     private final String subscriptionName;
-    private final SubscriptionType subscriptionType;
     private final SubscriptionMode subscriptionMode;
     private final boolean allowKeySharedOutOfOrderDelivery;
     private final boolean enableMetrics;
@@ -74,12 +69,10 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.partitionDiscoveryIntervalMs = get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage = get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
         this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
-        this.transactionTimeoutMillis = get(PULSAR_READ_TRANSACTION_TIMEOUT);
         this.maxFetchTime = get(PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
         this.maxFetchRecords = get(PULSAR_MAX_FETCH_RECORDS);
         this.verifyInitialOffsets = get(PULSAR_VERIFY_INITIAL_OFFSETS);
         this.subscriptionName = get(PULSAR_SUBSCRIPTION_NAME);
-        this.subscriptionType = get(PULSAR_SUBSCRIPTION_TYPE);
         this.subscriptionMode = get(PULSAR_SUBSCRIPTION_MODE);
         this.allowKeySharedOutOfOrderDelivery = get(PULSAR_ALLOW_KEY_SHARED_OUT_OF_ORDER_DELIVERY);
         this.enableMetrics =
@@ -129,17 +122,6 @@ public class SourceConfiguration extends PulsarConfiguration {
     }
 
     /**
-     * Pulsar's transaction have a timeout mechanism for uncommitted transaction. We use transaction
-     * for {@link SubscriptionType#Shared} and {@link SubscriptionType#Key_Shared} when user disable
-     * {@link #isEnableAutoAcknowledgeMessage} and enable flink checkpoint. Since the checkpoint
-     * interval couldn't be acquired from {@link SourceReaderContext#getConfiguration()}, we have to
-     * expose this option. Make sure this value is greater than the checkpoint interval.
-     */
-    public long getTransactionTimeoutMillis() {
-        return transactionTimeoutMillis;
-    }
-
-    /**
      * The fetch time for flink split reader polling message. We would stop polling message and
      * return the message in {@link RecordsWithSplitIds} when timeout or exceed the {@link
      * #getMaxFetchRecords}.
@@ -172,16 +154,6 @@ public class SourceConfiguration extends PulsarConfiguration {
     }
 
     /**
-     * The pulsar's subscription type for this flink source. All the readers would share this
-     * subscription type.
-     *
-     * @see SubscriptionType
-     */
-    public SubscriptionType getSubscriptionType() {
-        return subscriptionType;
-    }
-
-    /**
      * The pulsar's subscription mode for this flink source. All the readers would share this
      * subscription mode.
      *
@@ -203,12 +175,7 @@ public class SourceConfiguration extends PulsarConfiguration {
 
     /** Convert the subscription into a readable str. */
     public String getSubscriptionDesc() {
-        return getSubscriptionName()
-                + "("
-                + getSubscriptionType()
-                + ","
-                + getSubscriptionMode()
-                + ")";
+        return getSubscriptionName() + "(Exclusive," + getSubscriptionMode() + ")";
     }
 
     @Override
@@ -226,12 +193,10 @@ public class SourceConfiguration extends PulsarConfiguration {
         return partitionDiscoveryIntervalMs == that.partitionDiscoveryIntervalMs
                 && enableAutoAcknowledgeMessage == that.enableAutoAcknowledgeMessage
                 && autoCommitCursorInterval == that.autoCommitCursorInterval
-                && transactionTimeoutMillis == that.transactionTimeoutMillis
                 && maxFetchRecords == that.maxFetchRecords
                 && Objects.equals(maxFetchTime, that.maxFetchTime)
                 && verifyInitialOffsets == that.verifyInitialOffsets
                 && Objects.equals(subscriptionName, that.subscriptionName)
-                && subscriptionType == that.subscriptionType
                 && subscriptionMode == that.subscriptionMode
                 && allowKeySharedOutOfOrderDelivery == that.allowKeySharedOutOfOrderDelivery
                 && enableMetrics == that.enableMetrics;
@@ -244,12 +209,10 @@ public class SourceConfiguration extends PulsarConfiguration {
                 partitionDiscoveryIntervalMs,
                 enableAutoAcknowledgeMessage,
                 autoCommitCursorInterval,
-                transactionTimeoutMillis,
                 maxFetchTime,
                 maxFetchRecords,
                 verifyInitialOffsets,
                 subscriptionName,
-                subscriptionType,
                 subscriptionMode,
                 allowKeySharedOutOfOrderDelivery,
                 enableMetrics);

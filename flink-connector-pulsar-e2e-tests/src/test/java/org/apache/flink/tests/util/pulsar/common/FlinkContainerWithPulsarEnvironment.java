@@ -34,16 +34,6 @@ public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvir
                 numTaskManagers,
                 numSlotsPerTaskManager,
                 resourcePath("pulsar-connector.jar"),
-                resourcePath("pulsar-client-all.jar"),
-                resourcePath("pulsar-client-api.jar"),
-                resourcePath("pulsar-admin-api.jar"),
-                resourcePath("bouncy-castle-bc.jar"),
-                resourcePath("bcpkix-jdk15on.jar"),
-                resourcePath("bcprov-jdk15on.jar"),
-                resourcePath("bcutil-jdk15on.jar"),
-                resourcePath("bcprov-ext-jdk15on.jar"),
-                resourcePath("jaxb-api.jar"),
-                resourcePath("jul-to-slf4j.jar"),
                 resourcePath("flink-connector-testing.jar"));
     }
 

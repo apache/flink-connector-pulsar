@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.source.enumerator.topic;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode;
 
 import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
 
@@ -36,7 +35,6 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange.createFullRange;
-import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode.SPLIT;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -68,26 +66,14 @@ public class TopicPartition implements Serializable {
      */
     private final List<TopicRange> ranges;
 
-    /**
-     * The key share mode for the {@link SubscriptionType#Key_Shared}. It will be {@link
-     * KeySharedMode#JOIN} for other subscriptions.
-     */
-    private final KeySharedMode mode;
-
     public TopicPartition(String topic, int partitionId) {
-        this(topic, partitionId, FULL_RANGES, SPLIT);
+        this(topic, partitionId, FULL_RANGES);
     }
 
     public TopicPartition(String topic, int partitionId, List<TopicRange> ranges) {
-        this(topic, partitionId, ranges, SPLIT);
-    }
-
-    public TopicPartition(
-            String topic, int partitionId, List<TopicRange> ranges, KeySharedMode mode) {
         this.topic = topicName(checkNotNull(topic));
         this.partitionId = partitionId;
         this.ranges = checkNotNull(ranges);
-        this.mode = mode;
     }
 
     public String getTopic() {
@@ -122,12 +108,6 @@ public class TopicPartition implements Serializable {
         return ranges.stream().map(TopicRange::toPulsarRange).collect(toList());
     }
 
-    /** This method is internal used for key shared mode. */
-    @Internal
-    public KeySharedMode getMode() {
-        return mode;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -140,13 +120,12 @@ public class TopicPartition implements Serializable {
 
         return partitionId == partition.partitionId
                 && topic.equals(partition.topic)
-                && ranges.equals(partition.ranges)
-                && mode == partition.mode;
+                && ranges.equals(partition.ranges);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(topic, partitionId, ranges, mode);
+        return Objects.hash(topic, partitionId, ranges);
     }
 
     @Override

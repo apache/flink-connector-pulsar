@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.reader.split;
+package org.apache.flink.connector.pulsar.source.reader;
 
+import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.time.Deadline;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
@@ -36,26 +38,25 @@ import org.apache.flink.util.Preconditions;
 import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.ConsumerStats;
 import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.MSG_NUM_IN_RECEIVER_QUEUE;
@@ -75,24 +76,30 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_MSGS_RECEIVED;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_RECEIVED_FAILED;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
+import static org.apache.flink.connector.pulsar.source.config.CursorVerification.FAIL_ON_MISMATCH;
 import static org.apache.flink.connector.pulsar.source.config.PulsarSourceConfigUtils.createConsumerBuilder;
-import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator.KeySharedMode.JOIN;
+import static org.apache.flink.connector.pulsar.source.enumerator.cursor.MessageIdUtils.nextMessageId;
+import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.isFullTopicRanges;
 import static org.apache.pulsar.client.api.KeySharedPolicy.stickyHashRange;
 
-/** The common partition split reader. */
-abstract class PulsarPartitionSplitReaderBase
+/**
+ * The split reader a given {@link PulsarPartitionSplit}, it would be closed once the {@link
+ * PulsarSourceReader} is closed.
+ */
+@Internal
+public class PulsarPartitionSplitReader
         implements SplitReader<Message<byte[]>, PulsarPartitionSplit> {
-    private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReaderBase.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
 
-    protected final PulsarClient pulsarClient;
-    protected final PulsarAdmin pulsarAdmin;
-    protected final SourceConfiguration sourceConfiguration;
-    protected final SourceReaderMetricGroup metricGroup;
+    private final PulsarClient pulsarClient;
+    @VisibleForTesting final PulsarAdmin pulsarAdmin;
+    @VisibleForTesting final SourceConfiguration sourceConfiguration;
+    private final SourceReaderMetricGroup metricGroup;
 
-    protected Consumer<byte[]> pulsarConsumer;
-    protected PulsarPartitionSplit registeredSplit;
+    private Consumer<byte[]> pulsarConsumer;
+    private PulsarPartitionSplit registeredSplit;
 
-    protected PulsarPartitionSplitReaderBase(
+    public PulsarPartitionSplitReader(
             PulsarClient pulsarClient,
             PulsarAdmin pulsarAdmin,
             SourceConfiguration sourceConfiguration,
@@ -132,21 +139,14 @@ abstract class PulsarPartitionSplitReaderBase
                 if (condition == StopCondition.CONTINUE || condition == StopCondition.EXACTLY) {
                     // Collect original message.
                     builder.add(splitId, message);
-                    // Acknowledge the message if you need.
-                    finishedPollMessage(message);
+                    LOG.debug("Finished polling message {}", message);
                 }
 
                 if (condition == StopCondition.EXACTLY || condition == StopCondition.TERMINATE) {
                     builder.addFinishedSplit(splitId);
                     break;
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
             } catch (TimeoutException e) {
-                break;
-            } catch (ExecutionException e) {
-                LOG.error("Error in polling message from pulsar consumer.", e);
                 break;
             } catch (Exception e) {
                 throw new IOException(e);
@@ -180,14 +180,54 @@ abstract class PulsarPartitionSplitReaderBase
         // Open stop cursor.
         registeredSplit.open(pulsarAdmin);
 
-        // Before creating the consumer.
-        beforeCreatingConsumer(registeredSplit);
+        // Reset the start position before creating the consumer.
+        MessageId latestConsumedId = registeredSplit.getLatestConsumedId();
+
+        if (latestConsumedId != null) {
+            LOG.info("Reset subscription position by the checkpoint {}", latestConsumedId);
+            try {
+                MessageId initialPosition;
+                if (latestConsumedId == MessageId.latest
+                        || latestConsumedId == MessageId.earliest) {
+                    // for compatibility
+                    initialPosition = latestConsumedId;
+                } else {
+                    initialPosition = nextMessageId(latestConsumedId);
+                }
+
+                // Remove Consumer.seek() here for waiting for pulsar-client-all 2.12.0
+                // See https://github.com/apache/pulsar/issues/16757 for more details.
+
+                String topicName = registeredSplit.getPartition().getFullTopicName();
+                List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
+                String subscriptionName = sourceConfiguration.getSubscriptionName();
+
+                if (!subscriptions.contains(subscriptionName)) {
+                    // If this subscription is not available. Just create it.
+                    pulsarAdmin
+                            .topics()
+                            .createSubscription(topicName, subscriptionName, initialPosition);
+                } else {
+                    // Reset the subscription if this is existed.
+                    pulsarAdmin.topics().resetCursor(topicName, subscriptionName, initialPosition);
+                }
+            } catch (PulsarAdminException e) {
+                if (sourceConfiguration.getVerifyInitialOffsets() == FAIL_ON_MISMATCH) {
+                    throw new IllegalArgumentException(e);
+                } else {
+                    // WARN_ON_MISMATCH would just print this warning message.
+                    // No need to print the stacktrace.
+                    LOG.warn(
+                            "Failed to reset cursor to {} on partition {}",
+                            latestConsumedId,
+                            registeredSplit.getPartition(),
+                            e);
+                }
+            }
+        }
 
         // Create pulsar consumer.
         this.pulsarConsumer = createPulsarConsumer(registeredSplit);
-
-        // After creating the consumer.
-        afterCreatingConsumer(registeredSplit, pulsarConsumer);
 
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
     }
@@ -220,18 +260,16 @@ abstract class PulsarPartitionSplitReaderBase
         }
     }
 
-    @Nullable
-    protected abstract Message<byte[]> pollMessage(Duration timeout)
-            throws ExecutionException, InterruptedException, PulsarClientException;
-
-    protected abstract void finishedPollMessage(Message<byte[]> message);
-
-    protected void beforeCreatingConsumer(PulsarPartitionSplit split) {
-        // Nothing to do by default.
+    protected Message<byte[]> pollMessage(Duration timeout) throws PulsarClientException {
+        return pulsarConsumer.receive(Math.toIntExact(timeout.toMillis()), TimeUnit.MILLISECONDS);
     }
 
-    protected void afterCreatingConsumer(PulsarPartitionSplit split, Consumer<byte[]> consumer) {
-        // Nothing to do by default.
+    public void notifyCheckpointComplete(TopicPartition partition, MessageId offsetsToCommit) {
+        if (pulsarConsumer == null) {
+            this.pulsarConsumer = createPulsarConsumer(partition);
+        }
+
+        sneakyClient(() -> pulsarConsumer.acknowledgeCumulative(offsetsToCommit));
     }
 
     // --------------------------- Helper Methods -----------------------------
@@ -248,19 +286,13 @@ abstract class PulsarPartitionSplitReaderBase
 
         consumerBuilder.topic(partition.getFullTopicName());
 
-        // Add KeySharedPolicy for Key_Shared subscription.
-        if (sourceConfiguration.getSubscriptionType() == SubscriptionType.Key_Shared) {
+        // Add KeySharedPolicy for partial keys subscription.
+        if (!isFullTopicRanges(partition.getRanges())) {
             KeySharedPolicy policy = stickyHashRange().ranges(partition.getPulsarRanges());
             // We may enable out of order delivery for speeding up. It was turned off by default.
             policy.setAllowOutOfOrderDelivery(
                     sourceConfiguration.isAllowKeySharedOutOfOrderDelivery());
             consumerBuilder.keySharedPolicy(policy);
-
-            if (partition.getMode() == JOIN) {
-                // Override the key shared subscription into exclusive for making it behaviors like
-                // a Pulsar Reader which supports partial key hash ranges.
-                consumerBuilder.subscriptionType(SubscriptionType.Exclusive);
-            }
         }
 
         // Create the consumer configuration by using common utils.
