@@ -27,6 +27,7 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
+import org.apache.flink.connector.pulsar.source.enumerator.cursor.CursorPosition;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor.StopCondition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
@@ -78,7 +79,6 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.source.config.CursorVerification.FAIL_ON_MISMATCH;
 import static org.apache.flink.connector.pulsar.source.config.PulsarSourceConfigUtils.createConsumerBuilder;
-import static org.apache.flink.connector.pulsar.source.enumerator.cursor.MessageIdUtils.nextMessageId;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.isFullTopicRanges;
 import static org.apache.pulsar.client.api.KeySharedPolicy.stickyHashRange;
 
@@ -186,31 +186,22 @@ public class PulsarPartitionSplitReader
         if (latestConsumedId != null) {
             LOG.info("Reset subscription position by the checkpoint {}", latestConsumedId);
             try {
-                MessageId initialPosition;
+                CursorPosition cursorPosition;
                 if (latestConsumedId == MessageId.latest
                         || latestConsumedId == MessageId.earliest) {
                     // for compatibility
-                    initialPosition = latestConsumedId;
+                    cursorPosition = new CursorPosition(latestConsumedId, true);
                 } else {
-                    initialPosition = nextMessageId(latestConsumedId);
+                    cursorPosition = new CursorPosition(latestConsumedId, false);
                 }
+
+                String topicName = registeredSplit.getPartition().getFullTopicName();
+                String subscriptionName = sourceConfiguration.getSubscriptionName();
 
                 // Remove Consumer.seek() here for waiting for pulsar-client-all 2.12.0
                 // See https://github.com/apache/pulsar/issues/16757 for more details.
 
-                String topicName = registeredSplit.getPartition().getFullTopicName();
-                List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
-                String subscriptionName = sourceConfiguration.getSubscriptionName();
-
-                if (!subscriptions.contains(subscriptionName)) {
-                    // If this subscription is not available. Just create it.
-                    pulsarAdmin
-                            .topics()
-                            .createSubscription(topicName, subscriptionName, initialPosition);
-                } else {
-                    // Reset the subscription if this is existed.
-                    pulsarAdmin.topics().resetCursor(topicName, subscriptionName, initialPosition);
-                }
+                cursorPosition.seekPosition(pulsarAdmin, topicName, subscriptionName);
             } catch (PulsarAdminException e) {
                 if (sourceConfiguration.getVerifyInitialOffsets() == FAIL_ON_MISMATCH) {
                     throw new IllegalArgumentException(e);
