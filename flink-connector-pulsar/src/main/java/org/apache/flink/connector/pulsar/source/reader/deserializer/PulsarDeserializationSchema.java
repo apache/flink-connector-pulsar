@@ -25,6 +25,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema.Initializ
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
+import org.apache.flink.connector.pulsar.source.PulsarSourceBuilder;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.util.Collector;
 
@@ -58,11 +59,11 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
 
     /**
      * Deserializes the pulsar message. This message could be a raw byte message or some parsed
-     * message which decoded by pulsar schema.
+     * message which is decoded by pulsar schema.
      *
-     * <p>You can output multiple message by using the {@link Collector}. Note that number and size
+     * <p>You can output multiple messages by using the {@link Collector}. Note that number and size
      * of the produced records should be relatively small. Depending on the source implementation
-     * records can be buffered in memory or collecting records might delay emitting checkpoint
+     * records can be buffered in memory or collecting records might delay the emitting checkpoint
      * barrier.
      *
      * @param message The message decoded by pulsar.
@@ -72,8 +73,13 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
 
     /**
      * Create a PulsarDeserializationSchema by using the flink's {@link DeserializationSchema}. It
-     * would consume the pulsar message as byte array and decode the message by using flink's logic.
+     * would consume the pulsar message as the byte array and decode the message by using flink's
+     * logic.
+     *
+     * @deprecated Use {@link PulsarSourceBuilder#setDeserializationSchema(DeserializationSchema)}
+     *     instead.
      */
+    @Deprecated
     static <T> PulsarDeserializationSchema<T> flinkSchema(
             DeserializationSchema<T> deserializationSchema) {
         return new PulsarDeserializationSchemaWrapper<>(deserializationSchema);
@@ -86,7 +92,10 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
      * <p>We only support <a
      * href="https://pulsar.apache.org/docs/en/schema-understand/#primitive-type">primitive
      * types</a> here.
+     *
+     * @deprecated Use {@link PulsarSourceBuilder#setDeserializationSchema(Schema)} instead.
      */
+    @Deprecated
     static <T> PulsarDeserializationSchema<T> pulsarSchema(Schema<T> schema) {
         PulsarSchema<T> pulsarSchema = new PulsarSchema<>(schema);
         return new PulsarSchemaWrapper<>(pulsarSchema);
@@ -98,7 +107,10 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
      *
      * <p>We only support <a
      * href="https://pulsar.apache.org/docs/en/schema-understand/#struct">struct types</a> here.
+     *
+     * @deprecated Use {@link PulsarSourceBuilder#setDeserializationSchema(Schema, Class)} instead.
      */
+    @Deprecated
     static <T> PulsarDeserializationSchema<T> pulsarSchema(Schema<T> schema, Class<T> typeClass) {
         PulsarSchema<T> pulsarSchema = new PulsarSchema<>(schema, typeClass);
         return new PulsarSchemaWrapper<>(pulsarSchema);
@@ -110,7 +122,11 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
      *
      * <p>We only support <a
      * href="https://pulsar.apache.org/docs/en/schema-understand/#keyvalue">keyvalue types</a> here.
+     *
+     * @deprecated Use {@link PulsarSourceBuilder#setDeserializationSchema(Schema, Class, Class)}
+     *     instead.
      */
+    @Deprecated
     static <K, V> PulsarDeserializationSchema<KeyValue<K, V>> pulsarSchema(
             Schema<KeyValue<K, V>> schema, Class<K> keyClass, Class<V> valueClass) {
         PulsarSchema<KeyValue<K, V>> pulsarSchema =
@@ -121,7 +137,11 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
     /**
      * Create a PulsarDeserializationSchema by using the given {@link TypeInformation}. This method
      * is only used for treating message that was written into pulsar by {@link TypeInformation}.
+     *
+     * @deprecated Use {@link PulsarSourceBuilder#setDeserializationSchema(TypeInformation,
+     *     ExecutionConfig)} instead.
      */
+    @Deprecated
     static <T> PulsarDeserializationSchema<T> flinkTypeInfo(
             TypeInformation<T> information, ExecutionConfig config) {
         return new PulsarTypeInformationWrapper<>(information, config);

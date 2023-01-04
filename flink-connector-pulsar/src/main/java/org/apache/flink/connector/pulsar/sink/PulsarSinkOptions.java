@@ -115,8 +115,10 @@ public final class PulsarSinkOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "If you enable this option and use PulsarSerializationSchema.pulsarSchema(),"
-                                                    + " we would consume and deserialize the message by using Pulsar's %s.",
+                                            "If you enable this option and use %s,"
+                                                    + " we would produce and serialize the message by using Pulsar's %s.",
+                                            code(
+                                                    "PulsarSinkBuilder.setSerializationSchema(Schema)"),
                                             code("Schema"))
                                     .build());
 

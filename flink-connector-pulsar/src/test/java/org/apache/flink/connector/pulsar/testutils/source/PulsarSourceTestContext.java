@@ -40,7 +40,6 @@ import java.util.stream.IntStream;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
-import static org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.pulsarSchema;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
 
 /**
@@ -61,7 +60,7 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
     public Source<String, ?, ?> createSource(TestingSourceSettings sourceSettings) {
         PulsarSourceBuilder<String> builder =
                 PulsarSource.builder()
-                        .setDeserializationSchema(pulsarSchema(schema))
+                        .setDeserializationSchema(schema)
                         .setServiceUrl(operator.serviceUrl())
                         .setAdminUrl(operator.adminUrl())
                         .setTopicPattern(topicPattern(), AllTopics)

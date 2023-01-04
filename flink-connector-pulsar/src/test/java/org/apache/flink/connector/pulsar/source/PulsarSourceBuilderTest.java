@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.source;
 import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 
-import static org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.pulsarSchema;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -61,6 +60,6 @@ class PulsarSourceBuilderTest {
         builder.setServiceUrl("service-url");
         builder.setSubscriptionName("subscription-name");
         builder.setTopics("topic");
-        builder.setDeserializationSchema(pulsarSchema(Schema.STRING));
+        builder.setDeserializationSchema(Schema.STRING);
     }
 }
