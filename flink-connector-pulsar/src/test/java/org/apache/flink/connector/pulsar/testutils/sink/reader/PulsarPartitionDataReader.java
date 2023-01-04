@@ -16,18 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.testutils.sink;
+package org.apache.flink.connector.pulsar.testutils.sink.reader;
 
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalSystemDataReader;
 
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +44,7 @@ import java.util.List;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 
 /** The data reader for a specified topic partition from Pulsar. */
 public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>, Closeable {
@@ -47,19 +54,40 @@ public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>
     private final Consumer<T> consumer;
 
     public PulsarPartitionDataReader(
-            PulsarRuntimeOperator operator, String fullTopicName, Schema<T> schema)
-            throws PulsarClientException {
-        // Create client for supporting the use in E2E test.
+            PulsarRuntimeOperator operator, String fullTopicName, Schema<T> schema) {
+        this(operator, fullTopicName, schema, PulsarCrypto.disabled());
+    }
+
+    protected PulsarPartitionDataReader(
+            PulsarRuntimeOperator operator,
+            String fullTopicName,
+            Schema<T> schema,
+            PulsarCrypto pulsarCrypto) {
+        // Create the consumer for supporting the E2E tests in the meantime.
         String subscriptionName = randomAlphanumeric(12);
-        this.consumer =
+        ConsumerBuilder<T> builder =
                 operator.client()
                         .newConsumer(schema)
                         .topic(fullTopicName)
                         .subscriptionName(subscriptionName)
                         .subscriptionType(SubscriptionType.Exclusive)
                         .subscriptionMode(SubscriptionMode.Durable)
-                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
-                        .subscribe();
+                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest);
+
+        CryptoKeyReader cryptoKeyReader = pulsarCrypto.cryptoKeyReader();
+        if (cryptoKeyReader != null) {
+            // Add the crypto.
+            builder.cryptoKeyReader(cryptoKeyReader);
+            builder.cryptoFailureAction(ConsumerCryptoFailureAction.FAIL);
+
+            MessageCrypto<MessageMetadata, MessageMetadata> messageCrypto =
+                    pulsarCrypto.messageCrypto();
+            if (messageCrypto != null) {
+                builder.messageCrypto(messageCrypto);
+            }
+        }
+
+        this.consumer = sneakyClient(builder::subscribe);
     }
 
     @Override

@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.source;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
+import org.apache.flink.connector.pulsar.testutils.source.cases.ConsumeEncryptMessagesContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.SingleTopicConsumingContext;
@@ -66,4 +67,8 @@ class PulsarSourceITCase extends SourceTestSuiteBase<String> {
     @TestContext
     PulsarTestContextFactory<String, PartialKeysConsumingContext> partialKeys =
             new PulsarTestContextFactory<>(pulsar, PartialKeysConsumingContext::new);
+
+    @TestContext
+    PulsarTestContextFactory<String, ConsumeEncryptMessagesContext> encryptMessages =
+            new PulsarTestContextFactory<>(pulsar, ConsumeEncryptMessagesContext::new);
 }
