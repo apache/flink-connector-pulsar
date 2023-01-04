@@ -26,6 +26,7 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SourceReaderBase;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.schema.BytesSchema;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
@@ -252,6 +253,7 @@ public class PulsarSourceReader<OUT>
     public static <OUT> PulsarSourceReader<OUT> create(
             SourceConfiguration sourceConfiguration,
             PulsarDeserializationSchema<OUT> deserializationSchema,
+            PulsarCrypto pulsarCrypto,
             SourceReaderContext readerContext) {
 
         // Create a message queue with the predefined source option.
@@ -281,6 +283,7 @@ public class PulsarSourceReader<OUT>
                                 pulsarAdmin,
                                 sourceConfiguration,
                                 schema,
+                                pulsarCrypto,
                                 readerContext.metricGroup());
 
         PulsarSourceFetcherManager fetcherManager =

@@ -25,7 +25,8 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.pulsar.testutils.function.ControlSource;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
-import org.apache.flink.connector.pulsar.testutils.sink.PulsarSinkTestContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.PulsarEncryptSinkContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.PulsarSinkTestContext;
 import org.apache.flink.connector.testframe.environment.MiniClusterTestEnvironment;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
@@ -57,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("org.apache.flink.testutils.junit.FailsOnJava11")
 class PulsarSinkITCase {
 
-    /** Integration test based on connector testing framework. */
+    /** Integration test based on the connector testing framework. */
     @Nested
     class IntegrationTest extends SinkTestSuiteBase<String> {
 
@@ -75,6 +76,10 @@ class PulsarSinkITCase {
         @TestContext
         PulsarTestContextFactory<String, PulsarSinkTestContext> sinkContext =
                 new PulsarTestContextFactory<>(pulsar, PulsarSinkTestContext::new);
+
+        @TestContext
+        PulsarTestContextFactory<String, PulsarEncryptSinkContext> encryptMessages =
+                new PulsarTestContextFactory<>(pulsar, PulsarEncryptSinkContext::new);
     }
 
     /** Tests for using PulsarSink writing to a Pulsar cluster. */

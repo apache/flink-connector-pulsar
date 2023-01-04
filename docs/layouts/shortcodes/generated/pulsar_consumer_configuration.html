@@ -18,7 +18,7 @@
             <td><h5>pulsar.consumer.ackTimeoutMillis</h5></td>
             <td style="word-wrap: break-word;">0</td>
             <td>Long</td>
-            <td>The timeout (in ms) for unacknowledged messages, truncated to the nearest millisecond. The timeout needs to be greater than 1 second.<br />By default, the acknowledge timeout is disabled and that means that messages delivered to a consumer will not be re-delivered unless the consumer crashes.<br />When acknowledgement timeout being enabled, if a message is not acknowledged within the specified timeout it will be re-delivered to the consumer (possibly to a different consumer in case of a shared subscription).</td>
+            <td>The timeout (in ms) for unacknowledged messages, truncated to the nearest millisecond. The timeout needs to be greater than 1 second.<br />By default, the acknowledge timeout is disabled and that means that messages delivered to a consumer will not be re-delivered unless the consumer crashes.<br />When acknowledgement timeout being enabled, if a message is not acknowledged within the specified timeout it will be re-delivered to the consumer.</td>
         </tr>
         <tr>
             <td><h5>pulsar.consumer.acknowledgementsGroupTimeMicros</h5></td>
@@ -96,7 +96,7 @@
             <td><h5>pulsar.consumer.priorityLevel</h5></td>
             <td style="word-wrap: break-word;">0</td>
             <td>Integer</td>
-            <td>Priority level for a consumer to which a broker gives more priorities while dispatching messages in the shared subscription type.<br />The broker follows descending priorities. For example, 0=max-priority, 1, 2,...<br />In shared subscription mode, the broker first dispatches messages to the consumers on the highest priority level if they have permits. Otherwise, the broker considers consumers on the next priority level.<br /><br />Example 1<br />If a subscription has consumer A with <code class="highlighter-rouge">priorityLevel</code> 0 and consumer B with <code class="highlighter-rouge">priorityLevel</code> 1, then the broker only dispatches messages to consumer A until it runs out permits and then starts dispatching messages to consumer B.<br />Example 2<br />Consumer Priority, Level, Permits
+            <td>Priority level for a consumer to which a broker gives more priorities while dispatching messages in the subscription.<br />The broker follows descending priorities. For example, 0=max-priority, 1, 2,...<br /><br />Example 1<br />If a subscription has consumer A with <code class="highlighter-rouge">priorityLevel</code> 0 and consumer B with <code class="highlighter-rouge">priorityLevel</code> 1, then the broker only dispatches messages to consumer A until it runs out permits and then starts dispatching messages to consumer B.<br />Example 2<br />Consumer Priority, Level, Permits
 C1, 0, 2
 C2, 0, 1
 C3, 0, 1
@@ -114,7 +114,7 @@ C5, 1, 1
             <td><h5>pulsar.consumer.readCompacted</h5></td>
             <td style="word-wrap: break-word;">false</td>
             <td>Boolean</td>
-            <td>If enabling <code class="highlighter-rouge">readCompacted</code>, a consumer reads messages from a compacted topic rather than reading a full message backlog of a topic.<br />A consumer only sees the latest value for each key in the compacted topic, up until reaching the point in the topic message when compacting backlog. Beyond that point, send messages as normal.<br />Only enabling <code class="highlighter-rouge">readCompacted</code> on subscriptions to persistent topics, which have a single active consumer (like failure or exclusive subscriptions).<br />Attempting to enable it on subscriptions to non-persistent topics or on shared subscriptions leads to a subscription call throwing a <code class="highlighter-rouge">PulsarClientException</code>.</td>
+            <td>If enabling <code class="highlighter-rouge">readCompacted</code>, a consumer reads messages from a compacted topic rather than reading a full message backlog of a topic.<br />A consumer only sees the latest value for each key in the compacted topic, up until reaching the point in the topic message when compacting backlog. Beyond that point, send messages as normal.<br />Only enabling <code class="highlighter-rouge">readCompacted</code> on subscriptions to persistent topics, which have a single active consumer (like failure or exclusive subscriptions).<br />Attempting to enable it on subscriptions to non-persistent topics leads to a subscription call throwing a <code class="highlighter-rouge">PulsarClientException</code>.</td>
         </tr>
         <tr>
             <td><h5>pulsar.consumer.receiverQueueSize</h5></td>

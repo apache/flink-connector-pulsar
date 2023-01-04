@@ -28,9 +28,7 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 ## 添加依赖
 
-Pulsar Source 当前支持 Pulsar 2.8.1 之后的版本，但是 Pulsar Source 使用到了 Pulsar 的[事务机制](https://pulsar.apache.org/docs/zh-CN/txn-what/)，建议在 Pulsar 2.9.2 及其之后的版本上使用 Pulsar Source 进行数据读取。
-
-如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
+当前支持 Pulsar 2.10.0 及其之后的版本，建议在总是将 Pulsar 升级至最新版。如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
 {{< artifact flink-connector-pulsar >}}
 
@@ -190,7 +188,7 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
 
 如果用户只关心消息体的二进制字节流，并不需要其他属性来解析数据。可以直接使用预定义的 `PulsarDeserializationSchema`。Pulsar Source里面提供了 3 种预定义的反序列化器。
 
-- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/zh-CN/schema-understand/) 解析消息。如果使用 KeyValue 或者 Struct 类型的 Schema, 那么 Pulsar 的 `Schema` 将不会含有类型类信息， 但 `PulsarSchemaTypeInformation` 需要通过传入类型类信息来构造。因此我们提供的 API 支持用户传入类型信息。
+- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 解析消息。如果使用 KeyValue 或者 Struct 类型的 Schema, 那么 Pulsar 的 `Schema` 将不会含有类型类信息， 但 `PulsarSchemaTypeInformation` 需要通过传入类型类信息来构造。因此我们提供的 API 支持用户传入类型信息。
   ```java
   // 基础数据类型
   PulsarDeserializationSchema.pulsarSchema(Schema);
@@ -229,9 +227,23 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
   {{< /tab >}}
   {{< /tabs >}}
 
-Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.apache.org/docs/zh-CN/concepts-messaging/#%E6%B6%88%E6%81%AF)。例如，消息的 key、消息发送时间、消息生产时间、用户在消息上自定义的键值对属性等。可以使用 `Message<byte[]>` 接口来获取这些属性。
+Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#messages)。例如，消息的 key、消息发送时间、消息生产时间、用户在消息上自定义的键值对属性等。可以使用 `Message<byte[]>` 接口来获取这些属性。
 
 如果用户需要基于这些额外的属性来解析一条消息，可以实现 `PulsarDeserializationSchema` 接口。并一定要确保 `PulsarDeserializationSchema.getProducedType()` 方法返回的 `TypeInformation` 是正确的结果。Flink 使用 `TypeInformation` 将解析出来的结果序列化传递到下游算子。
+
+同时使用 `PulsarDeserializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSourceBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
+
+```java
+Schema<SomePojo> schema = Schema.AVRO(SomePojo.class);
+
+PulsarSource<SomePojo> source = PulsarSource.builder()
+    ...
+    .setDeserializationSchema(schema, SomePojo.class)
+    .enableSchemaEvolution()
+    .build();
+```
+
+如果使用 Pulsar 原生的 Schema 来反序列化消息却不启用 Schema Evolution 特性，我们将会跳过 Schema 兼容性检查，解析一些消息时可能会遇到未知的错误。
 
 ### 定义 RangeGenerator
 
@@ -398,7 +410,7 @@ Pulsar Source 默认情况下使用流的方式消费数据。除非任务失败
   {{< /tabs >}}
 
 - 停止于某个给定的消息事件时间戳，比如 `Message<byte[]>.getEventTime()`，消费结果里不包含此时间戳的消息。
-  {{< tabs "pulsar-boundedness-at-event-time" >}} 
+  {{< tabs "pulsar-boundedness-at-event-time" >}}
   {{< tab "Java" >}}
   ```java
   StopCursor.atEventTime(long);
@@ -459,13 +471,13 @@ Pulsar Source 默认情况下使用流的方式消费数据。除非任务失败
 
 #### Pulsar Java 客户端配置项
 
-Pulsar Source 使用 [Java 客户端](https://pulsar.apache.org/docs/zh-CN/client-libraries-java/)来创建消费实例，相关的配置定义于 Pulsar 的 `ClientConfigurationData` 内。在 `PulsarOptions` 选项中，定义大部分的可供用户定义的配置。
+Pulsar Source 使用 [Java 客户端](https://pulsar.apache.org/docs/2.10.x/client-libraries-java/)来创建消费实例，相关的配置定义于 Pulsar 的 `ClientConfigurationData` 内。在 `PulsarOptions` 选项中，定义大部分的可供用户定义的配置。
 
 {{< generated/pulsar_client_configuration >}}
 
 #### Pulsar 管理 API 配置项
 
-[管理 API](https://pulsar.apache.org/docs/zh-CN/admin-api-overview/) 用于查询 Topic 的元数据和用正则订阅的时候的 Topic 查找，它与 Java 客户端共享大部分配置。下面列举的配置只供管理 API 使用，`PulsarOptions` 包含了这些配置 。
+[管理 API](https://pulsar.apache.org/docs/2.10.x/admin-api-overview/) 用于查询 Topic 的元数据和用正则订阅的时候的 Topic 查找，它与 Java 客户端共享大部分配置。下面列举的配置只供管理 API 使用，`PulsarOptions` 包含了这些配置 。
 
 {{< generated/pulsar_admin_configuration >}}
 
@@ -535,31 +547,13 @@ env.from_source(pulsar_source, CustomWatermarkStrategy(), "Pulsar Source With Cu
 
 ### 消息确认
 
-一旦在 Topic 上创建了订阅，消息便会[存储](https://pulsar.apache.org/docs/zh-CN/concepts-architecture-overview/#%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8)在 Pulsar 里。即使没有消费者，消息也不会被丢弃。只有当 Pulsar Source 同 Pulsar 确认此条消息已经被消费，该消息才以某种机制会被移除。Pulsar Source 支持四种订阅方式，它们的消息确认方式也大不相同。
+一旦在 Topic 上创建了订阅，消息便会[存储](https://pulsar.apache.org/docs/2.10.x/concepts-architecture-overview/#persistent-storage)在 Pulsar 里。即使没有消费者，消息也不会被丢弃。只有当 Flink 同 Pulsar 确认此条消息已经被消费，该消息才以某种机制会被移除。
 
-#### 独占和灾备订阅下的消息确认
-
-`独占` 和 `灾备` 订阅下，Pulsar Source 使用累进式确认方式。确认某条消息已经被处理时，其前面消息会自动被置为已读。Pulsar Source 会在 Flink 完成检查点时将对应时刻消费的消息置为已读，以此来保证 Pulsar 状态与 Flink 状态一致。
+我们使用 `独占` 作为默认的订阅模式。此订阅下，Pulsar Source 使用累进式确认方式。确认某条消息已经被处理时，其前面消息会自动被置为已读。Pulsar Source 会在 Flink 完成检查点时将对应时刻消费的消息置为已读，以此来保证 Pulsar 状态与 Flink 状态一致。
 
 如果用户没有在 Flink 上启用检查点，Pulsar Source 可以使用周期性提交来将消费状态提交给 Pulsar，使用配置 `PulsarSourceOptions.PULSAR_AUTO_COMMIT_CURSOR_INTERVAL` 来进行定义。
 
 需要注意的是，此种场景下，Pulsar Source 并不依赖于提交到 Pulsar 的状态来做容错。消息确认只是为了能在 Pulsar 端看到对应的消费处理情况。
-
-#### 共享和 key 共享订阅下的消息确认
-
-`共享` 和 `key 共享` 需要依次确认每一条消息，所以 Pulsar Source 在 Pulsar 事务里面进行消息确认，然后将事务提交到 Pulsar。
-
-首先需要在 Pulsar 的 `borker.conf` 文件里面启用事务：
-
-```text
-transactionCoordinatorEnabled=true
-```
-
-Pulsar Source 创建的事务的默认超时时间为 3 小时，请确保这个时间大于 Flink 检查点的间隔。用户可以使用 `PulsarSourceOptions.PULSAR_TRANSACTION_TIMEOUT_MILLIS` 来设置事务的超时时间。
-
-如果用户无法启用 Pulsar 的事务，或者是因为项目禁用了检查点，需要将 `PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE` 选项设置为 `true`，消息从 Pulsar 消费后会被立刻置为已读。Pulsar Source 无法保证此种场景下的消息一致性。
-
-Pulsar Source 在 Pulsar 上使用日志的形式记录某个事务下的消息确认，为了更好的性能，请缩短 Flink 做检查点的间隔。
 
 ## Pulsar Sink
 
@@ -568,7 +562,7 @@ Pulsar Sink 连接器可以将经过 Flink 处理后的数据写入一个或多�
 {{< hint info >}}
 Pulsar Sink 基于 Flink 最新的 [Sink API](https://cwiki.apache.org/confluence/display/FLINK/FLIP-191%3A+Extend+unified+Sink+interface+to+support+small+file+compaction) 实现。
 
-如果想要使用旧版的使用 `SinkFuntion` 接口实现的 Sink 连接器，可以使用 StreamNative 维护的 [pulsar-flink](https://github.com/streamnative/pulsar-flink)。
+如果想要使用旧版的使用 `SinkFunction` 接口实现的 Sink 连接器，可以使用 StreamNative 维护的 [pulsar-flink](https://github.com/streamnative/pulsar-flink)。
 {{< /hint >}}
 
 ### 使用示例
@@ -577,7 +571,7 @@ Pulsar Sink 使用 builder 类来创建 `PulsarSink` 实例。
 
 下面示例展示了如何通过 Pulsar Sink 以“至少一次”的语义将字符串类型的数据发送给 topic1。
 
-{{< tabs "46e225b1-1e34-4ff3-890c-aa06a2b99c0a" >}}
+{{< tabs "pulsar-sink-example" >}}
 {{< tab "Java" >}}
 
 ```java
@@ -618,7 +612,7 @@ stream.sink_to(pulsar_sink)
 
 - Pulsar 数据消费的地址，使用 `setServiceUrl(String)` 方法提供。
 - Pulsar HTTP 管理地址，使用 `setAdminUrl(String)` 方法提供。
-- 需要发送到的 Topic 或者是 Topic 下面的分区，详见[指定写入的topic或者topic分区](#指定写入的topic或者topic分区)。
+- 需要发送到的 Topic 或者是 Topic 下面的分区，详见[指定写入的 Topic 或者 Topic 分区](#指定写入的-topic-或者-topic-分区)。
 - 编码 Pulsar 消息的序列化器，详见[序列化器](#序列化器)。
 
 在创建 `PulsarSink` 时，建议使用 `setProducerName(String)` 来指定 `PulsarSink` 内部使用的 Pulsar 生产者名称。这样方便在数据监控页面找到对应的生产者监控指标。
@@ -627,7 +621,7 @@ stream.sink_to(pulsar_sink)
 
 `PulsarSink` 指定写入 Topic 的方式和 Pulsar Source [指定消费的 Topic 或者 Topic 分区](#指定消费的-topic-或者-topic-分区)的方式类似。`PulsarSink` 支持以 mixin 风格指定写入的 Topic 或分区。因此，可以指定一组 Topic 或者分区或者是两者都有。
 
-{{< tabs "3d452e6b-bffd-42f7-bb91-974b306262ca" >}}
+{{< tabs "set-pulsar-sink-topics" >}}
 {{< tab "Java" >}}
 
 ```java
@@ -672,9 +666,9 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
 
 序列化器（`PulsarSerializationSchema`）负责将 Flink 中的每条记录序列化成 byte 数组，并通过网络发送至指定的写入 Topic。和 Pulsar Source 类似的是，序列化器同时支持使用基于 Flink 的 `SerializationSchema` 接口实现序列化器和使用 Pulsar 原生的 `Schema` 类型实现的序列化器。不过序列化器并不支持 Pulsar 的 `Schema.AUTO_PRODUCE_BYTES()`。
 
-如果不需要指定 [Message](https://pulsar.apache.org/api/client/2.9.0-SNAPSHOT/org/apache/pulsar/client/api/Message.html) 接口中提供的 key 或者其他的消息属性，可以从上述 2 种预定义的 `PulsarSerializationSchema` 实现中选择适合需求的一种使用。
+如果不需要指定 [Message](https://pulsar.apache.org/api/client/2.10.x/org/apache/pulsar/client/api/Message.html) 接口中提供的 key 或者其他的消息属性，可以从上述 2 种预定义的 `PulsarSerializationSchema` 实现中选择适合需求的一种使用。
 
-- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/zh-CN/schema-understand/) 来序列化 Flink 中的数据。
+- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 来序列化 Flink 中的数据。
   ```java
   // 原始数据类型
   PulsarSerializationSchema.pulsarSchema(Schema)
@@ -687,7 +681,7 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
   ```
 - 使用 Flink 的 `SerializationSchema` 来序列化数据。
 
-  {{< tabs "b65b9978-b1d6-4b0d-ade8-78098e0f23d8" >}}
+  {{< tabs "set-pulsar-serialization-flink-schema" >}}
   {{< tab "Java" >}}
 
   ```java
@@ -704,7 +698,7 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
   {{< /tab >}}
   {{< /tabs >}}
 
-同时使用 `PulsarSerializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSinkBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution](https://pulsar.apache.org/docs/zh-CN/schema-evolution-compatibility/#schema-evolution) 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
+同时使用 `PulsarSerializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSinkBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
 
 ```java
 Schema<SomePojo> schema = Schema.AVRO(SomePojo.class);
@@ -736,7 +730,7 @@ PulsarSink<String> sink = PulsarSink.builder()
   可以使用 `MessageKeyHash.JAVA_HASH` 或者 `MessageKeyHash.MURMUR3_32_HASH` 两种不同的哈希算法来计算消息 key 的哈希值。使用 `PulsarSinkOptions.PULSAR_MESSAGE_KEY_HASH` 配置项来指定想要的哈希算法。
 
 - `RoundRobinRouter`：轮换使用用户给定的 Topic 分区。
-  
+
   消息将会轮替地选取 Topic 分区，当往某个 Topic 分区里写入指定数量的消息后，将会轮换至下一个 Topic 分区。使用 `PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES` 指定向一个 Topic 分区中写入的消息数量。
 
 还可以通过实现 `TopicRouter` 接口来自定义消息路由策略，请注意 TopicRouter 的实现需要能被序列化。
@@ -758,7 +752,7 @@ public interface TopicRouter<IN> extends Serializable {
 {{< hint info >}}
 如前文所述，Pulsar 分区的内部被实现为一个无分区的 Topic，一般情况下 Pulsar 客户端会隐藏这个实现，并且提供内置的消息路由策略。Pulsar Sink 并没有使用 Pulsar 客户端提供的路由策略和封装，而是使用了 Pulsar 客户端更底层的 API 自行实现了消息路由逻辑。这样做的主要目的是能够在属于不同 Topic 的分区之间定义更灵活的消息路由策略。
 
-详情请参考 Pulsar 的 [partitioned topics](https://pulsar.apache.org/docs/zh-CN/cookbooks-partitioned/)。
+详情请参考 Pulsar 的 [partitioned topics](https://pulsar.apache.org/docs/2.10.x/cookbooks-partitioned/) 文档。
 {{< /hint >}}
 
 ### 发送一致性
@@ -767,11 +761,11 @@ public interface TopicRouter<IN> extends Serializable {
 
 - `NONE`：Flink 应用运行时可能出现数据丢失的情况。在这种模式下，Pulsar Sink 发送消息后并不会检查消息是否发送成功。此模式具有最高的吞吐量，可用于一致性没有要求的场景。
 - `AT_LEAST_ONCE`：每条消息**至少有**一条对应消息发送至 Pulsar，发送至 Pulsar 的消息可能会因为 Flink 应用重启而出现重复。
-- `EXACTLY_ONCE`：每条消息**有且仅有**一条对应消息发送至 Pulsar。发送至 Pulsar 的消息不会有重复也不会丢失。Pulsar Sink 内部依赖 [Pulsar 事务](https://pulsar.apache.org/docs/zh-CN/transactions/)和两阶段提交协议来保证每条记录都能正确发往 Pulsar。
+- `EXACTLY_ONCE`：每条消息**有且仅有**一条对应消息发送至 Pulsar。发送至 Pulsar 的消息不会有重复也不会丢失。Pulsar Sink 内部依赖 [Pulsar 事务](https://pulsar.apache.org/docs/2.10.x/transactions/)和两阶段提交协议来保证每条记录都能正确发往 Pulsar。
 
 ### 消息延时发送
 
-[消息延时发送](https://pulsar.apache.org/docs/zh-CN/next/concepts-messaging/#%E6%B6%88%E6%81%AF%E5%BB%B6%E8%BF%9F%E4%BC%A0%E9%80%92)特性可以让指定发送的每一条消息需要延时一段时间后才能被下游的消费者所消费。当延时消息发送特性启用时，Pulsar Sink 会**立刻**将消息发送至 Pulsar Broker。但该消息在指定的延迟时间到达前将会保持对下游消费者不可见。
+[消息延时发送](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#delayed-message-delivery)特性可以让指定发送的每一条消息需要延时一段时间后才能被下游的消费者所消费。当延时消息发送特性启用时，Pulsar Sink 会**立刻**将消息发送至 Pulsar Broker。但该消息在指定的延迟时间到达前将会保持对下游消费者不可见。
 
 消息延时发送仅在 `Shared` 订阅模式下有效，在 `Exclusive` 和 `Failover` 模式下该特性无效。
 
@@ -790,7 +784,7 @@ public interface TopicRouter<IN> extends Serializable {
 Pulsar Sink 和 Pulsar Source 公用的配置选项可参考
 
 - [Pulsar Java 客户端配置项](#pulsar-java-客户端配置项)
-- [Pulsar 管理 API 配置项](#pulsar-管理-API-配置项)
+- [Pulsar 管理 API 配置项](#pulsar-管理-api-配置项)
 
 #### Pulsar 生产者 API 配置项
 
@@ -804,113 +798,25 @@ Pulsar Sink 使用生产者 API 来发送消息。Pulsar 的 `ProducerConfigurat
 
 {{< generated/pulsar_sink_configuration >}}
 
-### Sink 监控指标
+### 设计思想简述
 
-下列表格列出了当前 Sink 支持的监控指标，前 6 个指标是 [FLIP-33: Standardize Connector Metrics]([https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics](https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics)) 中规定的 Sink 连接器应当支持的标准指标。
+Pulsar Sink 遵循 [FLIP-191](https://cwiki.apache.org/confluence/display/FLINK/FLIP-191%3A+Extend+unified+Sink+interface+to+support+small+file+compaction) 中定义的 Sink API 设计。
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th class="text-left" style="width: 15%">Scope</th>
-      <th class="text-left" style="width: 18%">Metrics</th>
-      <th class="text-left" style="width: 18%">User Variables</th>
-      <th class="text-left" style="width: 39%">Description</th>
-      <th class="text-left" style="width: 10%">Type</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-        <th rowspan="13">Operator</th>
-        <td>numBytesOut</td>
-        <td>n/a</td>
-        <td>Pulsar Sink 启动后总共发出的字节数</td>
-        <td>Counter</td>
-    </tr>
-    <tr>
-        <td>numBytesOutPerSecond</td>
-        <td>n/a</td>
-        <td>每秒发送的字节数</td>
-        <td>Meter</td>
-    </tr>
-    <tr>
-        <td>numRecordsOut</td>
-        <td>n/a</td>
-        <td>Pulsar Sink 启动后总共发出的消息数</td>
-        <td>Counter</td>
-    </tr>
-    <tr>
-        <td>numRecordsOutPerSecond</td>
-        <td>n/a</td>
-        <td>每秒发送的消息数</td>
-        <td>Meter</td>
-    </tr>
-    <tr>
-        <td>numRecordsOutErrors</td>
-        <td>n/a</td>
-        <td>总共发送消息失败的次数</td>
-        <td>Counter</td>
-    </tr>
-    <tr>
-        <td>currentSendTime</td>
-        <td>n/a</td>
-        <td>最近一条消息从被放入客户端缓冲队列到收到消息确认的时间</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.numAcksReceived</td>
-        <td>n/a</td>
-        <td>总共收到的确认数</td>
-        <td>Counter</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.sendLatencyMax</td>
-        <td>n/a</td>
-        <td>所有生产者的最大发送延迟</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.producer."ProducerName".sendLatency50Pct</td>
-        <td>ProducerName</td>
-        <td>某个生产者在过去的一个窗口内的发送延迟的中位数</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.producer."ProducerName".sendLatency75Pct</td>
-        <td>ProducerName</td>
-        <td>某个生产者在过去的一个窗口内的发送延迟的 75 百分位数</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.producer."ProducerName".sendLatency95Pct</td>
-        <td>ProducerName</td>
-        <td>某个生产者在过去的一个窗口内的发送延迟的 95 百分位数</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.producer."ProducerName".sendLatency99Pct</td>
-        <td>ProducerName</td>
-        <td>某个生产者在过去的一个窗口内的发送延迟的 99 百分位数</td>
-        <td>Gauge</td>
-    </tr>
-    <tr>
-        <td>PulsarSink.producer."ProducerName".sendLatency999Pct</td>
-        <td>ProducerName</td>
-        <td>某个生产者在过去的一个窗口内的发送延迟的 99.9 百分位数</td>
-        <td>Gauge</td>
-    </tr>
-  </tbody>
-</table>
+#### 无状态的 SinkWriter
 
-{{< hint info >}}
-指标 `numBytesOut`、`numRecordsOut` 和 `numRecordsOutErrors` 从 Pulsar Producer 实例的监控指标中获得。
+在 `EXACTLY_ONCE` 一致性下，Pulsar Sink 不会将事务相关的信息存放于检查点快照中。这意味着当 Flink 应用重启时，Pulsar Sink 会创建新的事务实例。上一次运行过程中任何未提交事务中的消息会因为超时中止而无法被下游的消费者所消费。这样的设计保证了 SinkWriter 是无状态的。
 
-`currentSendTime` 记录了最近一条消息从放入生产者的缓冲队列到消息被消费确认所耗费的时间。这项指标在 `NONE` 发送一致性下不可用。
-{{< /hint >}}
+#### Pulsar Schema Evolution
 
-默认情况下，Pulsar 生产者每隔 60 秒才会刷新一次监控数据，然而 Pulsar Sink 每 500 毫秒就会从 Pulsar 生产者中获得最新的监控数据。因此 `numRecordsOut`、`numBytesOut`、`numAcksReceived` 以及 `numRecordsOutErrors` 4 个指标实际上每 60 秒才会刷新一次。
+[Pulsar Schema Evolution][schema-evolution] 允许用户在一个 Flink 应用程序中使用的数据模型发生特定改变后（比如向基于 ARVO 的 POJO 类中增加或删除一个字段），仍能使用同一个 Flink 应用程序的代码。
 
-如果想要更高地刷新评率，可以通过如下方式来将 Pulsar 生产者的监控数据刷新频率调整至相应值（最低为1s）：
-{{< tabs "b65b9978-b1d6-4b0d-ade8-78098e0f23d1" >}}
+可以在 Pulsar 集群内指定哪些类型的数据模型的改变是被允许的，详情请参阅 [Pulsar Schema Evolution][schema-evolution]。
+
+## 监控指标
+
+默认情况下，Pulsar client 每隔 60 秒才会刷新一次监控数据。如果想要提高刷新频率，可以通过如下方式来将 Pulsar client 的监控数据刷新频率调整至相应值（最低为1s）：
+
+{{< tabs "pulsar-stats-interval-seconds" >}}
 
 {{< tab "Java" >}}
 ```java
@@ -926,32 +832,208 @@ builder.set_config("pulsar.client.statsIntervalSeconds", "1")
 
 {{< /tabs >}}
 
-`numBytesOutRate` 和 `numRecordsOutRate` 指标是 Flink 内部通过 `numBytesOut` 和 `numRecordsOut` 计数器，在一个 60 秒的窗口内计算得到的。
+### Source 监控指标
 
-### 设计思想简述
+在 [FLIP-33: Standardize Connector Metrics][standard-metrics] 定义的基础 Source 指标之上，我们额外提供了一些来自 Client 的监控指标。你需要启用 `pulsar.source.enableMetrics` 选项来获得这些监控指标，所有的指标列举在下面的表格中。
 
-Pulsar Sink 遵循 [FLIP-191](https://cwiki.apache.org/confluence/display/FLINK/FLIP-191%3A+Extend+unified+Sink+interface+to+support+small+file+compaction) 中定义的 Sink API 设计。
+{{< tabs "pulsar-enable-source-metrics" >}}
 
-#### 无状态的 SinkWriter
+{{< tab "Java" >}}
+```java
+builder.setConfig(PulsarSourceOptions.PULSAR_ENABLE_SOURCE_METRICS, true);
+```
+{{< /tab >}}
 
-在 `EXACTLY_ONCE` 一致性下，Pulsar Sink 不会将事务相关的信息存放于检查点快照中。这意味着当 Flink 应用重启时，Pulsar Sink 会创建新的事务实例。上一次运行过程中任何未提交事务中的消息会因为超时中止而无法被下游的消费者所消费。这样的设计保证了 SinkWriter 是无状态的。
+{{< tab "Python" >}}
+```python
+builder.set_config("pulsar.source.enableMetrics", "true")
+```
+{{< /tab >}}
 
-#### Pulsar Schema Evolution
+{{< /tabs >}}
 
-[Pulsar Schema Evolution](https://pulsar.apache.org/docs/zh-CN/schema-evolution-compatibility/) 允许用户在一个 Flink 应用程序中使用的数据模型发生特定改变后（比如向基于 ARVO 的 POJO 类中增加或删除一个字段），仍能使用同一个 Flink 应用程序的代码。
+| 指标                                                           | 变量                | 描述                                       | 类型  |
+| -------------------------------------------------------------- | ------------------- | ------------------------------------------ | ----- |
+| PulsarConsumer."Topic"."ConsumerName".numMsgsReceived          | Topic, ConsumerName | 在过去的一个统计窗口内消费的消息数         | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".numBytesReceived         | Topic, ConsumerName | 在过去的一个统计窗口内消费的字节数         | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".rateMsgsReceived         | Topic, ConsumerName | 在过去的一个统计窗口内消费的消息速率       | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".rateBytesReceived        | Topic, ConsumerName | 在过去的一个统计窗口内消费的字节速率       | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".numAcksSent              | Topic, ConsumerName | 在过去的一个统计窗口内确认消费成功的消息数 | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".numAcksFailed            | Topic, ConsumerName | 在过去的一个统计窗口内确认消费失败的消息数 | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".numReceiveFailed         | Topic, ConsumerName | 在过去的一个统计窗口内消费失败的消息数     | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".numBatchReceiveFailed    | Topic, ConsumerName | 在过去的一个统计窗口内批量消费失败的消息数 | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalMsgsReceived        | Topic, ConsumerName | Consumer 消费的全部消息数                  | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalBytesReceived       | Topic, ConsumerName | Consumer 消费的全部字节数                  | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalReceivedFailed      | Topic, ConsumerName | Consumer 消费失败的消息数                  | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalBatchReceivedFailed | Topic, ConsumerName | Consumer 批量消费失败的消息数              | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalAcksSent            | Topic, ConsumerName | Consumer 确认消费成功的消息数              | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".totalAcksFailed          | Topic, ConsumerName | Consumer 确认消费失败的消息数              | Gauge |
+| PulsarConsumer."Topic"."ConsumerName".msgNumInReceiverQueue    | Topic, ConsumerName | Consumer 当前待消费的消息队列大小          | Gauge |
 
-可以在 Pulsar 集群内指定哪些类型的数据模型的改变是被允许的，详情请参阅 [Pulsar Schema Evolution](https://pulsar.apache.org/docs/zh-CN/schema-evolution-compatibility/)。
+### Sink 监控指标
+
+下列表格列出了当前 Sink 支持的监控指标，前 6 个指标是 [FLIP-33: Standardize Connector Metrics][standard-metrics] 中规定的 Sink 连接器应当支持的标准指标。前 5 个指标会默认暴露给用户，其他指标需要通过启用 `pulsar.sink.enableMetrics` 选项来获得。
+
+{{< tabs "pulsar-enable-sink-metrics" >}}
+
+{{< tab "Java" >}}
+```java
+builder.setConfig(PulsarSinkOptions.PULSAR_ENABLE_SINK_METRICS, true);
+```
+{{< /tab >}}
+
+{{< tab "Python" >}}
+```python
+builder.set_config("pulsar.sink.enableMetrics", "true")
+```
+{{< /tab >}}
+
+{{< /tabs >}}
+
+| 指标                                                          | 变量                | 描述                                                   | 类型    |
+| ------------------------------------------------------------- | ------------------- | ------------------------------------------------------ | ------- |
+| numBytesOut                                                   | n/a                 | Pulsar Sink 启动后总共发出的字节数                     | Counter |
+| numBytesOutPerSecond                                          | n/a                 | 每秒发送的字节数                                       | Meter   |
+| numRecordsOut                                                 | n/a                 | Pulsar Sink 启动后总共发出的消息数                     | Counter |
+| numRecordsOutPerSecond                                        | n/a                 | 每秒发送的消息数                                       | Meter   |
+| numRecordsOutErrors                                           | n/a                 | 总共发送消息失败的次数                                 | Counter |
+| currentSendTime                                               | n/a                 | 最近一条消息从被放入客户端缓冲队列到收到消息确认的时间 | Gauge   |
+| PulsarProducer."Topic"."ProducerName".numMsgsSent             | Topic, ProducerName | 在过去的一个统计窗口内发送的消息数                     | Gauge   |
+| PulsarProducer."Topic"."ProducerName".numBytesSent            | Topic, ProducerName | 在过去的一个统计窗口内发送的字节数                     | Gauge   |
+| PulsarProducer."Topic"."ProducerName".numSendFailed           | Topic, ProducerName | 在过去的一个统计窗口内发送失败的消息数                 | Gauge   |
+| PulsarProducer."Topic"."ProducerName".numAcksReceived         | Topic, ProducerName | 在过去的一个统计窗口内总共收到的确认数                 | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendMsgsRate            | Topic, ProducerName | 在过去的一个统计窗口内发送的消息速率                   | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendBytesRate           | Topic, ProducerName | 在过去的一个统计窗口内发送的字节速率                   | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillis50pct  | Topic, ProducerName | 在过去的一个统计窗口内的发送延迟的中位数               | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillis75pct  | Topic, ProducerName | 在过去的一个统计窗口内的发送延迟的 75 百分位数         | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillis95pct  | Topic, ProducerName | 在过去的一个统计窗口内的发送延迟的 95 百分位数         | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillis99pct  | Topic, ProducerName | 在过去的一个统计窗口内的发送延迟的 99 百分位数         | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillis999pct | Topic, ProducerName | 在过去的一个统计窗口内的发送延迟的 99.9 百分位数       | Gauge   |
+| PulsarProducer."Topic"."ProducerName".sendLatencyMillisMax    | Topic, ProducerName | 在过去的一个统计窗口内的最大发送延迟                   | Gauge   |
+| PulsarProducer."Topic"."ProducerName".totalMsgsSent           | Topic, ProducerName | Producer 发送的全部消息数                              | Gauge   |
+| PulsarProducer."Topic"."ProducerName".totalBytesSent          | Topic, ProducerName | Producer 发送的全部字节数                              | Gauge   |
+| PulsarProducer."Topic"."ProducerName".totalSendFailed         | Topic, ProducerName | Producer 发送失败的消息数                              | Gauge   |
+| PulsarProducer."Topic"."ProducerName".totalAcksReceived       | Topic, ProducerName | Producer 确认发送成功的消息数                          | Gauge   |
+| PulsarProducer."Topic"."ProducerName".pendingQueueSize        | Topic, ProducerName | Producer 当前待发送的消息队列大小                      | Gauge   |
+
+{{< hint info >}}
+- 指标 `numBytesOut`、`numRecordsOut` 和 `numRecordsOutErrors` 从 Pulsar client 实例的监控指标中获得。
+
+- `numBytesOutRate` 和 `numRecordsOutRate` 指标是 Flink 内部通过 `numBytesOut` 和 `numRecordsOut` 计数器，在一个 60 秒的窗口内计算得到的。
+
+- `currentSendTime` 记录了最近一条消息从放入生产者的缓冲队列到消息被消费确认所耗费的时间。这项指标在 `NONE` 发送一致性下不可用。
+{{< /hint >}}
+
+## 端到端加密
+
+Flink 可以使用 Pulsar 提供的加解密功能在 Source 和 Sink 端加解密消息。用户需要提供一个合法的密钥对（即一个公钥和一个私钥，也就是非对称加密方式）来实现端到端的加密。
+
+### 如何启用端到端加密
+
+1. 创建密钥对
+
+   Pulsar 同时支持 ECDSA 或者 RSA 密钥对，你可以同时创建多组不同类型的密钥对，加密消息时会选择其中任意一组密钥来确保消息更加安全。
+   ```shell
+   # ECDSA（仅用于 Java 端）
+   openssl ecparam -name secp521r1 -genkey -param_enc explicit -out test_ecdsa_privkey.pem
+   openssl ec -in test_ecdsa_privkey.pem -pubout -outform pem -out test_ecdsa_pubkey.pem
+
+   # RSA
+   openssl genrsa -out test_rsa_privkey.pem 2048
+   openssl rsa -in test_rsa_privkey.pem -pubout -outform pkcs8 -out test_rsa_pubkey.pem
+   ```
+
+2. 实现 `CryptoKeyReader` 接口
+
+   每个密钥对都需要有一个唯一的密钥名称，用户需要自行实现 `CryptoKeyReader` 接口并确保 `CryptoKeyReader.getPublicKey()` 和 `CryptoKeyReader.getPrivateKey()` 方法能基于给定的密钥名称反正正确的密钥。
+
+   Pulsar 提供了一个默认的 `CryptoKeyReader` 实现 `DefaultCryptoKeyReader`。用户需要使用对于的 builder 方法 `DefaultCryptoKeyReader.builder()` 来创建实例。需要注意的是，对应的密钥对文件需要放在 Flink 程序的运行环境上。
+
+   ```java
+   // defaultPublicKey 和 defaultPrivateKey 也需要提供。
+   // 文件 file:///path/to/default-public.key 需要在 Flink 的运行环境上存在。
+   CryptoKeyReader keyReader = DefaultCryptoKeyReader.builder()
+       .defaultPublicKey("file:///path/to/default-public.key")
+       .defaultPrivateKey("file:///path/to/default-private.key")
+       .publicKey("key1", "file:///path/to/public1.key").privateKey("key1", "file:///path/to/private1.key")
+       .publicKey("key2", "file:///path/to/public2.key").privateKey("key2", "file:///path/to/private2.key")
+       .build();
+   ```
+
+3. （可选）实现 `MessageCrypto<MessageMetadata, MessageMetadata>` 接口
+
+
+   Pulsar 原生支持 **ECDSA**、**RSA** 等常见非对称加解密方法。通常情况下，你不需要实现此接口，除非你想使用一个私有的加解密方法。你可以参考 Pulsar 的默认实现 `MessageCryptoBc` 来实现 `MessageCrypto<MessageMetadata, MessageMetadata>` 接口。
+
+4. 创建 `PulsarCrypto` 实例
+
+   `PulsarCrypto` 用于提供所有必要的加解密信息，你可以使用对应的 builder 方法来创建实例。
+
+   ```java
+   CryptoKeyReader keyReader = DefaultCryptoKeyReader.builder()
+       .defaultPublicKey("file:///path/to/public1.key")
+       .defaultPrivateKey("file:///path/to/private2.key")
+       .publicKey("key1", "file:///path/to/public1.key").privateKey("key1", "file:///path/to/private1.key")
+       .publicKey("key2", "file:///path/to/public2.key").privateKey("key2", "file:///path/to/private2.key")
+       .build();
+
+   // 此处只用于演示如何使用，实际上你不需要这么做。
+   SerializableSupplier<MessageCrypto<MessageMetadata, MessageMetadata>> cryptoSupplier = () -> new MessageCryptoBc();
+
+   PulsarCrypto pulsarCrypto = PulsarCrypto.builder()
+       .cryptoKeyReader(keyReader)
+       // 所有的密钥名称需要在此处给出。
+       .addEncryptKeys("key1", "key2")
+       // 一般情况下你不需要提供 MessageCrypto 实例。
+       .messageCrypto(cryptoSupplier)
+       .build()
+   ```
+
+### 在 Pulsar source 上解密消息
+
+基于前面的指导创建对应的 `PulsarCrypto` 实例，然后在 `PulsarSource.builder()` 的构造方法里面予以给定。你需要同时定义解密失败的行为，Pulsar 在 `ConsumerCryptoFailureAction` 给定了 3 种实现。
+
+- `ConsumerCryptoFailureAction.FAIL`: Flink 程序将抛出异常并退出。
+- `ConsumerCryptoFailureAction.DISCARD`: 解密失败的消息将被丢弃。
+- `ConsumerCryptoFailureAction.CONSUME`
+
+  解密失败的消息将以未解密的状态传递给后续的算子，你也可以在 `PulsarDeserializationSchema` 里手动对解密失败的消息进行再次解密。所有关于解密的上下文都定义在 `Message.getEncryptionCtx()` 内。
+
+```java
+PulsarCrypto pulsarCrypto = ...
+
+PulsarSource<String> sink = PulsarSource.builder()
+    ...
+    .setPulsarCrypto(pulsarCrypto, ConsumerCryptoFailureAction.FAIL)
+    .build();
+```
+
+### 在 Pulsar sink 上加密消息
+
+基于前面的指导创建对应的 `PulsarCrypto` 实例，然后在 `PulsarSink.builder()` 的构造方法里面予以给定。你需要同时定义加密失败的行为，Pulsar 在 `ProducerCryptoFailureAction` 给定了 2 种实现。
+
+- `ProducerCryptoFailureAction.FAIL`: Flink 程序将抛出异常并退出。
+- `ProducerCryptoFailureAction.SEND`: 消息将以未加密的形态发送。
+
+```java
+PulsarCrypto pulsarCrypto = ...
+
+PulsarSink<String> sink = PulsarSink.builder()
+    ...
+    .setPulsarCrypto(pulsarCrypto, ProducerCryptoFailureAction.FAIL)
+    .build();
+```
 
 ## 升级至最新的连接器
 
 常见的升级步骤，请参阅[升级应用程序和 Flink 版本]({{< ref "docs/ops/upgrading" >}})。Pulsar 连接器没有在 Flink 端存储消费的状态，所有的消费信息都推送到了 Pulsar。所以需要注意下面的事项：
 
-* 不要同时升级 Pulsar 连接器和 Pulsar 服务端的版本。
-* 使用最新版本的 Pulsar 客户端来消费消息。
+- 不要同时升级 Pulsar 连接器和 Pulsar 服务端的版本。
+- 使用最新版本的 Pulsar 客户端来消费消息。
 
 ## 问题诊断
 
-使用 Flink 和 Pulsar 交互时如果遇到问题，由于 Flink 内部实现只是基于 Pulsar 的 [Java 客户端](https://pulsar.apache.org/docs/zh-CN/client-libraries-java/)和[管理 API](https://pulsar.apache.org/docs/zh-CN/admin-api-overview/) 而开发的。
+使用 Flink 和 Pulsar 交互时如果遇到问题，由于 Flink 内部实现只是基于 Pulsar 的 [Java 客户端](https://pulsar.apache.org/api/client/2.10.x/)和[管理 API](https://pulsar.apache.org/api/admin/2.10.x/) 而开发的。
 
 用户遇到的问题可能与 Flink 无关，请先升级 Pulsar 的版本、Pulsar 客户端的版本，或者修改 Pulsar 的配置、Pulsar 连接器的配置来尝试解决问题。
 
@@ -972,3 +1054,6 @@ Pulsar 事务机制仍在积极发展中，当前版本并不稳定。 Pulsar 2.
 您可以使用最新的`pulsar-client-all`分支来解决这个问题。
 
 {{< top >}}
+
+[schema-evolution]: https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-evolution
+[standard-metrics]: https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics
