@@ -26,6 +26,7 @@ import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchemaInitializationContext;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarSchemaWrapper;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
@@ -62,7 +63,6 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
-import static org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.pulsarSchema;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.createPartitionSplit;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.createPartitionSplits;
 import static org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator.DEFAULT_PARTITIONS;
@@ -231,7 +231,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         configuration.set(PULSAR_MAX_FETCH_TIME, 1000L);
         configuration.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
 
-        PulsarDeserializationSchema<Integer> deserializationSchema = pulsarSchema(Schema.INT32);
+        PulsarDeserializationSchema<Integer> deserializationSchema =
+                new PulsarSchemaWrapper<>(Schema.INT32);
         SourceReaderContext context = new TestingReaderContext();
         try {
             deserializationSchema.open(

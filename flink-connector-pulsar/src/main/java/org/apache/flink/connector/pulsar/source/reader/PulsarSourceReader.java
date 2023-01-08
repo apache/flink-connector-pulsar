@@ -26,9 +26,12 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SourceReaderBase;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+import org.apache.flink.connector.pulsar.common.schema.BytesSchema;
+import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarSchemaWrapper;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitState;
 import org.apache.flink.core.io.InputStatus;
@@ -38,6 +41,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,6 +262,17 @@ public class PulsarSourceReader<OUT>
         PulsarClient pulsarClient = createClient(sourceConfiguration);
         PulsarAdmin pulsarAdmin = createAdmin(sourceConfiguration);
 
+        // Choose the right schema bytes to use.
+        Schema<byte[]> schema;
+        if (sourceConfiguration.isEnableSchemaEvolution()) {
+            // Wrap the schema into a byte array schema with extra schema info check.
+            PulsarSchema<?> pulsarSchema =
+                    ((PulsarSchemaWrapper<?>) deserializationSchema).pulsarSchema();
+            schema = new BytesSchema(pulsarSchema);
+        } else {
+            schema = Schema.BYTES;
+        }
+
         // Create an ordered split reader supplier.
         Supplier<SplitReader<Message<byte[]>, PulsarPartitionSplit>> splitReaderSupplier =
                 () ->
@@ -265,6 +280,7 @@ public class PulsarSourceReader<OUT>
                                 pulsarClient,
                                 pulsarAdmin,
                                 sourceConfiguration,
+                                schema,
                                 readerContext.metricGroup());
 
         PulsarSourceFetcherManager fetcherManager =

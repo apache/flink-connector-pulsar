@@ -158,6 +158,11 @@ public class PulsarSchemaTypeSerializer<T> extends TypeSerializer<T> {
 
         private PulsarSchema<T> schema;
 
+        public PulsarSchemaTypeSerializerSnapshot() {
+            // Preserved for serialization in Flink.
+            // See TypeSerializerSnapshotSerializationUtil.readAndInstantiateSnapshotClass
+        }
+
         public PulsarSchemaTypeSerializerSnapshot(PulsarSchema<T> schema) {
             this.schema = schema;
         }

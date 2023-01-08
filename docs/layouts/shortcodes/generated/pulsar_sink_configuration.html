@@ -24,7 +24,7 @@
             <td><h5>pulsar.sink.enableSchemaEvolution</h5></td>
             <td style="word-wrap: break-word;">false</td>
             <td>Boolean</td>
-            <td>If you enable this option and use PulsarSerializationSchema.pulsarSchema(), we would consume and deserialize the message by using Pulsar's <code class="highlighter-rouge">Schema</code>.</td>
+            <td>If you enable this option and use <code class="highlighter-rouge">PulsarSinkBuilder.setSerializationSchema(Schema)</code>, we would produce and serialize the message by using Pulsar's <code class="highlighter-rouge">Schema</code>.</td>
         </tr>
         <tr>
             <td><h5>pulsar.sink.maxRecommitTimes</h5></td>

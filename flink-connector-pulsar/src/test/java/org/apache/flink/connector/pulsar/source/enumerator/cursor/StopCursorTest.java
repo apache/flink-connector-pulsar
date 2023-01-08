@@ -58,6 +58,7 @@ class StopCursorTest extends PulsarTestSuiteBase {
                         operator().client(),
                         operator().admin(),
                         sourceConfig(),
+                        Schema.BYTES,
                         createSourceReaderMetricGroup());
         // send the first message and set the stopCursor to filter any late stopCursor
         operator()

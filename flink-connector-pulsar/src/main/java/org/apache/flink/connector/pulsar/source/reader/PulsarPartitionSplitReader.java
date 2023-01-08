@@ -94,6 +94,7 @@ public class PulsarPartitionSplitReader
     private final PulsarClient pulsarClient;
     @VisibleForTesting final PulsarAdmin pulsarAdmin;
     @VisibleForTesting final SourceConfiguration sourceConfiguration;
+    private final Schema<byte[]> schema;
     private final SourceReaderMetricGroup metricGroup;
 
     private Consumer<byte[]> pulsarConsumer;
@@ -103,10 +104,12 @@ public class PulsarPartitionSplitReader
             PulsarClient pulsarClient,
             PulsarAdmin pulsarAdmin,
             SourceConfiguration sourceConfiguration,
+            Schema<byte[]> schema,
             SourceReaderMetricGroup metricGroup) {
         this.pulsarClient = pulsarClient;
         this.pulsarAdmin = pulsarAdmin;
         this.sourceConfiguration = sourceConfiguration;
+        this.schema = schema;
         this.metricGroup = metricGroup;
     }
 
@@ -273,7 +276,7 @@ public class PulsarPartitionSplitReader
     /** Create a specified {@link Consumer} by the given topic partition. */
     protected Consumer<byte[]> createPulsarConsumer(TopicPartition partition) {
         ConsumerBuilder<byte[]> consumerBuilder =
-                createConsumerBuilder(pulsarClient, Schema.BYTES, sourceConfiguration);
+                createConsumerBuilder(pulsarClient, schema, sourceConfiguration);
 
         consumerBuilder.topic(partition.getFullTopicName());
 

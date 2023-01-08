@@ -26,6 +26,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.CursorPosition
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 
 import org.apache.pulsar.client.api.ConsumerBuilder;
+import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
 
@@ -41,6 +42,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_SCHEMA_EVOLUTION;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_VERIFY_INITIAL_OFFSETS;
@@ -60,6 +62,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final String subscriptionName;
     private final SubscriptionMode subscriptionMode;
     private final boolean allowKeySharedOutOfOrderDelivery;
+    private final boolean enableSchemaEvolution;
     private final boolean enableMetrics;
 
     public SourceConfiguration(Configuration configuration) {
@@ -75,6 +78,7 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.subscriptionName = get(PULSAR_SUBSCRIPTION_NAME);
         this.subscriptionMode = get(PULSAR_SUBSCRIPTION_MODE);
         this.allowKeySharedOutOfOrderDelivery = get(PULSAR_ALLOW_KEY_SHARED_OUT_OF_ORDER_DELIVERY);
+        this.enableSchemaEvolution = get(PULSAR_READ_SCHEMA_EVOLUTION);
         this.enableMetrics =
                 get(PULSAR_ENABLE_SOURCE_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
     }
@@ -168,6 +172,14 @@ public class SourceConfiguration extends PulsarConfiguration {
         return allowKeySharedOutOfOrderDelivery;
     }
 
+    /**
+     * If we need to deserialize the message with a specified Pulsar {@link Schema} instead the
+     * default {@link Schema#BYTES}. This switch is only used for {@code PulsarSchemaWrapper}.
+     */
+    public boolean isEnableSchemaEvolution() {
+        return enableSchemaEvolution;
+    }
+
     /** Whether to expose the metrics from Pulsar Consumer. */
     public boolean isEnableMetrics() {
         return enableMetrics;
@@ -199,6 +211,7 @@ public class SourceConfiguration extends PulsarConfiguration {
                 && Objects.equals(subscriptionName, that.subscriptionName)
                 && subscriptionMode == that.subscriptionMode
                 && allowKeySharedOutOfOrderDelivery == that.allowKeySharedOutOfOrderDelivery
+                && enableSchemaEvolution == that.enableSchemaEvolution
                 && enableMetrics == that.enableMetrics;
     }
 
@@ -215,6 +228,7 @@ public class SourceConfiguration extends PulsarConfiguration {
                 subscriptionName,
                 subscriptionMode,
                 allowKeySharedOutOfOrderDelivery,
+                enableSchemaEvolution,
                 enableMetrics);
     }
 }

@@ -40,7 +40,6 @@ import java.util.Random;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES;
-import static org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema.pulsarSchema;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.toDeliveryGuarantee;
 
 /** Common sink test context for pulsar based test. */
@@ -74,7 +73,7 @@ public class PulsarSinkTestContext extends PulsarTestContext<String>
                 .setAdminUrl(operator.adminUrl())
                 .setTopics(topicName)
                 .setDeliveryGuarantee(guarantee)
-                .setSerializationSchema(pulsarSchema(schema))
+                .setSerializationSchema(schema)
                 .enableSchemaEvolution()
                 .setConfig(PULSAR_BATCHING_MAX_MESSAGES, 4)
                 .build();
