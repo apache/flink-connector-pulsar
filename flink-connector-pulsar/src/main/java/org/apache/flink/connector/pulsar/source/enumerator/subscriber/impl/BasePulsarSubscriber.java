@@ -59,7 +59,7 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
             TopicMetadata metadata, List<TopicRange> ranges) {
         if (!metadata.isPartitioned()) {
             // For non-partitioned topic.
-            return singletonList(new TopicPartition(metadata.getName(), -1, ranges));
+            return singletonList(new TopicPartition(metadata.getName(), ranges));
         } else {
             // For partitioned topic.
             List<TopicPartition> partitions = new ArrayList<>();

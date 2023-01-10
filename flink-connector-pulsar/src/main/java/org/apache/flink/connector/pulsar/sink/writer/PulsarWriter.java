@@ -34,8 +34,9 @@ import org.apache.flink.connector.pulsar.sink.writer.delayer.MessageDelayer;
 import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessage;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema;
-import org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListener;
-import org.apache.flink.connector.pulsar.sink.writer.topic.TopicProducerRegister;
+import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
+import org.apache.flink.connector.pulsar.sink.writer.topic.ProducerRegister;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
@@ -66,12 +67,12 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
     private static final Logger LOG = LoggerFactory.getLogger(PulsarWriter.class);
 
     private final PulsarSerializationSchema<IN> serializationSchema;
-    private final TopicMetadataListener metadataListener;
+    private final MetadataListener metadataListener;
     private final TopicRouter<IN> topicRouter;
     private final MessageDelayer<IN> messageDelayer;
     private final DeliveryGuarantee deliveryGuarantee;
     private final PulsarSinkContext sinkContext;
-    private final TopicProducerRegister producerRegister;
+    private final ProducerRegister producerRegister;
     private final MailboxExecutor mailboxExecutor;
     private final AtomicLong pendingMessages;
 
@@ -92,7 +93,7 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
     public PulsarWriter(
             SinkConfiguration sinkConfiguration,
             PulsarSerializationSchema<IN> serializationSchema,
-            TopicMetadataListener metadataListener,
+            MetadataListener metadataListener,
             TopicRouter<IN> topicRouter,
             MessageDelayer<IN> messageDelayer,
             PulsarCrypto pulsarCrypto,
@@ -105,7 +106,8 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
         checkNotNull(initContext);
 
         this.deliveryGuarantee = sinkConfiguration.getDeliveryGuarantee();
-        this.sinkContext = new PulsarSinkContextImpl(initContext, sinkConfiguration);
+        this.sinkContext =
+                new PulsarSinkContextImpl(initContext, sinkConfiguration, metadataListener);
 
         // Initialize topic metadata listener.
         LOG.debug("Initialize topic metadata after creating Pulsar writer.");
@@ -126,8 +128,7 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
 
         // Create this producer register after opening serialization schema!
         this.producerRegister =
-                new TopicProducerRegister(
-                        sinkConfiguration, pulsarCrypto, initContext.metricGroup());
+                new ProducerRegister(sinkConfiguration, pulsarCrypto, initContext.metricGroup());
         this.mailboxExecutor = initContext.getMailboxExecutor();
         this.pendingMessages = new AtomicLong(0);
     }
@@ -138,11 +139,11 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
 
         // Choose the right topic to send.
         String key = message.getKey();
-        List<String> availableTopics = metadataListener.availableTopics();
-        String topic = topicRouter.route(element, key, availableTopics, sinkContext);
+        List<TopicPartition> partitions = metadataListener.availablePartitions();
+        TopicPartition partition = topicRouter.route(element, key, partitions, sinkContext);
 
         // Create message builder for sending message.
-        TypedMessageBuilder<?> builder = createMessageBuilder(topic, context, message);
+        TypedMessageBuilder<?> builder = createMessageBuilder(partition, context, message);
 
         // Message Delay delivery.
         long deliverAt = messageDelayer.deliverAt(element, sinkContext);
@@ -165,14 +166,15 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
                                     mailboxExecutor.execute(
                                             () -> {
                                                 throw new FlinkRuntimeException(
-                                                        "Failed to send data to Pulsar " + topic,
+                                                        "Failed to send data to Pulsar "
+                                                                + partition,
                                                         ex);
                                             },
                                             "Failed to send data to Pulsar");
                                 } else {
                                     LOG.debug(
                                             "Sent message to Pulsar {} with message id {}",
-                                            topic,
+                                            partition,
                                             id);
                                 }
                             });
@@ -181,10 +183,10 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private TypedMessageBuilder<?> createMessageBuilder(
-            String topic, Context context, PulsarMessage<?> message) {
+            TopicPartition partition, Context context, PulsarMessage<?> message) {
 
         Schema<?> schema = message.getSchema();
-        TypedMessageBuilder<?> builder = producerRegister.createMessageBuilder(topic, schema);
+        TypedMessageBuilder<?> builder = producerRegister.createMessageBuilder(partition, schema);
 
         byte[] orderingKey = message.getOrderingKey();
         if (orderingKey != null && orderingKey.length > 0) {

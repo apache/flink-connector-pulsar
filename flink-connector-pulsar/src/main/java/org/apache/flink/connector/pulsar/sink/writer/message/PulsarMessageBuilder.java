@@ -37,9 +37,9 @@ public class PulsarMessageBuilder<T> {
     private byte[] orderingKey;
     private String key;
     private long eventTime;
-    Schema<T> schema;
+    private Schema<T> schema;
     private T value;
-    private Map<String, String> properties = new HashMap<>();
+    private final Map<String, String> properties = new HashMap<>();
     private Long sequenceId;
     private List<String> replicationClusters;
     private boolean disableReplication = false;
@@ -59,7 +59,10 @@ public class PulsarMessageBuilder<T> {
         return this;
     }
 
-    /** Method wrapper of {@link TypedMessageBuilder#eventTime(long)}. */
+    /**
+     * Method wrapper of {@link TypedMessageBuilder#eventTime(long)}. If you don't provide the event
+     * time, we will try to use Flink's sink context time instead.
+     */
     public PulsarMessageBuilder<T> eventTime(long eventTime) {
         this.eventTime = eventTime;
         return this;

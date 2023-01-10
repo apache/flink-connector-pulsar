@@ -519,7 +519,9 @@ PulsarSource.builder()
 {{< /tabs >}}
 
 {{< hint warning >}}
-默认情况下，Pulsar 启用动态分区发现，查询间隔为 30 秒。用户可以给定一个负数，将该功能禁用。如果使用批的方式消费数据，将无法启用该功能。
+- 默认情况下，Pulsar 启用分区发现，查询间隔为 5 分钟。用户可以给定一个负数，将该功能禁用。如果使用批的方式消费数据，将无法启用该功能。
+- 如果需要禁用分区发现功能，你需要将查询间隔设置为负值。
+- 在 bounded 消费模式下，即使将分区发现的查询间隔设置为正值，也会被禁用。
 {{< /hint >}}
 
 ### 事件时间和水位线
@@ -661,6 +663,12 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
 
 举个例子，如果通过 `PulsarSink.builder().setTopics("some-topic1", "some-topic1-partition-0")` 来指定写入的 Topic，那么其结果等价于 `PulsarSink.builder().setTopics("some-topic1")`。
 {{< /hint >}}
+
+#### 基于消息实例的动态 Topic 指定
+
+除了前面说的一开始就指定 Topic 或者是 Topic 分区，你还可以在程序启动后基于消息内容动态指定 Topic，只需要实现 `TopicRouter` 接口即可。使用 `PulsarSinkContext.topicMetadata(String topic)` 方法来查询某个 Topic 在 Pulsar 上有多少个分区，查询结果会缓存并在 `PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL` 毫秒之后失效。
+
+此方法同样支持将消息写入一个不存在的 Topic，Pulsar 将自动创建一个只有一个分区的 Topic。
 
 ### 序列化器
 

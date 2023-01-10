@@ -24,7 +24,6 @@ import org.apache.flink.connector.pulsar.common.config.PulsarConfigValidator;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.Schema;
 
 import java.util.Map;
 import java.util.UUID;
@@ -66,9 +65,9 @@ public final class PulsarSinkConfigUtils {
                     .build();
 
     /** Create a pulsar producer builder by using the given Configuration. */
-    public static <T> ProducerBuilder<T> createProducerBuilder(
-            PulsarClient client, Schema<T> schema, SinkConfiguration configuration) {
-        ProducerBuilder<T> builder = client.newProducer(schema);
+    public static ProducerBuilder<byte[]> createProducerBuilder(
+            PulsarClient client, SinkConfiguration configuration) {
+        ProducerBuilder<byte[]> builder = client.newProducer();
 
         configuration.useOption(
                 PULSAR_PRODUCER_NAME,
@@ -103,7 +102,7 @@ public final class PulsarSinkConfigUtils {
         // We use non-partitioned producer by default. This wouldn't be changed in the future.
         builder.blockIfQueueFull(true)
                 .messageRoutingMode(SinglePartition)
-                .enableMultiSchema(false)
+                .enableMultiSchema(true)
                 .autoUpdatePartitions(false)
                 .accessMode(Shared)
                 .enableLazyStartPartitionedProducers(false);

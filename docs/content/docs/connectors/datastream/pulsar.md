@@ -596,7 +596,7 @@ PulsarSource.builder()
 {{< /tabs >}}
 
 {{< hint warning >}}
-- Partition discovery is **enabled** by default. The Pulsar connector queries the topic metadata every 30 seconds.
+- Partition discovery is **enabled** by default. The Pulsar connector queries the topic metadata every 5 minutes.
 - To disable partition discovery, you need to set a negative partition discovery interval.
 - Partition discovery is disabled for bounded data even if you set this option with a non-negative value.
 {{< /hint >}}
@@ -759,6 +759,14 @@ If you build the Pulsar sink based on both the topic and its corresponding parti
 For example, when using the `PulsarSink.builder().setTopics("some-topic1", "some-topic1-partition-0")` option to build the Pulsar sink,
 this is simplified to `PulsarSink.builder().setTopics("some-topic1")`.
 {{< /hint >}}
+
+#### Dynamic Topics by incoming messages
+
+Topics could be defined by the incoming messages instead of providing the fixed topic set in builder. You can dynamically
+provide the topic by in a custom `TopicRouter`. The topic metadata can be queried by using `PulsarSinkContext.topicMetadata(String topic)`
+and the query result would be cached and expire in `PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL` milliseconds.
+
+If you want to write to a non-existed topic, just return it in `TopicRouter`. It will be created with only one partition.
 
 ### Serializer
 

@@ -35,7 +35,7 @@ import org.apache.flink.connector.pulsar.sink.writer.router.RoundRobinTopicRoute
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema;
-import org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListener;
+import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import javax.annotation.Nullable;
@@ -85,7 +85,7 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
 
     private final SinkConfiguration sinkConfiguration;
     private final PulsarSerializationSchema<IN> serializationSchema;
-    private final TopicMetadataListener metadataListener;
+    private final MetadataListener metadataListener;
     private final TopicRouter<IN> topicRouter;
     private final MessageDelayer<IN> messageDelayer;
     private final PulsarCrypto pulsarCrypto;
@@ -93,7 +93,7 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
     PulsarSink(
             SinkConfiguration sinkConfiguration,
             PulsarSerializationSchema<IN> serializationSchema,
-            TopicMetadataListener metadataListener,
+            MetadataListener metadataListener,
             TopicRoutingMode topicRoutingMode,
             @Nullable TopicRouter<IN> topicRouter,
             MessageDelayer<IN> messageDelayer,

@@ -76,7 +76,7 @@ public final class PulsarSourceOptions {
     public static final ConfigOption<Long> PULSAR_PARTITION_DISCOVERY_INTERVAL_MS =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "partitionDiscoveryIntervalMs")
                     .longType()
-                    .defaultValue(Duration.ofSeconds(30).toMillis())
+                    .defaultValue(Duration.ofMinutes(5).toMillis())
                     .withDescription(
                             Description.builder()
                                     .text(

@@ -67,6 +67,11 @@ public class PulsarMessage<T> {
         this.disableReplication = disableReplication;
     }
 
+    /** Return a builder for building the Pulsar message to sink. */
+    public static <T> PulsarMessageBuilder<T> builder() {
+        return new PulsarMessageBuilder<>();
+    }
+
     @Nullable
     public byte[] getOrderingKey() {
         return orderingKey;

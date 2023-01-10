@@ -33,7 +33,7 @@ import org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSchemaWrapper;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchemaWrapper;
-import org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListener;
+import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 
 import org.apache.pulsar.client.api.ProducerCryptoFailureAction;
 import org.apache.pulsar.client.api.Schema;
@@ -110,7 +110,7 @@ public class PulsarSinkBuilder<IN> {
     private final PulsarConfigBuilder configBuilder;
 
     private PulsarSerializationSchema<IN> serializationSchema;
-    private TopicMetadataListener metadataListener;
+    private MetadataListener metadataListener;
     private TopicRoutingMode topicRoutingMode;
     private TopicRouter<IN> topicRouter;
     private MessageDelayer<IN> messageDelayer;
@@ -174,7 +174,7 @@ public class PulsarSinkBuilder<IN> {
         checkState(metadataListener == null, "setTopics couldn't be set twice.");
         // Making sure the topic should be distinct.
         List<String> topicSet = distinctTopics(topics);
-        this.metadataListener = new TopicMetadataListener(topicSet);
+        this.metadataListener = new MetadataListener(topicSet);
         return this;
     }
 
@@ -447,7 +447,7 @@ public class PulsarSinkBuilder<IN> {
             } else {
                 LOG.warn(
                         "No topic set has been provided, make sure your custom topic router support empty topic set.");
-                this.metadataListener = new TopicMetadataListener();
+                this.metadataListener = new MetadataListener();
             }
         }
 
