@@ -114,6 +114,25 @@ public final class PulsarSourceOptions {
                                             " We would automatically commit the cursor using the given period (in ms).")
                                     .build());
 
+    public static final ConfigOption<Integer> PULSAR_FETCH_ONE_MESSAGE_TIME =
+            ConfigOptions.key(SOURCE_CONFIG_PREFIX + "fetchOneMessageTime")
+                    .intType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "The time (in ms) for fetching one message from Pulsar. If time exceed and no message returned from Pulsar.")
+                                    .text(
+                                            " We would consider there is no record at the current topic partition and stop fetching until next switch.")
+                                    .linebreak()
+                                    .text(
+                                            "It's not configured by default. We will use the remaining time in %s by default,",
+                                            code("pulsar.source.maxFetchTime"))
+                                    .text(" which may cause a long wait in small message rates.")
+                                    .text(
+                                            " Add this option in source builder avoiding waiting too long.")
+                                    .build());
+
     public static final ConfigOption<Long> PULSAR_MAX_FETCH_TIME =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "maxFetchTime")
                     .longType()
