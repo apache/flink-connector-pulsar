@@ -39,6 +39,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_AUTO_COMMIT_CURSOR_INTERVAL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_SOURCE_METRICS;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_FETCH_ONE_MESSAGE_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
@@ -56,6 +57,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final long partitionDiscoveryIntervalMs;
     private final boolean enableAutoAcknowledgeMessage;
     private final long autoCommitCursorInterval;
+    private final int fetchOneMessageTime;
     private final Duration maxFetchTime;
     private final int maxFetchRecords;
     private final CursorVerification verifyInitialOffsets;
@@ -72,6 +74,7 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.partitionDiscoveryIntervalMs = get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage = get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
         this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
+        this.fetchOneMessageTime = getOptional(PULSAR_FETCH_ONE_MESSAGE_TIME).orElse(0);
         this.maxFetchTime = get(PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
         this.maxFetchRecords = get(PULSAR_MAX_FETCH_RECORDS);
         this.verifyInitialOffsets = get(PULSAR_VERIFY_INITIAL_OFFSETS);
@@ -123,6 +126,14 @@ public class SourceConfiguration extends PulsarConfiguration {
      */
     public long getAutoCommitCursorInterval() {
         return autoCommitCursorInterval;
+    }
+
+    /**
+     * The fetch time for polling one message. We would stop polling messages and return the
+     * messages in {@link RecordsWithSplitIds} when meet this timeout and no message consumed.
+     */
+    public int getFetchOneMessageTime() {
+        return fetchOneMessageTime;
     }
 
     /**
@@ -202,11 +213,13 @@ public class SourceConfiguration extends PulsarConfiguration {
             return false;
         }
         SourceConfiguration that = (SourceConfiguration) o;
-        return partitionDiscoveryIntervalMs == that.partitionDiscoveryIntervalMs
+        return messageQueueCapacity == that.messageQueueCapacity
+                && partitionDiscoveryIntervalMs == that.partitionDiscoveryIntervalMs
                 && enableAutoAcknowledgeMessage == that.enableAutoAcknowledgeMessage
                 && autoCommitCursorInterval == that.autoCommitCursorInterval
-                && maxFetchRecords == that.maxFetchRecords
+                && fetchOneMessageTime == that.fetchOneMessageTime
                 && Objects.equals(maxFetchTime, that.maxFetchTime)
+                && maxFetchRecords == that.maxFetchRecords
                 && verifyInitialOffsets == that.verifyInitialOffsets
                 && Objects.equals(subscriptionName, that.subscriptionName)
                 && subscriptionMode == that.subscriptionMode
@@ -219,9 +232,11 @@ public class SourceConfiguration extends PulsarConfiguration {
     public int hashCode() {
         return Objects.hash(
                 super.hashCode(),
+                messageQueueCapacity,
                 partitionDiscoveryIntervalMs,
                 enableAutoAcknowledgeMessage,
                 autoCommitCursorInterval,
+                fetchOneMessageTime,
                 maxFetchTime,
                 maxFetchRecords,
                 verifyInitialOffsets,

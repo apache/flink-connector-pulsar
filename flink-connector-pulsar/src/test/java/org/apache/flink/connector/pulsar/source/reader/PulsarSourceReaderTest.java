@@ -61,6 +61,7 @@ import java.util.function.Supplier;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_FETCH_ONE_MESSAGE_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
@@ -229,7 +230,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         Configuration configuration = operator().config();
 
         configuration.set(PULSAR_MAX_FETCH_RECORDS, 1);
-        configuration.set(PULSAR_MAX_FETCH_TIME, 1000L);
+        configuration.set(PULSAR_FETCH_ONE_MESSAGE_TIME, 2000);
+        configuration.set(PULSAR_MAX_FETCH_TIME, 3000L);
         configuration.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
 
         PulsarDeserializationSchema<Integer> deserializationSchema =

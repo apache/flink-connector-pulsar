@@ -50,14 +50,12 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -121,6 +119,7 @@ public class PulsarPartitionSplitReader
     }
 
     @Override
+    @SuppressWarnings("java:S135")
     public RecordsWithSplitIds<Message<byte[]>> fetch() throws IOException {
         RecordsBySplits.Builder<Message<byte[]>> builder = new RecordsBySplits.Builder<>();
 
@@ -138,8 +137,12 @@ public class PulsarPartitionSplitReader
                 messageNum < sourceConfiguration.getMaxFetchRecords() && deadline.hasTimeLeft();
                 messageNum++) {
             try {
-                Duration timeout = deadline.timeLeftIfAny();
-                Message<byte[]> message = pollMessage(timeout);
+                int fetchTime = sourceConfiguration.getFetchOneMessageTime();
+                if (fetchTime <= 0) {
+                    fetchTime = (int) deadline.timeLeftIfAny().toMillis();
+                }
+
+                Message<byte[]> message = pulsarConsumer.receive(fetchTime, TimeUnit.MILLISECONDS);
                 if (message == null) {
                     break;
                 }
@@ -228,7 +231,7 @@ public class PulsarPartitionSplitReader
         }
 
         // Create pulsar consumer.
-        this.pulsarConsumer = createPulsarConsumer(registeredSplit);
+        this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
 
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
     }
@@ -261,10 +264,6 @@ public class PulsarPartitionSplitReader
         }
     }
 
-    protected Message<byte[]> pollMessage(Duration timeout) throws PulsarClientException {
-        return pulsarConsumer.receive(Math.toIntExact(timeout.toMillis()), TimeUnit.MILLISECONDS);
-    }
-
     public void notifyCheckpointComplete(TopicPartition partition, MessageId offsetsToCommit) {
         if (pulsarConsumer == null) {
             this.pulsarConsumer = createPulsarConsumer(partition);
@@ -275,13 +274,8 @@ public class PulsarPartitionSplitReader
 
     // --------------------------- Helper Methods -----------------------------
 
-    /** Create a specified {@link Consumer} by the given split information. */
-    protected Consumer<byte[]> createPulsarConsumer(PulsarPartitionSplit split) {
-        return createPulsarConsumer(split.getPartition());
-    }
-
     /** Create a specified {@link Consumer} by the given topic partition. */
-    protected Consumer<byte[]> createPulsarConsumer(TopicPartition partition) {
+    private Consumer<byte[]> createPulsarConsumer(TopicPartition partition) {
         ConsumerBuilder<byte[]> consumerBuilder =
                 createConsumerBuilder(pulsarClient, schema, sourceConfiguration);
 
