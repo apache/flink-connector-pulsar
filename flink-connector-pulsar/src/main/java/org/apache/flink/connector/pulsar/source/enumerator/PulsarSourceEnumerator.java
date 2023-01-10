@@ -33,7 +33,6 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.MessageId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,37 +209,11 @@ public class PulsarSourceEnumerator
         for (TopicPartition partition : newPartitions) {
             String topicName = partition.getFullTopicName();
             String subscriptionName = sourceConfiguration.getSubscriptionName();
+            CursorPosition position =
+                    startCursor.position(partition.getTopic(), partition.getPartitionId());
 
-            List<String> subscriptions =
-                    sneakyAdmin(() -> pulsarAdmin.topics().getSubscriptions(topicName));
-            if (!subscriptions.contains(subscriptionName)) {
-                CursorPosition position =
-                        startCursor.position(partition.getTopic(), partition.getPartitionId());
-                MessageId initialPosition = queryInitialPosition(topicName, position);
-
-                sneakyAdmin(
-                        () ->
-                                pulsarAdmin
-                                        .topics()
-                                        .createSubscription(
-                                                topicName, subscriptionName, initialPosition));
-            }
-        }
-    }
-
-    /** Query the available message id from Pulsar. */
-    private MessageId queryInitialPosition(String topicName, CursorPosition position) {
-        CursorPosition.Type type = position.getType();
-        if (type == CursorPosition.Type.TIMESTAMP) {
-            return sneakyAdmin(
-                    () ->
-                            pulsarAdmin
-                                    .topics()
-                                    .getMessageIdByTimestamp(topicName, position.getTimestamp()));
-        } else if (type == CursorPosition.Type.MESSAGE_ID) {
-            return position.getMessageId();
-        } else {
-            throw new UnsupportedOperationException("We don't support this seek type " + type);
+            sneakyAdmin(
+                    () -> position.createInitialPosition(pulsarAdmin, topicName, subscriptionName));
         }
     }
 
