@@ -24,6 +24,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.test.resources.ResourceTestUtils;
 
 import org.apache.pulsar.client.api.MessageId;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -44,6 +45,10 @@ public class PulsarTestCommonUtils {
             throw new IllegalArgumentException(
                     "Only exactly-once and al-least-once checkpointing mode are supported.");
         }
+    }
+
+    public static String resourcePath(String jarName) {
+        return ResourceTestUtils.getResource(jarName).toAbsolutePath().toString();
     }
 
     /** creates a fullRange() partitionSplit. */

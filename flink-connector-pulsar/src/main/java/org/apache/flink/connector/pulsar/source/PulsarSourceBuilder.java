@@ -27,6 +27,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfigBuilder;
 import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
@@ -40,6 +41,7 @@ import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeseri
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarSchemaWrapper;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarTypeInformationWrapper;
 
+import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionType;
@@ -59,6 +61,7 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_CONSUMER_NAME;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_CRYPTO_FAILURE_ACTION;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_SCHEMA_EVOLUTION;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
@@ -130,6 +133,7 @@ public final class PulsarSourceBuilder<OUT> {
     private StopCursor stopCursor;
     private Boundedness boundedness;
     private PulsarDeserializationSchema<OUT> deserializationSchema;
+    private PulsarCrypto pulsarCrypto;
 
     // private builder constructor.
     PulsarSourceBuilder() {
@@ -427,6 +431,20 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
+     * Sets a {@link PulsarCrypto}. Configure the key reader and keys to be used to encrypt the
+     * message payloads.
+     *
+     * @param pulsarCrypto PulsarCrypto object.
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setPulsarCrypto(
+            PulsarCrypto pulsarCrypto, ConsumerCryptoFailureAction action) {
+        this.pulsarCrypto = checkNotNull(pulsarCrypto);
+        configBuilder.set(PULSAR_CRYPTO_FAILURE_ACTION, action);
+        return this;
+    }
+
+    /**
      * Configure the authentication provider to use in the Pulsar client instance.
      *
      * @param authPluginClassName name of the Authentication-Plugin you want to use
@@ -542,6 +560,10 @@ public final class PulsarSourceBuilder<OUT> {
                             + " We would use bypass Schema check by default.");
         }
 
+        if (pulsarCrypto == null) {
+            this.pulsarCrypto = PulsarCrypto.disabled();
+        }
+
         if (!configBuilder.contains(PULSAR_CONSUMER_NAME)) {
             LOG.warn(
                     "We recommend set a readable consumer name through setConsumerName(String) in production mode.");
@@ -552,10 +574,14 @@ public final class PulsarSourceBuilder<OUT> {
             }
         }
 
-        // Since these implementations could be a lambda, make sure they are serializable.
+        // Make sure they are serializable.
+        checkState(
+                isSerializable(deserializationSchema),
+                "PulsarDeserializationSchema isn't serializable");
         checkState(isSerializable(startCursor), "StartCursor isn't serializable");
         checkState(isSerializable(stopCursor), "StopCursor isn't serializable");
         checkState(isSerializable(rangeGenerator), "RangeGenerator isn't serializable");
+        checkState(isSerializable(pulsarCrypto), "PulsarCrypto isn't serializable");
 
         // Check builder configuration.
         SourceConfiguration sourceConfiguration =
@@ -568,7 +594,8 @@ public final class PulsarSourceBuilder<OUT> {
                 startCursor,
                 stopCursor,
                 boundedness,
-                deserializationSchema);
+                deserializationSchema,
+                pulsarCrypto);
     }
 
     // ------------- private helpers  --------------

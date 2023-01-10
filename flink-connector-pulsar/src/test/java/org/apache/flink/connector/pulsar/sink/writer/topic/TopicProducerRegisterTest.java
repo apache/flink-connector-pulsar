@@ -19,6 +19,7 @@
 package org.apache.flink.connector.pulsar.sink.writer.topic;
 
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
@@ -51,7 +52,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
         TopicProducerRegister register =
-                new TopicProducerRegister(configuration, createSinkWriterMetricGroup());
+                new TopicProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
         register.createMessageBuilder(topic, Schema.STRING).value(message).send();
@@ -79,7 +81,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
         TopicProducerRegister register =
-                new TopicProducerRegister(configuration, createSinkWriterMetricGroup());
+                new TopicProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
         register.createMessageBuilder(topic, Schema.STRING).value(message).sendAsync();

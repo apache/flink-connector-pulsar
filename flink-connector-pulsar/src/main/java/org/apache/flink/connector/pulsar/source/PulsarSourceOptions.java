@@ -26,12 +26,9 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.description.Description;
 import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
 import org.apache.flink.connector.pulsar.source.config.CursorVerification;
-import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
-import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
-import org.apache.pulsar.client.api.SubscriptionType;
 
 import java.time.Duration;
 import java.util.Map;
@@ -102,14 +99,7 @@ public final class PulsarSourceOptions {
                                             code("true"))
                                     .linebreak()
                                     .text(
-                                            "The source would use pulsar client's internal mechanism and commit cursor in two ways.")
-                                    .list(
-                                            text(
-                                                    "For %s and %s subscription, the cursor would be committed once the message is consumed.",
-                                                    code("Key_Shared"), code("Shared")),
-                                            text(
-                                                    "For %s and %s subscription, the cursor would be committed in a given interval.",
-                                                    code("Exclusive"), code("Failover")))
+                                            "The source would use pulsar client's internal mechanism and commit cursor in a given interval.")
                                     .build());
 
     public static final ConfigOption<Long> PULSAR_AUTO_COMMIT_CURSOR_INTERVAL =
@@ -122,25 +112,6 @@ public final class PulsarSourceOptions {
                                             "This option is used only when the user disables the checkpoint and uses Exclusive or Failover subscription.")
                                     .text(
                                             " We would automatically commit the cursor using the given period (in ms).")
-                                    .build());
-
-    /** @deprecated We no longer need transactions for consuming messages. */
-    @Deprecated
-    public static final ConfigOption<Long> PULSAR_READ_TRANSACTION_TIMEOUT =
-            ConfigOptions.key(SOURCE_CONFIG_PREFIX + "transactionTimeoutMillis")
-                    .longType()
-                    .defaultValue(Duration.ofHours(3).toMillis())
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "This option is used in %s or %s subscription.",
-                                            code("Shared"), code("Key_Shared"))
-                                    .text(
-                                            " You should configure this option when you do not enable the %s option.",
-                                            code("pulsar.source.enableAutoAcknowledgeMessage"))
-                                    .linebreak()
-                                    .text(
-                                            "The value (in ms) should be greater than the checkpoint interval.")
                                     .build());
 
     public static final ConfigOption<Long> PULSAR_MAX_FETCH_TIME =
@@ -244,25 +215,6 @@ public final class PulsarSourceOptions {
                                             " This argument is required when constructing the consumer.")
                                     .build());
 
-    /** @deprecated This config option is no longer supported. */
-    @Deprecated
-    public static final ConfigOption<SubscriptionType> PULSAR_SUBSCRIPTION_TYPE =
-            ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "subscriptionType")
-                    .enumType(SubscriptionType.class)
-                    .defaultValue(SubscriptionType.Shared)
-                    .withDescription(
-                            Description.builder()
-                                    .text("Subscription type.")
-                                    .linebreak()
-                                    .linebreak()
-                                    .text("Four subscription types are available:")
-                                    .list(
-                                            text("Exclusive"),
-                                            text("Failover"),
-                                            text("Shared"),
-                                            text("Key_Shared"))
-                                    .build());
-
     public static final ConfigOption<SubscriptionMode> PULSAR_SUBSCRIPTION_MODE =
             ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "subscriptionMode")
                     .enumType(SubscriptionMode.class)
@@ -364,7 +316,7 @@ public final class PulsarSourceOptions {
                                             "By default, the acknowledge timeout is disabled and that means that messages delivered to a consumer will not be re-delivered unless the consumer crashes.")
                                     .linebreak()
                                     .text(
-                                            "When acknowledgement timeout being enabled, if a message is not acknowledged within the specified timeout it will be re-delivered to the consumer (possibly to a different consumer in case of a shared subscription).")
+                                            "When acknowledgement timeout being enabled, if a message is not acknowledged within the specified timeout it will be re-delivered to the consumer.")
                                     .build());
 
     public static final ConfigOption<Long> PULSAR_TICK_DURATION_MILLIS =
@@ -387,15 +339,10 @@ public final class PulsarSourceOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "Priority level for a consumer to which a broker gives more priorities while dispatching messages in the shared subscription type.")
+                                            "Priority level for a consumer to which a broker gives more priorities while dispatching messages in the subscription.")
                                     .linebreak()
                                     .text(
                                             "The broker follows descending priorities. For example, 0=max-priority, 1, 2,...")
-                                    .linebreak()
-                                    .text(
-                                            "In shared subscription mode, the broker first dispatches messages to the consumers on the highest priority level if they have permits.")
-                                    .text(
-                                            " Otherwise, the broker considers consumers on the next priority level.")
                                     .linebreak()
                                     .linebreak()
                                     .text("Example 1")
@@ -539,23 +486,9 @@ public final class PulsarSourceOptions {
                                             code("readCompacted"))
                                     .linebreak()
                                     .text(
-                                            "Attempting to enable it on subscriptions to non-persistent topics or on shared subscriptions leads to a subscription call throwing a %s.",
+                                            "Attempting to enable it on subscriptions to non-persistent topics leads to a subscription call throwing a %s.",
                                             code("PulsarClientException"))
                                     .build());
-
-    /**
-     * @deprecated This option would be reset by {@link StartCursor}, no need to use it anymore.
-     *     Pulsar didn't support this config option before 1.10.1, so we have to remove this config
-     *     option.
-     */
-    @Deprecated
-    public static final ConfigOption<SubscriptionInitialPosition>
-            PULSAR_SUBSCRIPTION_INITIAL_POSITION =
-                    ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "subscriptionInitialPosition")
-                            .enumType(SubscriptionInitialPosition.class)
-                            .defaultValue(SubscriptionInitialPosition.Latest)
-                            .withDescription(
-                                    "Initial position at which to set cursor when subscribing to a topic at first time.");
 
     // The config set for DeadLetterPolicy
 

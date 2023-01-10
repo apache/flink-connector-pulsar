@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.sink.writer.topic;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.metrics.ProducerMetricsInterceptor;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
@@ -29,6 +30,8 @@ import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.flink.shaded.guava30.com.google.common.io.Closer;
 
+import org.apache.pulsar.client.api.CryptoKeyReader;
+import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.ProducerStats;
@@ -38,7 +41,10 @@ import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
 
@@ -49,6 +55,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
@@ -73,6 +80,7 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.createTransaction;
 import static org.apache.flink.connector.pulsar.sink.config.PulsarSinkConfigUtils.createProducerBuilder;
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -84,14 +92,18 @@ public class TopicProducerRegister implements Closeable {
 
     private final PulsarClient pulsarClient;
     private final SinkConfiguration sinkConfiguration;
+    private final PulsarCrypto pulsarCrypto;
     private final SinkWriterMetricGroup metricGroup;
     private final Map<String, Map<SchemaInfo, Producer<?>>> producerRegister;
     private final Map<String, Transaction> transactionRegister;
 
     public TopicProducerRegister(
-            SinkConfiguration sinkConfiguration, SinkWriterMetricGroup metricGroup) {
+            SinkConfiguration sinkConfiguration,
+            PulsarCrypto pulsarCrypto,
+            SinkWriterMetricGroup metricGroup) {
         this.pulsarClient = createClient(sinkConfiguration);
         this.sinkConfiguration = sinkConfiguration;
+        this.pulsarCrypto = pulsarCrypto;
         this.metricGroup = metricGroup;
         this.producerRegister = new HashMap<>();
         this.transactionRegister = new HashMap<>();
@@ -176,22 +188,46 @@ public class TopicProducerRegister implements Closeable {
 
         if (producers.containsKey(schemaInfo)) {
             return (Producer<T>) producers.get(schemaInfo);
-        } else {
-            ProducerBuilder<T> builder =
-                    createProducerBuilder(pulsarClient, schema, sinkConfiguration);
-            // Set the required topic name.
-            builder.topic(topic);
-            // Set the sending counter for metrics.
-            builder.intercept(new ProducerMetricsInterceptor(metricGroup));
-
-            Producer<T> producer = sneakyClient(builder::create);
-
-            // Expose the stats for calculating and monitoring.
-            exposeProducerMetrics(producer);
-            producers.put(schemaInfo, producer);
-
-            return producer;
         }
+
+        ProducerBuilder<T> builder = createProducerBuilder(pulsarClient, schema, sinkConfiguration);
+
+        // Set the message crypto key reader.
+        CryptoKeyReader cryptoKeyReader = pulsarCrypto.cryptoKeyReader();
+        if (cryptoKeyReader != null) {
+            builder.cryptoKeyReader(cryptoKeyReader);
+
+            // Set the encrypt keys.
+            Set<String> encryptKeys = pulsarCrypto.encryptKeys();
+            checkArgument(
+                    encryptKeys != null && !encryptKeys.isEmpty(),
+                    "You should provide encryptKeys in PulsarCrypto");
+            encryptKeys.forEach(builder::addEncryptionKey);
+
+            // Set the message crypto if provided.
+            // Pulsar forgets to expose the config in producer builder.
+            // See issue https://github.com/apache/pulsar/issues/19139
+            MessageCrypto<MessageMetadata, MessageMetadata> messageCrypto =
+                    pulsarCrypto.messageCrypto();
+            if (messageCrypto != null) {
+                ProducerConfigurationData producerConfig =
+                        ((ProducerBuilderImpl<?>) builder).getConf();
+                producerConfig.setMessageCrypto(messageCrypto);
+            }
+        }
+
+        // Set the required topic name.
+        builder.topic(topic);
+        // Set the sending counter for metrics.
+        builder.intercept(new ProducerMetricsInterceptor(metricGroup));
+
+        Producer<T> producer = sneakyClient(builder::create);
+
+        // Expose the stats for calculating and monitoring.
+        exposeProducerMetrics(producer);
+        producers.put(schemaInfo, producer);
+
+        return producer;
     }
 
     /**
