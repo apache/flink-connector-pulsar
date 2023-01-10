@@ -29,6 +29,7 @@ import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
 import org.apache.flink.connector.pulsar.sink.writer.router.MessageKeyHash;
 
 import org.apache.pulsar.client.api.CompressionType;
+import org.apache.pulsar.client.api.ProducerCryptoFailureAction;
 
 import java.time.Duration;
 import java.util.Map;
@@ -37,7 +38,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.flink.configuration.description.LinkElement.link;
 import static org.apache.flink.configuration.description.TextElement.code;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PRODUCER_CONFIG_PREFIX;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.SINK_CONFIG_PREFIX;
@@ -130,18 +130,6 @@ public final class PulsarSinkOptions {
                             "The allowed transaction recommit times if we meet some retryable exception."
                                     + " This is used in Pulsar Transaction.");
 
-    /** @deprecated This config option was removed for better performance. */
-    @Deprecated
-    public static final ConfigOption<Integer> PULSAR_MAX_PENDING_MESSAGES_ON_PARALLELISM =
-            ConfigOptions.key(SINK_CONFIG_PREFIX + "maxPendingMessages")
-                    .intType()
-                    .defaultValue(1000)
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "The maximum number of pending messages in one sink parallelism.")
-                                    .build());
-
     public static final ConfigOption<Boolean> PULSAR_ENABLE_SINK_METRICS =
             ConfigOptions.key(SINK_CONFIG_PREFIX + "enableMetrics")
                     .booleanType()
@@ -180,51 +168,6 @@ public final class PulsarSinkOptions {
                                     .text(
                                             "If a message is not acknowledged by a server before the %s expires, an error occurs.",
                                             code("sendTimeout"))
-                                    .build());
-
-    /** @deprecated Use {@link PulsarOptions#PULSAR_MEMORY_LIMIT_BYTES} since Pulsar 2.10.0 */
-    @Deprecated
-    public static final ConfigOption<Integer> PULSAR_MAX_PENDING_MESSAGES =
-            ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "maxPendingMessages")
-                    .intType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text("The maximum size of a queue holding pending messages.")
-                                    .linebreak()
-                                    .text(
-                                            "For example, a message waiting to receive an acknowledgment from a %s.",
-                                            link(
-                                                    "broker",
-                                                    "https://pulsar.apache.org/docs/en/reference-terminology#broker"))
-                                    .linebreak()
-                                    .text(
-                                            "By default, when the queue is full, all calls to the %s and %s methods fail unless you set %s to true.",
-                                            code("Send"),
-                                            code("SendAsync"),
-                                            code("BlockIfQueueFull"))
-                                    .text(
-                                            "Since Pulsar 2.10.0, you shouldn't set this option, use %s instead.",
-                                            code(PULSAR_MEMORY_LIMIT_BYTES.key()))
-                                    .build());
-
-    /** @deprecated Use {@link PulsarOptions#PULSAR_MEMORY_LIMIT_BYTES} since Pulsar 2.10.0 */
-    @Deprecated
-    public static final ConfigOption<Integer> PULSAR_MAX_PENDING_MESSAGES_ACROSS_PARTITIONS =
-            ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "maxPendingMessagesAcrossPartitions")
-                    .intType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "The maximum number of pending messages across partitions.")
-                                    .linebreak()
-                                    .text(
-                                            "Use the setting to lower the max pending messages for each partition (%s) if the total number exceeds the configured value.",
-                                            code("setMaxPendingMessages"))
-                                    .text(
-                                            "Since Pulsar 2.10.0, you shouldn't set this option, use %s instead.",
-                                            code(PULSAR_MEMORY_LIMIT_BYTES.key()))
                                     .build());
 
     public static final ConfigOption<Long> PULSAR_BATCHING_MAX_PUBLISH_DELAY_MICROS =
@@ -303,4 +246,12 @@ public final class PulsarSinkOptions {
                                     .text(
                                             " When getting a topic stats, associate this metadata with the consumer stats for easier identification.")
                                     .build());
+
+    public static final ConfigOption<ProducerCryptoFailureAction>
+            PULSAR_PRODUCER_CRYPTO_FAILURE_ACTION =
+                    ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "producerCryptoFailureAction")
+                            .enumType(ProducerCryptoFailureAction.class)
+                            .defaultValue(ProducerCryptoFailureAction.FAIL)
+                            .withDescription(
+                                    "The action the producer will take in case of encryption failures.");
 }

@@ -19,8 +19,10 @@
 package org.apache.flink.connector.pulsar.sink.writer.topic;
 
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
 import org.apache.pulsar.client.api.Message;
@@ -39,8 +41,8 @@ import static org.apache.flink.metrics.groups.UnregisteredMetricsGroup.createSin
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Unit tests for {@link TopicProducerRegister}. */
-class TopicProducerRegisterTest extends PulsarTestSuiteBase {
+/** Unit tests for {@link ProducerRegister}. */
+class ProducerRegisterTest extends PulsarTestSuiteBase {
 
     @ParameterizedTest
     @EnumSource(DeliveryGuarantee.class)
@@ -50,11 +52,14 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         operator().createTopic(topic, 8);
 
         SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
-        TopicProducerRegister register =
-                new TopicProducerRegister(configuration, createSinkWriterMetricGroup());
+        ProducerRegister register =
+                new ProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
-        register.createMessageBuilder(topic, Schema.STRING).value(message).send();
+        register.createMessageBuilder(new TopicPartition(topic), Schema.STRING)
+                .value(message)
+                .send();
 
         if (deliveryGuarantee == EXACTLY_ONCE) {
             List<PulsarCommittable> committables = register.prepareCommit();
@@ -78,11 +83,14 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         operator().createTopic(topic, 8);
 
         SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
-        TopicProducerRegister register =
-                new TopicProducerRegister(configuration, createSinkWriterMetricGroup());
+        ProducerRegister register =
+                new ProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
-        register.createMessageBuilder(topic, Schema.STRING).value(message).sendAsync();
+        register.createMessageBuilder(new TopicPartition(topic), Schema.STRING)
+                .value(message)
+                .sendAsync();
 
         List<PulsarCommittable> committables = register.prepareCommit();
         assertThat(committables).isEmpty();

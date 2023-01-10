@@ -28,6 +28,7 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumStateSerializer;
@@ -86,8 +87,10 @@ public final class PulsarSource<OUT>
 
     private final Boundedness boundedness;
 
-    /** The pulsar deserialization schema used for deserializing message. */
+    /** The pulsar deserialization schema is used for deserializing message. */
     private final PulsarDeserializationSchema<OUT> deserializationSchema;
+
+    private final PulsarCrypto pulsarCrypto;
 
     /**
      * The constructor for PulsarSource, it's package protected for forcing using {@link
@@ -100,7 +103,8 @@ public final class PulsarSource<OUT>
             StartCursor startCursor,
             StopCursor stopCursor,
             Boundedness boundedness,
-            PulsarDeserializationSchema<OUT> deserializationSchema) {
+            PulsarDeserializationSchema<OUT> deserializationSchema,
+            PulsarCrypto pulsarCrypto) {
         this.sourceConfiguration = sourceConfiguration;
         this.subscriber = subscriber;
         this.rangeGenerator = rangeGenerator;
@@ -108,6 +112,7 @@ public final class PulsarSource<OUT>
         this.stopCursor = stopCursor;
         this.boundedness = boundedness;
         this.deserializationSchema = deserializationSchema;
+        this.pulsarCrypto = pulsarCrypto;
     }
 
     /**
@@ -133,7 +138,8 @@ public final class PulsarSource<OUT>
                 new PulsarDeserializationSchemaInitializationContext(readerContext);
         deserializationSchema.open(initializationContext, sourceConfiguration);
 
-        return PulsarSourceReader.create(sourceConfiguration, deserializationSchema, readerContext);
+        return PulsarSourceReader.create(
+                sourceConfiguration, deserializationSchema, pulsarCrypto, readerContext);
     }
 
     @Internal

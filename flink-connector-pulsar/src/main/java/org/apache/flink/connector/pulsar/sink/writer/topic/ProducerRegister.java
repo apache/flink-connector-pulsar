@@ -20,15 +20,19 @@ package org.apache.flink.connector.pulsar.sink.writer.topic;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.metrics.ProducerMetricsInterceptor;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.flink.shaded.guava30.com.google.common.io.Closer;
 
+import org.apache.pulsar.client.api.CryptoKeyReader;
+import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.ProducerStats;
@@ -38,17 +42,22 @@ import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
+import org.apache.pulsar.client.impl.ProducerBase;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
-import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
+import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+import org.apache.pulsar.client.impl.transaction.TransactionImpl;
+import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
@@ -73,6 +82,7 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.createTransaction;
 import static org.apache.flink.connector.pulsar.sink.config.PulsarSinkConfigUtils.createProducerBuilder;
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -80,21 +90,25 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * we have to create different instances for different topics.
  */
 @Internal
-public class TopicProducerRegister implements Closeable {
+public class ProducerRegister implements Closeable {
 
     private final PulsarClient pulsarClient;
     private final SinkConfiguration sinkConfiguration;
+    private final PulsarCrypto pulsarCrypto;
     private final SinkWriterMetricGroup metricGroup;
-    private final Map<String, Map<SchemaInfo, Producer<?>>> producerRegister;
-    private final Map<String, Transaction> transactionRegister;
+    private final Map<TopicPartition, Producer<byte[]>> producers;
+    private final Map<TopicPartition, Transaction> transactions;
 
-    public TopicProducerRegister(
-            SinkConfiguration sinkConfiguration, SinkWriterMetricGroup metricGroup) {
+    public ProducerRegister(
+            SinkConfiguration sinkConfiguration,
+            PulsarCrypto pulsarCrypto,
+            SinkWriterMetricGroup metricGroup) {
         this.pulsarClient = createClient(sinkConfiguration);
         this.sinkConfiguration = sinkConfiguration;
+        this.pulsarCrypto = pulsarCrypto;
         this.metricGroup = metricGroup;
-        this.producerRegister = new HashMap<>();
-        this.transactionRegister = new HashMap<>();
+        this.producers = new HashMap<>();
+        this.transactions = new HashMap<>();
 
         if (sinkConfiguration.isEnableMetrics()) {
             metricGroup.setCurrentSendTimeGauge(this::currentSendTimeGauge);
@@ -107,15 +121,18 @@ public class TopicProducerRegister implements Closeable {
      * transaction. We would generate a transaction instance if there is no transaction. Finally, we
      * create the message builder and put the element into it.
      */
-    public <T> TypedMessageBuilder<T> createMessageBuilder(String topic, Schema<T> schema) {
-        Producer<T> producer = getOrCreateProducer(topic, schema);
+    public <T> TypedMessageBuilder<T> createMessageBuilder(
+            TopicPartition partition, Schema<T> schema) {
+        Producer<byte[]> producer = getOrCreateProducer(partition);
         DeliveryGuarantee deliveryGuarantee = sinkConfiguration.getDeliveryGuarantee();
 
         if (deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE) {
-            Transaction transaction = getOrCreateTransaction(topic);
-            return producer.newMessage(transaction);
+            Transaction transaction = getOrCreateTransaction(partition);
+            // Pulsar's Producer didn't expose this method.
+            return new TypedMessageBuilderImpl<>(
+                    (ProducerBase<?>) producer, schema, (TransactionImpl) transaction);
         } else {
-            return producer.newMessage();
+            return producer.newMessage(schema);
         }
     }
 
@@ -124,11 +141,12 @@ public class TopicProducerRegister implements Closeable {
      * be removed until Flink triggered a checkpoint.
      */
     public List<PulsarCommittable> prepareCommit() {
-        List<PulsarCommittable> committables = new ArrayList<>(transactionRegister.size());
-        transactionRegister.forEach(
-                (topic, transaction) -> {
+        List<PulsarCommittable> committables = new ArrayList<>(transactions.size());
+        transactions.forEach(
+                (partition, transaction) -> {
                     TxnID txnID = transaction.getTxnID();
-                    PulsarCommittable committable = new PulsarCommittable(txnID, topic);
+                    PulsarCommittable committable =
+                            new PulsarCommittable(txnID, partition.getFullTopicName());
                     committables.add(committable);
                 });
 
@@ -141,11 +159,8 @@ public class TopicProducerRegister implements Closeable {
      * successfully persisted.
      */
     public void flush() throws IOException {
-        Collection<Map<SchemaInfo, Producer<?>>> collection = producerRegister.values();
-        for (Map<SchemaInfo, Producer<?>> producers : collection) {
-            for (Producer<?> producer : producers.values()) {
-                producer.flush();
-            }
+        for (Producer<?> producer : producers.values()) {
+            producer.flush();
         }
     }
 
@@ -159,7 +174,7 @@ public class TopicProducerRegister implements Closeable {
             closer.register(this::abortTransactions);
 
             // Remove all the producers.
-            closer.register(producerRegister::clear);
+            closer.register(producers::clear);
 
             // All the producers would be closed by this method.
             // We would block until all the producers have been successfully closed.
@@ -168,38 +183,57 @@ public class TopicProducerRegister implements Closeable {
     }
 
     /** Create or return the cached topic-related producer. */
-    @SuppressWarnings("unchecked")
-    private <T> Producer<T> getOrCreateProducer(String topic, Schema<T> schema) {
-        Map<SchemaInfo, Producer<?>> producers =
-                producerRegister.computeIfAbsent(topic, key -> new HashMap<>());
-        SchemaInfo schemaInfo = schema.getSchemaInfo();
-
-        if (producers.containsKey(schemaInfo)) {
-            return (Producer<T>) producers.get(schemaInfo);
-        } else {
-            ProducerBuilder<T> builder =
-                    createProducerBuilder(pulsarClient, schema, sinkConfiguration);
-            // Set the required topic name.
-            builder.topic(topic);
-            // Set the sending counter for metrics.
-            builder.intercept(new ProducerMetricsInterceptor(metricGroup));
-
-            Producer<T> producer = sneakyClient(builder::create);
-
-            // Expose the stats for calculating and monitoring.
-            exposeProducerMetrics(producer);
-            producers.put(schemaInfo, producer);
-
-            return producer;
+    private Producer<byte[]> getOrCreateProducer(TopicPartition partition) {
+        if (producers.containsKey(partition)) {
+            return producers.get(partition);
         }
+
+        ProducerBuilder<byte[]> builder = createProducerBuilder(pulsarClient, sinkConfiguration);
+
+        // Set the message crypto key reader.
+        CryptoKeyReader cryptoKeyReader = pulsarCrypto.cryptoKeyReader();
+        if (cryptoKeyReader != null) {
+            builder.cryptoKeyReader(cryptoKeyReader);
+
+            // Set the encrypt keys.
+            Set<String> encryptKeys = pulsarCrypto.encryptKeys();
+            checkArgument(
+                    encryptKeys != null && !encryptKeys.isEmpty(),
+                    "You should provide encryptKeys in PulsarCrypto");
+            encryptKeys.forEach(builder::addEncryptionKey);
+
+            // Set the message crypto if provided.
+            // Pulsar forgets to expose the config in producer builder.
+            // See issue https://github.com/apache/pulsar/issues/19139
+            MessageCrypto<MessageMetadata, MessageMetadata> messageCrypto =
+                    pulsarCrypto.messageCrypto();
+            if (messageCrypto != null) {
+                ProducerConfigurationData producerConfig =
+                        ((ProducerBuilderImpl<?>) builder).getConf();
+                producerConfig.setMessageCrypto(messageCrypto);
+            }
+        }
+
+        // Set the required topic name.
+        builder.topic(partition.getFullTopicName());
+        // Set the sending counter for metrics.
+        builder.intercept(new ProducerMetricsInterceptor(metricGroup));
+
+        Producer<byte[]> producer = sneakyClient(builder::create);
+
+        // Expose the stats for calculating and monitoring.
+        exposeProducerMetrics(producer);
+        producers.put(partition, producer);
+
+        return producer;
     }
 
     /**
      * Get the cached topic-related transaction. Or create a new transaction after checkpointing.
      */
-    private Transaction getOrCreateTransaction(String topic) {
-        return transactionRegister.computeIfAbsent(
-                topic,
+    private Transaction getOrCreateTransaction(TopicPartition partition) {
+        return transactions.computeIfAbsent(
+                partition,
                 t -> {
                     long timeoutMillis = sinkConfiguration.getTransactionTimeoutMillis();
                     return createTransaction(pulsarClient, timeoutMillis);
@@ -208,7 +242,7 @@ public class TopicProducerRegister implements Closeable {
 
     /** Abort the existed transactions. This method would be used when closing PulsarWriter. */
     private void abortTransactions() {
-        if (transactionRegister.isEmpty()) {
+        if (transactions.isEmpty()) {
             return;
         }
 
@@ -218,7 +252,7 @@ public class TopicProducerRegister implements Closeable {
         checkNotNull(coordinatorClient);
 
         try (Closer closer = Closer.create()) {
-            for (Transaction transaction : transactionRegister.values()) {
+            for (Transaction transaction : transactions.values()) {
                 TxnID txnID = transaction.getTxnID();
                 closer.register(() -> coordinatorClient.abort(txnID));
             }
@@ -234,13 +268,12 @@ public class TopicProducerRegister implements Closeable {
      * create new transaction when new message comes.
      */
     private void clearTransactions() {
-        transactionRegister.clear();
+        transactions.clear();
     }
 
     private Long currentSendTimeGauge() {
         double sendTime =
-                producerRegister.values().stream()
-                        .flatMap(v -> v.values().stream())
+                producers.values().stream()
                         .map(Producer::getStats)
                         .mapToDouble(ProducerStats::getSendLatencyMillis50pct)
                         .average()

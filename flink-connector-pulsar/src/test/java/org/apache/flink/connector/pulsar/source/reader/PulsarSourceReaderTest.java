@@ -22,6 +22,7 @@ import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
@@ -244,7 +245,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
 
         SourceConfiguration sourceConfiguration = new SourceConfiguration(configuration);
 
-        return PulsarSourceReader.create(sourceConfiguration, deserializationSchema, context);
+        return PulsarSourceReader.create(
+                sourceConfiguration, deserializationSchema, PulsarCrypto.disabled(), context);
     }
 
     private void setupSourceReader(

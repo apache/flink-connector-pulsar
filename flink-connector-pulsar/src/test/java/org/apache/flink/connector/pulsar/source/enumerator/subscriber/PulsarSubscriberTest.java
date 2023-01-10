@@ -38,6 +38,7 @@ import static org.apache.flink.connector.pulsar.source.enumerator.subscriber.Pul
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
+import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -58,8 +59,8 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
         operator().createTopic(topic1, NUM_PARTITIONS_PER_TOPIC);
         operator().createTopic(topic2, NUM_PARTITIONS_PER_TOPIC);
         operator().createTopic(topic3, NUM_PARTITIONS_PER_TOPIC);
-        operator().createTopic(topic4, 0);
-        operator().createTopic(topic5, 0);
+        operator().createTopic(topic4, NON_PARTITIONED);
+        operator().createTopic(topic5, NON_PARTITIONED);
     }
 
     @AfterAll
@@ -107,7 +108,7 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
                 subscriber.getSubscribedTopicPartitions(
                         operator().admin(), new FullRangeGenerator(), NUM_PARALLELISM);
 
-        TopicPartition desiredPartition = new TopicPartition(topic4, -1);
+        TopicPartition desiredPartition = new TopicPartition(topic4);
         assertThat(partitions).hasSize(1).containsExactly(desiredPartition);
     }
 
