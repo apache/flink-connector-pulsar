@@ -20,10 +20,15 @@ package org.apache.flink.connector.pulsar.source.enumerator.cursor;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumerator;
 
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.impl.ChunkMessageIdImpl;
 
 import java.io.Serializable;
+import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -37,38 +42,88 @@ public final class CursorPosition implements Serializable {
     private final Type type;
 
     private final MessageId messageId;
+    private final boolean include;
 
     private final Long timestamp;
 
-    public CursorPosition(MessageId messageId) {
+    /**
+     * Start consuming from the given message id. The message id couldn't be the {@code
+     * MultipleMessageIdImpl}.
+     *
+     * @param include Whether the cosponsored position will be (in/ex)cluded in the consuming
+     *     result.
+     */
+    public CursorPosition(MessageId messageId, boolean include) {
         checkNotNull(messageId, "Message id couldn't be null.");
 
         this.type = Type.MESSAGE_ID;
         this.messageId = messageId;
+        this.include = include;
         this.timestamp = null;
     }
 
+    /**
+     * Start consuming from the given timestamp position. The cosponsored position will be included
+     * in the consuming result.
+     */
     public CursorPosition(Long timestamp) {
         checkNotNull(timestamp, "Timestamp couldn't be null.");
 
         this.type = Type.TIMESTAMP;
         this.messageId = null;
+        this.include = true;
         this.timestamp = timestamp;
     }
 
+    /** This method is used to create the initial position in {@link PulsarSourceEnumerator}. */
     @Internal
-    public Type getType() {
-        return type;
+    public boolean createInitialPosition(
+            PulsarAdmin pulsarAdmin, String topicName, String subscriptionName)
+            throws PulsarAdminException {
+        List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
+
+        if (!subscriptions.contains(subscriptionName)) {
+            pulsarAdmin
+                    .topics()
+                    .createSubscription(topicName, subscriptionName, MessageId.earliest);
+
+            // Reset cursor to desired position.
+            MessageId initialPosition = getMessageId(pulsarAdmin, topicName);
+            pulsarAdmin
+                    .topics()
+                    .resetCursor(topicName, subscriptionName, initialPosition, !include);
+
+            return true;
+        }
+
+        return false;
     }
 
+    /**
+     * This method is used to reset the consuming position in {@code
+     * PulsarPartitionSplitReaderBase}.
+     */
     @Internal
-    public MessageId getMessageId() {
-        return messageId;
+    public void seekPosition(PulsarAdmin pulsarAdmin, String topicName, String subscriptionName)
+            throws PulsarAdminException {
+        if (!createInitialPosition(pulsarAdmin, topicName, subscriptionName)) {
+            // Reset cursor to desired position.
+            MessageId initialPosition = getMessageId(pulsarAdmin, topicName);
+            pulsarAdmin
+                    .topics()
+                    .resetCursor(topicName, subscriptionName, initialPosition, !include);
+        }
     }
 
-    @Internal
-    public Long getTimestamp() {
-        return timestamp;
+    private MessageId getMessageId(PulsarAdmin pulsarAdmin, String topicName)
+            throws PulsarAdminException {
+        if (type == Type.TIMESTAMP) {
+            return pulsarAdmin.topics().getMessageIdByTimestamp(topicName, timestamp);
+        } else if (messageId instanceof ChunkMessageIdImpl) {
+            return ((ChunkMessageIdImpl) messageId).getFirstChunkMessageId();
+        } else {
+            return messageId;
+        }
     }
 
     @Override
@@ -76,7 +131,7 @@ public final class CursorPosition implements Serializable {
         if (type == Type.TIMESTAMP) {
             return "timestamp: " + timestamp;
         } else {
-            return "message id: " + messageId;
+            return "message id: " + messageId + " include: " + include;
         }
     }
 
