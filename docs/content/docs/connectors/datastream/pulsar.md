@@ -881,7 +881,15 @@ For details, see [partitioned topics](https://pulsar.apache.org/docs/2.10.x/cook
 - `AT_LEAST_ONCE`: No data loss happens, but data duplication can happen after a restart from checkpoint.
 - `EXACTLY_ONCE`: No data loss happens. Each record is sent to the Pulsar broker only once.
   Pulsar Sink uses [Pulsar transaction](https://pulsar.apache.org/docs/2.10.x/transactions/)
-  and two-phase commit (2PC) to ensure records are sent only once even after pipeline restarts.
+  and two-phase commit (2PC) to ensure records are sent only once even after the pipeline restarts.
+
+{{< hint warning >}}
+If you want to use `EXACTLY_ONCE`, make sure you have enabled the checkpoint on Flink and enabled the transaction on Pulsar.
+The Pulsar sink will write all the messages in a pending transaction and commit it after the successfully checkpointing.
+
+The messages written to Pulsar after a pending transaction won't be obtained based on the design of the Pulsar.
+You can acquire these messages only when the corresponding transaction is committed.
+{{< /hint >}}
 
 ### Delayed message delivery
 

@@ -763,6 +763,12 @@ public interface TopicRouter<IN> extends Serializable {
 - `AT_LEAST_ONCE`：每条消息**至少有**一条对应消息发送至 Pulsar，发送至 Pulsar 的消息可能会因为 Flink 应用重启而出现重复。
 - `EXACTLY_ONCE`：每条消息**有且仅有**一条对应消息发送至 Pulsar。发送至 Pulsar 的消息不会有重复也不会丢失。Pulsar Sink 内部依赖 [Pulsar 事务](https://pulsar.apache.org/docs/2.10.x/transactions/)和两阶段提交协议来保证每条记录都能正确发往 Pulsar。
 
+{{< hint warning >}}
+如果想要使用 `EXACTLY_ONCE`，需要用户确保在 Flink 程序上启用 checkpoint，同时在 Pulsar 上启用事务。在此模式下，Pulsar sink 会将消息写入到某个未提交的事务下，并在成功执行完 checkpoint 后提交对应的事务。
+
+基于 Pulsar 的设计，任何在开启的事务之后写入的消息是无法被消费到的。只有这个事务提交了，对应的消息才能被消费到。
+{{< /hint >}}
+
 ### 消息延时发送
 
 [消息延时发送](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#delayed-message-delivery)特性可以让指定发送的每一条消息需要延时一段时间后才能被下游的消费者所消费。当延时消息发送特性启用时，Pulsar Sink 会**立刻**将消息发送至 Pulsar Broker。但该消息在指定的延迟时间到达前将会保持对下游消费者不可见。
