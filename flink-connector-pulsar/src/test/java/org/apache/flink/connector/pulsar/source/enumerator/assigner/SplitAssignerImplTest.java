@@ -25,7 +25,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.util.TestLogger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Unit tests for {@link SplitAssignerImpl}. */
-class SplitAssignerImplTest extends TestLogger {
+class SplitAssignerImplTest {
 
     private static final List<MockSplitEnumeratorContext<PulsarPartitionSplit>> enumeratorContexts =
             new ArrayList<>();

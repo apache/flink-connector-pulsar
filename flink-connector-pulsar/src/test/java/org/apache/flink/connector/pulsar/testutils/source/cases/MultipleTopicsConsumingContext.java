@@ -28,13 +28,13 @@ import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNam
  * Pulsar external context that will create multiple topics with only one partitions as source
  * splits.
  */
-public class MultipleTopicConsumingContext extends PulsarSourceTestContext {
+public class MultipleTopicsConsumingContext extends PulsarSourceTestContext {
 
     private final String topicPrefix = "flink-multiple-topic-" + randomAlphabetic(8) + "-";
 
     private int index = 0;
 
-    public MultipleTopicConsumingContext(PulsarTestEnvironment environment) {
+    public MultipleTopicsConsumingContext(PulsarTestEnvironment environment) {
         super(environment);
     }
 

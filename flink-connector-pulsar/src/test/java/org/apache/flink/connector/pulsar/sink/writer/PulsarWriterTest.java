@@ -28,12 +28,15 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
+import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.delayer.FixedMessageDelayer;
 import org.apache.flink.connector.pulsar.sink.writer.delayer.MessageDelayer;
 import org.apache.flink.connector.pulsar.sink.writer.router.RoundRobinTopicRouter;
+import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSchemaWrapper;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema;
-import org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListener;
+import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.OperatorIOMetricGroup;
@@ -46,10 +49,12 @@ import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.UserCodeClassLoader;
 
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.OptionalLong;
 
 import static java.util.Collections.singletonList;
@@ -67,14 +72,27 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
 
     @ParameterizedTest
     @EnumSource(DeliveryGuarantee.class)
-    void writeMessages(DeliveryGuarantee guarantee) throws Exception {
-        String topic = randomAlphabetic(10);
+    void writeMessagesToPulsar(DeliveryGuarantee guarantee) throws Exception {
+        String topic = "writer-" + randomAlphabetic(10);
         operator().createTopic(topic, 8);
+        MetadataListener listener = new MetadataListener(singletonList(topic));
 
+        writeMessageAndVerify(guarantee, listener, topic);
+    }
+
+    @Test
+    void writeMessagesToPulsarWithTopicAutoCreation() throws Exception {
+        String topic = "non-existed-topic-" + randomAlphabetic(10);
+        MetadataListener listener = new MetadataListener();
+
+        writeMessageAndVerify(DeliveryGuarantee.AT_LEAST_ONCE, listener, topic);
+    }
+
+    private void writeMessageAndVerify(
+            DeliveryGuarantee guarantee, MetadataListener listener, String topic) throws Exception {
         SinkConfiguration configuration = sinkConfiguration(guarantee);
+        TopicRouter<String> router = new DynamicTopicRouter<>(configuration, topic);
         PulsarSerializationSchema<String> schema = new PulsarSchemaWrapper<>(STRING);
-        TopicMetadataListener listener = new TopicMetadataListener(singletonList(topic));
-        RoundRobinTopicRouter<String> router = new RoundRobinTopicRouter<>(configuration);
         FixedMessageDelayer<String> delayer = MessageDelayer.never();
         MockInitContext initContext = new MockInitContext();
 
@@ -117,6 +135,28 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         configuration.set(PULSAR_WRITE_SCHEMA_EVOLUTION, true);
 
         return new SinkConfiguration(configuration);
+    }
+
+    private static class DynamicTopicRouter<IN> implements TopicRouter<IN> {
+        private static final long serialVersionUID = -2855742316603280628L;
+
+        private final RoundRobinTopicRouter<IN> robinTopicRouter;
+        private final String topic;
+
+        public DynamicTopicRouter(SinkConfiguration configuration, String topic) {
+            this.robinTopicRouter = new RoundRobinTopicRouter<>(configuration);
+            this.topic = topic;
+        }
+
+        @Override
+        public TopicPartition route(
+                IN in, String key, List<TopicPartition> partitions, PulsarSinkContext context) {
+            if (partitions.isEmpty()) {
+                return new TopicPartition(topic);
+            } else {
+                return robinTopicRouter.route(in, key, partitions, context);
+            }
+        }
     }
 
     private static class MockInitContext implements InitContext {

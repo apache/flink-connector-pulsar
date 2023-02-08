@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.sink.writer.router;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
 import org.apache.pulsar.client.impl.Hash;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,33 +51,34 @@ class KeyHashTopicRouterTest {
 
         String message = randomAlphanumeric(10);
         String key = randomAlphanumeric(10);
-        List<String> emptyTopics = emptyList();
+        List<TopicPartition> emptyPartitions = emptyList();
         PulsarSinkContext sinkContext = mock(PulsarSinkContext.class);
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> router.route(message, key, emptyTopics, sinkContext));
+                () -> router.route(message, key, emptyPartitions, sinkContext));
     }
 
     @ParameterizedTest
     @EnumSource(MessageKeyHash.class)
     void routeOnlyOnePartition(MessageKeyHash keyHash) {
         SinkConfiguration configuration = sinkConfiguration(keyHash);
-        List<String> topics = singletonList(randomAlphanumeric(10));
+        List<TopicPartition> partitions = singletonList(new TopicPartition(randomAlphanumeric(10)));
 
         KeyHashTopicRouter<String> router1 = new KeyHashTopicRouter<>(configuration);
-        String topic1 =
+        TopicPartition partition1 =
                 router1.route(
                         randomAlphanumeric(10),
                         randomAlphanumeric(10),
-                        topics,
+                        partitions,
                         mock(PulsarSinkContext.class));
-        assertEquals(topic1, topics.get(0));
+        assertEquals(partition1, partitions.get(0));
 
         KeyHashTopicRouter<String> router2 = new KeyHashTopicRouter<>(configuration);
-        String topic2 =
-                router2.route(randomAlphanumeric(10), null, topics, mock(PulsarSinkContext.class));
-        assertEquals(topic2, topics.get(0));
+        TopicPartition partition2 =
+                router2.route(
+                        randomAlphanumeric(10), null, partitions, mock(PulsarSinkContext.class));
+        assertEquals(partition2, partitions.get(0));
     }
 
     @ParameterizedTest
@@ -86,20 +88,21 @@ class KeyHashTopicRouterTest {
         String messageKey = randomAlphanumeric(10);
         KeyHashTopicRouter<String> router = new KeyHashTopicRouter<>(configuration);
 
-        List<String> topics =
-                Stream.generate(() -> randomAlphanumeric(10))
+        List<TopicPartition> partitions =
+                Stream.generate(() -> new TopicPartition(randomAlphanumeric(10)))
                         .distinct()
                         .limit(10)
                         .collect(toList());
 
         Hash hash = keyHash.getHash();
-        int index = signSafeMod(hash.makeHash(messageKey), topics.size());
-        String desiredTopic = topics.get(index);
+        int index = signSafeMod(hash.makeHash(messageKey), partitions.size());
+        TopicPartition desiredPartitions = partitions.get(index);
         String message = randomAlphanumeric(10);
 
-        String topic = router.route(message, messageKey, topics, mock(PulsarSinkContext.class));
+        TopicPartition topic =
+                router.route(message, messageKey, partitions, mock(PulsarSinkContext.class));
 
-        assertEquals(topic, desiredTopic);
+        assertEquals(topic, desiredPartitions);
     }
 
     private SinkConfiguration sinkConfiguration(MessageKeyHash hash) {

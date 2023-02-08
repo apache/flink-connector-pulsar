@@ -78,8 +78,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
 
     @Override
     public void startUp() {
-        boolean havenStartedBefore = started.compareAndSet(false, true);
-        if (!havenStartedBefore) {
+        if (!started.compareAndSet(false, true)) {
             LOG.warn("You have started the Pulsar Container. We will skip this execution.");
             return;
         }
@@ -90,6 +89,9 @@ public class PulsarContainerRuntime implements PulsarRuntime {
         container.withEnv("PULSAR_PREFIX_systemTopicEnabled", "true");
         container.withEnv("PULSAR_PREFIX_brokerDeduplicationEnabled", "true");
         container.withEnv("PULSAR_PREFIX_defaultNumberOfNamespaceBundles", "1");
+        container.withEnv("PULSAR_PREFIX_allowAutoTopicCreation", "true");
+        container.withEnv("PULSAR_PREFIX_allowAutoTopicCreationType", "partitioned");
+        container.withEnv("PULSAR_PREFIX_defaultNumPartitions", "4");
         // Change the default bootstrap script, it will override the default configuration
         // and start a standalone Pulsar without streaming storage and function worker.
         container.withCommand(

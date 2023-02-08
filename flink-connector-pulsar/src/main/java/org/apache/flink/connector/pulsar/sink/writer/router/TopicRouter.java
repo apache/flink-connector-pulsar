@@ -24,6 +24,7 @@ import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessageBuilder;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
 import java.io.Serializable;
 import java.util.List;
@@ -55,7 +56,8 @@ public interface TopicRouter<IN> extends Serializable {
      * @param context The context contains useful information for determining the topic.
      * @return The topic name to use.
      */
-    String route(IN in, String key, List<String> partitions, PulsarSinkContext context);
+    TopicPartition route(
+            IN in, String key, List<TopicPartition> partitions, PulsarSinkContext context);
 
     /** Implement this method if you have some non-serializable field. */
     default void open(SinkConfiguration sinkConfiguration) {

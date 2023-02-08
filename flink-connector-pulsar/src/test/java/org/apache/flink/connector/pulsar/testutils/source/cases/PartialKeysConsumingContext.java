@@ -30,7 +30,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.keyHash;
 
 /** We would consume from test splits by using partial keys consuming. */
-public class PartialKeysConsumingContext extends MultipleTopicConsumingContext {
+public class PartialKeysConsumingContext extends MultipleTopicsConsumingContext {
 
     private final String keyToRead;
     private final String keyToExclude;

@@ -47,8 +47,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/** Unit tests for {@link TopicProducerRegister}. */
-class TopicProducerRegisterTest extends PulsarTestSuiteBase {
+/** Unit tests for {@link ProducerRegister}. */
+class ProducerRegisterTest extends PulsarTestSuiteBase {
 
     @ParameterizedTest
     @EnumSource(DeliveryGuarantee.class)
@@ -59,8 +59,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration =
                 new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
-        TopicProducerRegister register =
-                new TopicProducerRegister(
+        ProducerRegister register =
+                new ProducerRegister(
                         configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
@@ -89,8 +89,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration =
                 new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
-        TopicProducerRegister register =
-                new TopicProducerRegister(
+        ProducerRegister register =
+                new ProducerRegister(
                         configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         String message = randomAlphabetic(10);
@@ -109,8 +109,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         Configuration configuration = operator().sinkConfig(DeliveryGuarantee.AT_LEAST_ONCE);
         configuration.set(PULSAR_VALIDATE_SINK_MESSAGE_BYTES, true);
         SinkConfiguration sinkConfiguration = new SinkConfiguration(configuration);
-        TopicProducerRegister register =
-                new TopicProducerRegister(
+        ProducerRegister register =
+                new ProducerRegister(
                         sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         long message = ThreadLocalRandom.current().nextLong();

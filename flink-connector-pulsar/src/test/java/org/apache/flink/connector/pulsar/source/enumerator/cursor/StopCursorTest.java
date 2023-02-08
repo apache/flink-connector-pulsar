@@ -52,7 +52,7 @@ class StopCursorTest extends PulsarTestSuiteBase {
 
     @Test
     void publishTimeStopCursor() throws IOException {
-        String topicName = randomAlphanumeric(5);
+        String topicName = "stop-cursor-" + randomAlphanumeric(5);
         operator().createTopic(topicName, 2);
 
         PulsarPartitionSplitReader splitReader =

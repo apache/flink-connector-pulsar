@@ -25,8 +25,10 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.pulsar.testutils.function.ControlSource;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
-import org.apache.flink.connector.pulsar.testutils.sink.cases.PulsarEncryptSinkContext;
-import org.apache.flink.connector.pulsar.testutils.sink.cases.PulsarSinkTestContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.AutoCreateTopicProducingContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.EncryptedMessageProducingContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.MultipleTopicsProducingContext;
+import org.apache.flink.connector.pulsar.testutils.sink.cases.SingleTopicProducingContext;
 import org.apache.flink.connector.testframe.environment.MiniClusterTestEnvironment;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
@@ -51,6 +53,8 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.flink.streaming.api.CheckpointingMode.AT_LEAST_ONCE;
+import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,18 +72,23 @@ class PulsarSinkITCase {
         PulsarTestEnvironment pulsar = new PulsarTestEnvironment(PulsarRuntime.container());
 
         @TestSemantics
-        CheckpointingMode[] semantics =
-                new CheckpointingMode[] {
-                    CheckpointingMode.EXACTLY_ONCE, CheckpointingMode.AT_LEAST_ONCE
-                };
+        CheckpointingMode[] semantics = new CheckpointingMode[] {AT_LEAST_ONCE, EXACTLY_ONCE};
 
         @TestContext
-        PulsarTestContextFactory<String, PulsarSinkTestContext> sinkContext =
-                new PulsarTestContextFactory<>(pulsar, PulsarSinkTestContext::new);
+        PulsarTestContextFactory<String, SingleTopicProducingContext> singleTopic =
+                new PulsarTestContextFactory<>(pulsar, SingleTopicProducingContext::new);
 
         @TestContext
-        PulsarTestContextFactory<String, PulsarEncryptSinkContext> encryptMessages =
-                new PulsarTestContextFactory<>(pulsar, PulsarEncryptSinkContext::new);
+        PulsarTestContextFactory<String, MultipleTopicsProducingContext> multipleTopics =
+                new PulsarTestContextFactory<>(pulsar, MultipleTopicsProducingContext::new);
+
+        @TestContext
+        PulsarTestContextFactory<String, AutoCreateTopicProducingContext> topicAutoCreation =
+                new PulsarTestContextFactory<>(pulsar, AutoCreateTopicProducingContext::new);
+
+        @TestContext
+        PulsarTestContextFactory<String, EncryptedMessageProducingContext> encryptMessages =
+                new PulsarTestContextFactory<>(pulsar, EncryptedMessageProducingContext::new);
     }
 
     /** Tests for using PulsarSink writing to a Pulsar cluster. */

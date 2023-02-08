@@ -22,6 +22,12 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.connector.sink2.Sink.InitContext;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
+import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
+
+import org.apache.pulsar.client.admin.PulsarAdminException;
+
+import java.util.Optional;
 
 /** An implementation that would contain all the required context. */
 @Internal
@@ -31,12 +37,17 @@ public class PulsarSinkContextImpl implements PulsarSinkContext {
     private final int parallelInstanceId;
     private final ProcessingTimeService processingTimeService;
     private final boolean enableSchemaEvolution;
+    private final MetadataListener metadataListener;
 
-    public PulsarSinkContextImpl(InitContext initContext, SinkConfiguration sinkConfiguration) {
+    public PulsarSinkContextImpl(
+            InitContext initContext,
+            SinkConfiguration sinkConfiguration,
+            MetadataListener metadataListener) {
         this.parallelInstanceId = initContext.getSubtaskId();
         this.numberOfParallelSubtasks = initContext.getNumberOfParallelSubtasks();
         this.processingTimeService = initContext.getProcessingTimeService();
         this.enableSchemaEvolution = sinkConfiguration.isEnableSchemaEvolution();
+        this.metadataListener = metadataListener;
     }
 
     @Override
@@ -57,5 +68,10 @@ public class PulsarSinkContextImpl implements PulsarSinkContext {
     @Override
     public long processTime() {
         return processingTimeService.getCurrentProcessingTime();
+    }
+
+    @Override
+    public Optional<TopicMetadata> topicMetadata(String topic) throws PulsarAdminException {
+        return metadataListener.queryTopicMetadata(topic);
     }
 }

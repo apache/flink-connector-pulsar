@@ -16,58 +16,61 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.testutils.sink.cases;
+package org.apache.flink.connector.pulsar.testutils.source.cases;
 
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
-import org.apache.flink.connector.pulsar.sink.PulsarSinkBuilder;
+import org.apache.flink.connector.pulsar.source.PulsarSourceBuilder;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader.MessageCryptoBcSupplier;
-import org.apache.flink.connector.pulsar.testutils.sink.reader.PulsarEncryptDataReader;
-import org.apache.flink.connector.testframe.external.ExternalSystemDataReader;
-import org.apache.flink.connector.testframe.external.sink.TestingSinkSettings;
+import org.apache.flink.connector.pulsar.testutils.source.writer.PulsarEncryptDataWriter;
+import org.apache.flink.connector.testframe.external.ExternalSystemSplitDataWriter;
+import org.apache.flink.connector.testframe.external.source.TestingSourceSettings;
 
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader.ENCRYPT_KEY;
-import static org.apache.pulsar.client.api.ProducerCryptoFailureAction.FAIL;
-import static org.apache.pulsar.client.api.Schema.STRING;
+import static org.apache.pulsar.client.api.ConsumerCryptoFailureAction.FAIL;
 
-/** The sink context for supporting producing messages which are encrypted. */
-public class PulsarEncryptSinkContext extends PulsarSinkTestContext {
+/** We will use this context for producing messages with encryption support. */
+public class EncryptedMessagesConsumingContext extends MultipleTopicsConsumingContext {
 
-    public PulsarEncryptSinkContext(PulsarTestEnvironment environment) {
+    public EncryptedMessagesConsumingContext(PulsarTestEnvironment environment) {
         super(environment);
     }
 
     @Override
-    protected void setSinkBuilder(PulsarSinkBuilder<String> builder) {
-        super.setSinkBuilder(builder);
+    protected void setSourceBuilder(PulsarSourceBuilder<String> builder) {
+        super.setSourceBuilder(builder);
 
-        PulsarCrypto pulsarCrypto =
-                PulsarCrypto.builder()
-                        .cryptoKeyReader(new PulsarTestKeyReader())
-                        .addEncryptKeys(ENCRYPT_KEY)
-                        .messageCrypto(new MessageCryptoBcSupplier(true))
-                        .build();
-        builder.setPulsarCrypto(pulsarCrypto, FAIL);
-    }
-
-    @Override
-    public ExternalSystemDataReader<String> createSinkDataReader(TestingSinkSettings sinkSettings) {
+        // Set PulsarCrypto for the Pulsar source.
         PulsarCrypto pulsarCrypto =
                 PulsarCrypto.builder()
                         .cryptoKeyReader(new PulsarTestKeyReader())
                         .addEncryptKeys(ENCRYPT_KEY)
                         .messageCrypto(new MessageCryptoBcSupplier(false))
                         .build();
-        PulsarEncryptDataReader<String> reader =
-                new PulsarEncryptDataReader<>(operator, topicName, STRING, pulsarCrypto);
-        closer.register(reader);
+        builder.setPulsarCrypto(pulsarCrypto, FAIL);
+    }
 
-        return reader;
+    @Override
+    public ExternalSystemSplitDataWriter<String> createSourceSplitDataWriter(
+            TestingSourceSettings sourceSettings) {
+        String partitionName = generatePartitionName();
+        PulsarCrypto pulsarCrypto =
+                PulsarCrypto.builder()
+                        .cryptoKeyReader(new PulsarTestKeyReader())
+                        .addEncryptKeys(ENCRYPT_KEY)
+                        .messageCrypto(new MessageCryptoBcSupplier(true))
+                        .build();
+        return new PulsarEncryptDataWriter<>(operator, partitionName, schema, pulsarCrypto);
     }
 
     @Override
     protected String displayName() {
-        return "write messages into one topic by End-to-end encryption";
+        return "consume messages by end-to-end encryption";
+    }
+
+    @Override
+    protected String subscriptionName() {
+        return "pulsar-encryption-subscription";
     }
 }

@@ -16,23 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.testutils.sink.reader;
+package org.apache.flink.connector.pulsar.testutils.sink.cases;
 
-import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
-import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
+import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
+import org.apache.flink.connector.pulsar.testutils.sink.PulsarSinkTestContext;
 
-import org.apache.pulsar.client.api.Schema;
+/** Sink the message into a topic and test all the messages have been written. */
+public class SingleTopicProducingContext extends PulsarSinkTestContext {
 
-import java.util.List;
+    public SingleTopicProducingContext(PulsarTestEnvironment environment) {
+        super(environment);
+    }
 
-/** The data reader for reading encrypted messages from Pulsar. */
-public class PulsarEncryptDataReader<T> extends PulsarPartitionDataReader<T> {
-
-    public PulsarEncryptDataReader(
-            PulsarRuntimeOperator operator,
-            List<String> topics,
-            Schema<T> schema,
-            PulsarCrypto pulsarCrypto) {
-        super(operator, topics, schema, pulsarCrypto);
+    @Override
+    protected String displayName() {
+        return "write messages into one topic in Pulsar";
     }
 }

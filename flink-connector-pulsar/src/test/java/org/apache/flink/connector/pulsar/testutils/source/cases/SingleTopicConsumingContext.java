@@ -25,7 +25,7 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 
 /**
- * A Pulsar external context that will create only one topic and use partitions in that topic as
+ * A Pulsar external context that will create only one topic and use partitions in that topic as the
  * source splits.
  */
 public class SingleTopicConsumingContext extends PulsarSourceTestContext {

@@ -284,7 +284,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
 
     private void verifyAllMessageAcknowledged(int expectedMessages, String partitionName)
             throws PulsarClientException {
-        Consumer<byte[]> consumer =
+        try (Consumer<byte[]> consumer =
                 operator()
                         .client()
                         .newConsumer()
@@ -292,10 +292,11 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
                         .subscriptionInitialPosition(SubscriptionInitialPosition.Latest)
                         .subscriptionName("verify-message")
                         .topic(partitionName)
-                        .subscribe();
-
-        assertEquals(
-                expectedMessages - 1, ((MessageIdImpl) consumer.getLastMessageId()).getEntryId());
+                        .subscribe()) {
+            assertEquals(
+                    expectedMessages - 1,
+                    ((MessageIdImpl) consumer.getLastMessageId()).getEntryId());
+        }
     }
 
     private void verifyNoSubscriptionCreated(String partitionName) throws PulsarAdminException {

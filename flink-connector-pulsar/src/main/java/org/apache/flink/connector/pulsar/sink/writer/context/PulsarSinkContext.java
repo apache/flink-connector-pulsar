@@ -19,6 +19,12 @@
 package org.apache.flink.connector.pulsar.sink.writer.context;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.connector.pulsar.sink.PulsarSinkOptions;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
+
+import org.apache.pulsar.client.admin.PulsarAdminException;
+
+import java.util.Optional;
 
 /** This context provides information on the pulsar record target location. */
 @PublicEvolving
@@ -28,7 +34,7 @@ public interface PulsarSinkContext {
      * Get the number of the subtask that PulsarSink is running on. The numbering starts from 0 and
      * goes up to parallelism-1. (parallelism as returned by {@link #getNumberOfParallelInstances()}
      *
-     * @return number of subtask
+     * @return index of subtask
      */
     int getParallelInstanceId();
 
@@ -43,4 +49,12 @@ public interface PulsarSinkContext {
 
     /** Returns the current process time in flink. */
     long processTime();
+
+    /**
+     * Query the topic metadata from Pulsar. The query result will be cached in {@link
+     * PulsarSinkOptions#PULSAR_TOPIC_METADATA_REFRESH_INTERVAL} interval.
+     *
+     * @return Return {@link Optional#empty()} if the topic doesn't exist.
+     */
+    Optional<TopicMetadata> topicMetadata(String topic) throws PulsarAdminException;
 }

@@ -52,24 +52,24 @@ public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionDataReader.class);
 
     private final Consumer<T> consumer;
+    private final PulsarRuntimeOperator operator;
 
     public PulsarPartitionDataReader(
-            PulsarRuntimeOperator operator, String fullTopicName, Schema<T> schema) {
-        this(operator, fullTopicName, schema, PulsarCrypto.disabled());
+            PulsarRuntimeOperator operator, List<String> topics, Schema<T> schema) {
+        this(operator, topics, schema, PulsarCrypto.disabled());
     }
 
     protected PulsarPartitionDataReader(
             PulsarRuntimeOperator operator,
-            String fullTopicName,
+            List<String> topics,
             Schema<T> schema,
             PulsarCrypto pulsarCrypto) {
         // Create the consumer for supporting the E2E tests in the meantime.
-        String subscriptionName = randomAlphanumeric(12);
         ConsumerBuilder<T> builder =
                 operator.client()
                         .newConsumer(schema)
-                        .topic(fullTopicName)
-                        .subscriptionName(subscriptionName)
+                        .topics(topics)
+                        .subscriptionName(randomAlphanumeric(12))
                         .subscriptionType(SubscriptionType.Exclusive)
                         .subscriptionMode(SubscriptionMode.Durable)
                         .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest);
@@ -88,6 +88,7 @@ public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>
         }
 
         this.consumer = sneakyClient(builder::subscribe);
+        this.operator = operator;
     }
 
     @Override

@@ -44,10 +44,12 @@ import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.ProducerBase;
 import org.apache.pulsar.client.impl.ProducerBuilderImpl;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.apache.pulsar.client.impl.transaction.TransactionImpl;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.SchemaHash;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
@@ -62,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.NUM_ACKS_RECEIVED;
@@ -92,7 +95,10 @@ import static org.apache.flink.connector.pulsar.sink.config.PulsarSinkConfigUtil
  * we have to create different instances for different topics.
  */
 @Internal
-public class TopicProducerRegister implements Closeable {
+public class ProducerRegister implements Closeable {
+
+    private static final String FAIL_TO_CREATE_TOPIC =
+            "Fail to create the non-exist topic, make sure you have enable the topic auto creation in Pulsar.";
 
     private final PulsarClient pulsarClient;
     @Nullable private final TransactionCoordinatorClient coordinatorClient;
@@ -103,7 +109,7 @@ public class TopicProducerRegister implements Closeable {
     private final Map<String, Map<SchemaHash, Producer<?>>> producers;
     private final Map<String, Transaction> transactions;
 
-    public TopicProducerRegister(
+    public ProducerRegister(
             SinkConfiguration sinkConfiguration,
             PulsarCrypto pulsarCrypto,
             SinkWriterMetricGroup metricGroup) {
@@ -208,6 +214,21 @@ public class TopicProducerRegister implements Closeable {
         SchemaHash hash = PulsarSchemaUtils.hash(schema);
         if (set.containsKey(hash)) {
             return (Producer<T>) set.get(hash);
+        }
+
+        try {
+            // Use this method for auto creating the non-exist topics. Otherwise, it will throw an
+            // exception.
+            TopicName topicName = TopicName.get(topic);
+            ((PulsarClientImpl) pulsarClient)
+                    .getLookup()
+                    .getPartitionedTopicMetadata(topicName)
+                    .get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new FlinkRuntimeException(FAIL_TO_CREATE_TOPIC, e);
+        } catch (ExecutionException e) {
+            throw new FlinkRuntimeException(FAIL_TO_CREATE_TOPIC, e);
         }
 
         ProducerBuilder<T> builder = createProducerBuilder(pulsarClient, schema, sinkConfiguration);

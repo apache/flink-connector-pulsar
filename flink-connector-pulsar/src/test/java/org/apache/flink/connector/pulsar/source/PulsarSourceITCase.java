@@ -21,8 +21,8 @@ package org.apache.flink.connector.pulsar.source;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
-import org.apache.flink.connector.pulsar.testutils.source.cases.ConsumeEncryptMessagesContext;
-import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicConsumingContext;
+import org.apache.flink.connector.pulsar.testutils.source.cases.EncryptedMessagesConsumingContext;
+import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicsConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.SingleTopicConsumingContext;
 import org.apache.flink.connector.testframe.environment.MiniClusterTestEnvironment;
@@ -35,6 +35,8 @@ import org.apache.flink.streaming.api.CheckpointingMode;
 
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.junit.jupiter.api.Tag;
+
+import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 
 /**
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}
@@ -51,8 +53,7 @@ class PulsarSourceITCase extends SourceTestSuiteBase<String> {
     PulsarTestEnvironment pulsar = new PulsarTestEnvironment(PulsarRuntime.container());
 
     // This field is preserved, we don't support the semantics in source currently.
-    @TestSemantics
-    CheckpointingMode[] semantics = new CheckpointingMode[] {CheckpointingMode.EXACTLY_ONCE};
+    @TestSemantics CheckpointingMode[] semantics = new CheckpointingMode[] {EXACTLY_ONCE};
 
     // Defines an external context Factories,
     // so test cases will be invoked using these external contexts.
@@ -61,14 +62,14 @@ class PulsarSourceITCase extends SourceTestSuiteBase<String> {
             new PulsarTestContextFactory<>(pulsar, SingleTopicConsumingContext::new);
 
     @TestContext
-    PulsarTestContextFactory<String, MultipleTopicConsumingContext> multipleTopic =
-            new PulsarTestContextFactory<>(pulsar, MultipleTopicConsumingContext::new);
+    PulsarTestContextFactory<String, MultipleTopicsConsumingContext> multipleTopic =
+            new PulsarTestContextFactory<>(pulsar, MultipleTopicsConsumingContext::new);
 
     @TestContext
     PulsarTestContextFactory<String, PartialKeysConsumingContext> partialKeys =
             new PulsarTestContextFactory<>(pulsar, PartialKeysConsumingContext::new);
 
     @TestContext
-    PulsarTestContextFactory<String, ConsumeEncryptMessagesContext> encryptMessages =
-            new PulsarTestContextFactory<>(pulsar, ConsumeEncryptMessagesContext::new);
+    PulsarTestContextFactory<String, EncryptedMessagesConsumingContext> encryptMessages =
+            new PulsarTestContextFactory<>(pulsar, EncryptedMessagesConsumingContext::new);
 }

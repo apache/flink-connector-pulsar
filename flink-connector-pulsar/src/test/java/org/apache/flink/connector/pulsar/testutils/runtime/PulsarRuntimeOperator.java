@@ -22,7 +22,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
-import org.apache.flink.connector.testframe.external.ExternalContext;
 
 import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
 
@@ -80,10 +79,7 @@ import static org.apache.pulsar.client.api.SubscriptionMode.Durable;
 import static org.apache.pulsar.client.api.SubscriptionType.Exclusive;
 import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 
-/**
- * A pulsar cluster operator used for operating pulsar instance. It's serializable for using in
- * {@link ExternalContext}.
- */
+/** A pulsar cluster operator used for operating pulsar instance. */
 public class PulsarRuntimeOperator implements Closeable {
 
     public static final int DEFAULT_PARTITIONS = 10;
@@ -447,7 +443,10 @@ public class PulsarRuntimeOperator implements Closeable {
         return configuration;
     }
 
-    /** This method is used for test framework. You can't close this operator manually. */
+    /**
+     * This method is used for the connector test framework. You don't need to close this operator
+     * manually.
+     */
     @Override
     public void close() throws PulsarClientException {
         if (admin != null) {
