@@ -28,6 +28,7 @@ import java.util.Set;
 /** A default implementation, we will use it if the user didn't enable end-to-end encryption. */
 @Internal
 public class PulsarCryptoDisabled implements PulsarCrypto {
+    private static final long serialVersionUID = 7735076959011427862L;
 
     @Override
     public CryptoKeyReader cryptoKeyReader() {

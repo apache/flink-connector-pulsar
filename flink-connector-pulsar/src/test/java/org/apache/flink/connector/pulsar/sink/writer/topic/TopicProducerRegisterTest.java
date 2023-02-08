@@ -18,6 +18,7 @@
 
 package org.apache.flink.connector.pulsar.sink.writer.topic;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
@@ -26,19 +27,25 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SchemaSerializationException;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_VALIDATE_SINK_MESSAGE_BYTES;
 import static org.apache.flink.metrics.groups.UnregisteredMetricsGroup.createSinkWriterMetricGroup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Unit tests for {@link TopicProducerRegister}. */
 class TopicProducerRegisterTest extends PulsarTestSuiteBase {
@@ -50,7 +57,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
 
-        SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
+        SinkConfiguration configuration =
+                new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
         TopicProducerRegister register =
                 new TopicProducerRegister(
                         configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
@@ -79,7 +87,8 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
 
-        SinkConfiguration configuration = sinkConfiguration(deliveryGuarantee);
+        SinkConfiguration configuration =
+                new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
         TopicProducerRegister register =
                 new TopicProducerRegister(
                         configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
@@ -91,7 +100,24 @@ class TopicProducerRegisterTest extends PulsarTestSuiteBase {
         assertThat(committables).isEmpty();
     }
 
-    private SinkConfiguration sinkConfiguration(DeliveryGuarantee deliveryGuarantee) {
-        return new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
+    @Test
+    void sendMessageBytesWithWrongSchemaAndEnableCheck() throws Exception {
+        String topic = randomAlphabetic(10);
+        operator().createTopic(topic, 8);
+        operator().admin().schemas().createSchema(topic, Schema.INT16.getSchemaInfo());
+
+        Configuration configuration = operator().sinkConfig(DeliveryGuarantee.AT_LEAST_ONCE);
+        configuration.set(PULSAR_VALIDATE_SINK_MESSAGE_BYTES, true);
+        SinkConfiguration sinkConfiguration = new SinkConfiguration(configuration);
+        TopicProducerRegister register =
+                new TopicProducerRegister(
+                        sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+
+        long message = ThreadLocalRandom.current().nextLong();
+        TypedMessageBuilder<byte[]> builder = register.createMessageBuilder(topic, Schema.BYTES);
+
+        assertThrows(
+                SchemaSerializationException.class,
+                () -> builder.value(Schema.INT64.encode(message)));
     }
 }

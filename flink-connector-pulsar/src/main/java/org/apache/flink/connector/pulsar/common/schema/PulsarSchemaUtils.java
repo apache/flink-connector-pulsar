@@ -30,6 +30,8 @@ import org.apache.flink.connector.pulsar.common.schema.factories.StringSchemaFac
 
 import com.google.protobuf.Message;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
+import org.apache.pulsar.client.impl.schema.AutoProduceBytesSchema;
 import org.apache.pulsar.client.impl.schema.BooleanSchema;
 import org.apache.pulsar.client.impl.schema.ByteSchema;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
@@ -46,6 +48,7 @@ import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.client.impl.schema.TimeSchema;
 import org.apache.pulsar.client.impl.schema.TimestampSchema;
+import org.apache.pulsar.common.protocol.schema.SchemaHash;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
@@ -203,5 +206,13 @@ public final class PulsarSchemaUtils {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Couldn't find the schema class " + className);
         }
+    }
+
+    public static SchemaHash hash(Schema<?> schema) {
+        if (schema instanceof AutoProduceBytesSchema || schema instanceof AutoConsumeSchema) {
+            return SchemaHash.of(Schema.BYTES);
+        }
+
+        return SchemaHash.of(schema);
     }
 }

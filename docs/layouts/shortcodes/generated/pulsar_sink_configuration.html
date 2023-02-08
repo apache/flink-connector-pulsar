@@ -18,7 +18,7 @@
             <td><h5>pulsar.sink.enableMetrics</h5></td>
             <td style="word-wrap: break-word;">true</td>
             <td>Boolean</td>
-            <td>The metrics from Pulsar Producer are only exposed if you enable this option.You should set the <code class="highlighter-rouge">pulsar.client.statsIntervalSeconds</code> to a positive value if you enable this option.</td>
+            <td>The metrics from Pulsar Producer are only exposed if you enable this option. You should set the <code class="highlighter-rouge">pulsar.client.statsIntervalSeconds</code> to a positive value if you enable this option.</td>
         </tr>
         <tr>
             <td><h5>pulsar.sink.enableSchemaEvolution</h5></td>
@@ -48,7 +48,13 @@
             <td><h5>pulsar.sink.transactionTimeoutMillis</h5></td>
             <td style="word-wrap: break-word;">10800000</td>
             <td>Long</td>
-            <td>This option is used when the user require the <code class="highlighter-rouge">DeliveryGuarantee.EXACTLY_ONCE</code> semantic.We would use transaction for making sure the message could be write only once.</td>
+            <td>This option is used when the user require the <code class="highlighter-rouge">DeliveryGuarantee.EXACTLY_ONCE</code> semantic. We would use transaction for making sure the message could be write only once.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.sink.validateSinkMessageBytes</h5></td>
+            <td style="word-wrap: break-word;">false</td>
+            <td>Boolean</td>
+            <td>Pulsar client can validate the raw message bytes with the latest topic schema. This can make sure your serialized messages bytes is valid for consumer.</td>
         </tr>
     </tbody>
 </table>

@@ -698,6 +698,8 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
   {{< /tab >}}
   {{< /tabs >}}
 
+#### Schema evolution
+
 同时使用 `PulsarSerializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSinkBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
 
 ```java
@@ -716,6 +718,37 @@ PulsarSink<String> sink = PulsarSink.builder()
 
 例如，如果使用 `PulsarSerializationSchema.pulsarSchema(Schema.STRING)` 而不使用 `PulsarSinkBuilder.enableSchemaEvolution()`。那么在写入 Topic 中所记录的消息 Schema 将会是 `Schema.BYTES`。
 {{< /hint >}}
+
+#### PulsarMessage<byte[]> 类型的消息的校验
+
+Pulsar 的 topic 至少会包含一种 Schema，`Schema.BYTES` 是默认的 Schema 类型并常作为没有 Schema 的 topic 的 Schema 类型。使用 `Schema.BYTES` 发送消息将会跳过类型检测，这意味着使用 `SerializationSchema` 和没有启用 Schema evolution 的 `Schema` 所发送的消息并不安全。
+
+可以启用 `pulsar.sink.validateSinkMessageBytes` 选项来让链接器使用 Pulsar 提供的 `Schema.AUTO_PRODUCE_BYTES()` 发送消息。它会在发送字节数组消息时额外进行校验，与 topic 上最新版本的 Schema 进行对比，保证消息内容能正确。
+
+但是，并非所有的 Pulsar 的 Schema 都支持校验字符串，所以在默认情况下我们禁用了此选项。可以按需启用。
+
+#### 自定义序列化器
+
+可以通过继承 `PulsarSerializationSchema` 接口来实现自定义的序列化逻辑。接口需要返回一个类型为 `PulsarMessage` 的消息，此类型实例无法被直接创建，连接器提供了构造方法并定义了三种消息类型的构建。
+
+- 使用 Pulsar 的 `Scheme` 来构建消息，常用于你知道 topic 对应的 schema 是什么的时候。我们会检查你提供的 `Schema` 在 topic 上是否兼容。
+  ```java
+  PulsarMessage.builder(Schema<M> schema, M message)
+      ...
+      .build();
+  ```
+- 创建一个消息类型为字节数组的消息。默认情况下不进行 Schema 检查。
+  ```java
+  PulsarMessage.builder(byte[] bytes)
+      ...
+      .build();
+  ```
+- 创建一个消息体为空的墓碑消息。[墓碑][tombstone-data-store] 是一种特殊的消息，并在 Pulsar 中提供了支持。
+  ```java
+  PulsarMessage.builder()
+      ...
+      .build();
+  ```
 
 ### 消息路由策略
 
@@ -1057,3 +1090,4 @@ Pulsar 事务机制仍在积极发展中，当前版本并不稳定。 Pulsar 2.
 
 [schema-evolution]: https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-evolution
 [standard-metrics]: https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics
+[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_(data_store)

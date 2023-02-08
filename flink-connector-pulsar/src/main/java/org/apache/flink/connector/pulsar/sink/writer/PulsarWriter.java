@@ -141,7 +141,7 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
         List<String> availableTopics = metadataListener.availableTopics();
         String topic = topicRouter.route(element, key, availableTopics, sinkContext);
 
-        // Create message builder for sending message.
+        // Create message builder for sending messages.
         TypedMessageBuilder<?> builder = createMessageBuilder(topic, context, message);
 
         // Message Delay delivery.

@@ -22,7 +22,6 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessage;
-import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessageBuilder;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.KeyValue;
@@ -56,18 +55,11 @@ public class PulsarSchemaWrapper<IN> implements PulsarSerializationSchema<IN> {
 
     @Override
     public PulsarMessage<?> serialize(IN element, PulsarSinkContext sinkContext) {
-        Schema<IN> schema = this.pulsarSchema.getPulsarSchema();
+        Schema<IN> schema = pulsarSchema.getPulsarSchema();
         if (sinkContext.isEnableSchemaEvolution()) {
-            PulsarMessageBuilder<IN> builder = new PulsarMessageBuilder<>();
-            builder.value(schema, element);
-
-            return builder.build();
+            return PulsarMessage.builder(schema, element).build();
         } else {
-            PulsarMessageBuilder<byte[]> builder = new PulsarMessageBuilder<>();
-            byte[] bytes = schema.encode(element);
-            builder.value(Schema.BYTES, bytes);
-
-            return builder.build();
+            return PulsarMessage.builder(schema.encode(element)).build();
         }
     }
 }
