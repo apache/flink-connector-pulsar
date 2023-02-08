@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.testutils.runtime;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.container.PulsarContainerRuntime;
+import org.apache.flink.connector.pulsar.testutils.runtime.singleton.PulsarSingletonRuntime;
 
 import org.testcontainers.containers.GenericContainer;
 
@@ -42,6 +43,15 @@ public interface PulsarRuntime {
      * extremely useful methods for Pulsar. You can easily add new methods in this operator.
      */
     PulsarRuntimeOperator operator();
+
+    /**
+     * A singleton instance of the Pulsar docker instance in the whole test lifecycle. We will start
+     * the instance only once and didn't stop it after the tests finished. The instance will be
+     * shared among all the tests.
+     */
+    static PulsarRuntime singletonContainer() {
+        return new PulsarSingletonRuntime();
+    }
 
     /**
      * Create a Pulsar instance in docker. We would start a standalone Pulsar in TestContainers.

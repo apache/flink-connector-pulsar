@@ -62,7 +62,6 @@ public class PulsarPartitionSplitSerializer
 
     @Override
     public byte[] serialize(PulsarPartitionSplit obj) throws IOException {
-        // VERSION 0 serialization
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(baos)) {
             serializePulsarPartitionSplit(out, obj);
@@ -73,7 +72,6 @@ public class PulsarPartitionSplitSerializer
 
     @Override
     public PulsarPartitionSplit deserialize(int version, byte[] serialized) throws IOException {
-        // VERSION 0 deserialization
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 DataInputStream in = new DataInputStream(bais)) {
             return deserializePulsarPartitionSplit(version, in);

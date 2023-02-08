@@ -51,11 +51,11 @@ public abstract class PulsarTestSuiteBase {
     final PulsarTestEnvironment environment = new PulsarTestEnvironment(runtime());
 
     /**
-     * Choose the desired pulsar runtime as the test backend. The default test backend is a mocked
-     * pulsar broker. Override this method when needs.
+     * Choose the desired pulsar runtime as the test backend. The default test backend is a
+     * singleton pulsar instance. Override this method when needed.
      */
     protected PulsarRuntime runtime() {
-        return PulsarRuntime.container();
+        return PulsarRuntime.singletonContainer();
     }
 
     /** Operate pulsar by acquiring a runtime operator. */

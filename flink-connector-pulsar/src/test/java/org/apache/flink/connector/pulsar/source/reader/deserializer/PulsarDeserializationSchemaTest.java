@@ -291,8 +291,8 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         assertThatCode(() -> runPipeline(source, expectedMessage)).doesNotThrowAnyException();
     }
 
-    private PulsarSource createSource(
-            String topicName, PulsarDeserializationSchema<?> deserializationSchema) {
+    private <T> PulsarSource<T> createSource(
+            String topicName, PulsarDeserializationSchema<T> deserializationSchema) {
         return PulsarSource.builder()
                 .setDeserializationSchema(deserializationSchema)
                 .setServiceUrl(operator().serviceUrl())

@@ -16,61 +16,54 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.testutils.source.cases;
+package org.apache.flink.connector.pulsar.testutils.sink.cases;
 
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
-import org.apache.flink.connector.pulsar.source.PulsarSourceBuilder;
+import org.apache.flink.connector.pulsar.sink.PulsarSinkBuilder;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader.MessageCryptoBcSupplier;
-import org.apache.flink.connector.pulsar.testutils.source.writer.PulsarEncryptDataWriter;
-import org.apache.flink.connector.testframe.external.ExternalSystemSplitDataWriter;
-import org.apache.flink.connector.testframe.external.source.TestingSourceSettings;
+import org.apache.flink.connector.pulsar.testutils.sink.PulsarSinkTestContext;
+import org.apache.flink.connector.pulsar.testutils.sink.reader.PulsarEncryptDataReader;
+import org.apache.flink.connector.pulsar.testutils.sink.reader.PulsarPartitionDataReader;
+
+import java.util.List;
 
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestKeyReader.ENCRYPT_KEY;
-import static org.apache.pulsar.client.api.ConsumerCryptoFailureAction.FAIL;
+import static org.apache.pulsar.client.api.ProducerCryptoFailureAction.FAIL;
+import static org.apache.pulsar.client.api.Schema.STRING;
 
-/** We will use this context for producing messages with encryption support. */
-public class ConsumeEncryptMessagesContext extends MultipleTopicConsumingContext {
+/** Sink the encrypted messages into a topic and try to decrypt them. */
+public class EncryptedMessageProducingContext extends PulsarSinkTestContext {
 
-    public ConsumeEncryptMessagesContext(PulsarTestEnvironment environment) {
+    public EncryptedMessageProducingContext(PulsarTestEnvironment environment) {
         super(environment);
     }
 
     @Override
-    protected void setSourceBuilder(PulsarSourceBuilder<String> builder) {
-        super.setSourceBuilder(builder);
-
-        // Set PulsarCrypto for the Pulsar source.
-        PulsarCrypto pulsarCrypto =
-                PulsarCrypto.builder()
-                        .cryptoKeyReader(new PulsarTestKeyReader())
-                        .addEncryptKeys(ENCRYPT_KEY)
-                        .messageCrypto(new MessageCryptoBcSupplier(false))
-                        .build();
-        builder.setPulsarCrypto(pulsarCrypto, FAIL);
-    }
-
-    @Override
-    public ExternalSystemSplitDataWriter<String> createSourceSplitDataWriter(
-            TestingSourceSettings sourceSettings) {
-        String partitionName = generatePartitionName();
+    protected void setSinkBuilder(PulsarSinkBuilder<String> builder) {
         PulsarCrypto pulsarCrypto =
                 PulsarCrypto.builder()
                         .cryptoKeyReader(new PulsarTestKeyReader())
                         .addEncryptKeys(ENCRYPT_KEY)
                         .messageCrypto(new MessageCryptoBcSupplier(true))
                         .build();
-        return new PulsarEncryptDataWriter<>(operator, partitionName, schema, pulsarCrypto);
+        builder.setPulsarCrypto(pulsarCrypto, FAIL);
+    }
+
+    @Override
+    protected PulsarPartitionDataReader<String> createSinkDataReader(List<String> topics) {
+        PulsarCrypto pulsarCrypto =
+                PulsarCrypto.builder()
+                        .cryptoKeyReader(new PulsarTestKeyReader())
+                        .addEncryptKeys(ENCRYPT_KEY)
+                        .messageCrypto(new MessageCryptoBcSupplier(false))
+                        .build();
+        return new PulsarEncryptDataReader<>(operator, topics, STRING, pulsarCrypto);
     }
 
     @Override
     protected String displayName() {
-        return "consume messages by end-to-end encryption";
-    }
-
-    @Override
-    protected String subscriptionName() {
-        return "pulsar-encryption-subscription";
+        return "write messages into one topic by end-to-end encryption";
     }
 }

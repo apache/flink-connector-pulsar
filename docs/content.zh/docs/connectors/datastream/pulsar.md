@@ -30,7 +30,7 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 当前支持 Pulsar 2.10.0 及其之后的版本，建议在总是将 Pulsar 升级至最新版。如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
-{{< artifact flink-connector-pulsar >}}
+{{< artifact flink-connector-pulsar 4.0.0-SNAPSHOT >}}
 
 {{< py_download_link "pulsar" >}}
 
@@ -519,7 +519,9 @@ PulsarSource.builder()
 {{< /tabs >}}
 
 {{< hint warning >}}
-默认情况下，Pulsar 启用动态分区发现，查询间隔为 30 秒。用户可以给定一个负数，将该功能禁用。如果使用批的方式消费数据，将无法启用该功能。
+- 默认情况下，Pulsar 启用分区发现，查询间隔为 5 分钟。用户可以给定一个负数，将该功能禁用。如果使用批的方式消费数据，将无法启用该功能。
+- 如果需要禁用分区发现功能，你需要将查询间隔设置为负值。
+- 在 bounded 消费模式下，即使将分区发现的查询间隔设置为正值，也会被禁用。
 {{< /hint >}}
 
 ### 事件时间和水位线
@@ -662,6 +664,21 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
 举个例子，如果通过 `PulsarSink.builder().setTopics("some-topic1", "some-topic1-partition-0")` 来指定写入的 Topic，那么其结果等价于 `PulsarSink.builder().setTopics("some-topic1")`。
 {{< /hint >}}
 
+#### 基于消息实例的动态 Topic 指定
+
+除了前面说的一开始就指定 Topic 或者是 Topic 分区，你还可以在程序启动后基于消息内容动态指定 Topic，只需要实现 `TopicRouter` 接口即可。使用 `PulsarSinkContext.topicMetadata(String)` 方法来查询某个 Topic 在 Pulsar 上有多少个分区，查询结果会缓存并在 `PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL` 毫秒之后失效。
+
+此方法同样支持将消息写入一个不存在的 Topic，可以在 `TopicRouter` 内返回想要创建的 Topic，连接器将会**尝试**创建。
+
+{{< hint warning >}}
+如果使用 Topic 自动创建功能，需要在 Pulsar 的 `broker.conf` 配置文件内配置 `allowAutoTopicCreation=true` 来启用对应的功能。
+
+`broker.conf` 配置文件的 `allowAutoTopicCreationType` 选项可以控制自动创建的 Topic 的类型。
+
+- `non-partitioned`: 默认配置，创建的 Topic 没有分区，并且不可以手动创建分区。
+- `partitioned`: 创建的 Topic 将按照 `defaultNumPartitions` 选项定义的个数创建对应的分区。
+{{< /hint >}}
+
 ### 序列化器
 
 序列化器（`PulsarSerializationSchema`）负责将 Flink 中的每条记录序列化成 byte 数组，并通过网络发送至指定的写入 Topic。和 Pulsar Source 类似的是，序列化器同时支持使用基于 Flink 的 `SerializationSchema` 接口实现序列化器和使用 Pulsar 原生的 `Schema` 类型实现的序列化器。不过序列化器并不支持 Pulsar 的 `Schema.AUTO_PRODUCE_BYTES()`。
@@ -774,7 +791,7 @@ Pulsar 的 topic 至少会包含一种 Schema，`Schema.BYTES` 是默认的 Sche
 @PublicEvolving
 public interface TopicRouter<IN> extends Serializable {
 
-    String route(IN in, List<String> partitions, PulsarSinkContext context);
+    TopicPartition route(IN in, List<TopicPartition> partitions, PulsarSinkContext context);
 
     default void open(SinkConfiguration sinkConfiguration) {
         // 默认无操作

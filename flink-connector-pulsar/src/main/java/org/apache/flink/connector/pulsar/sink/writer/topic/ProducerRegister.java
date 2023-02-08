@@ -92,7 +92,7 @@ import static org.apache.flink.connector.pulsar.sink.config.PulsarSinkConfigUtil
  * we have to create different instances for different topics.
  */
 @Internal
-public class TopicProducerRegister implements Closeable {
+public class ProducerRegister implements Closeable {
 
     private final PulsarClient pulsarClient;
     @Nullable private final TransactionCoordinatorClient coordinatorClient;
@@ -103,7 +103,7 @@ public class TopicProducerRegister implements Closeable {
     private final Map<String, Map<SchemaHash, Producer<?>>> producers;
     private final Map<String, Transaction> transactions;
 
-    public TopicProducerRegister(
+    public ProducerRegister(
             SinkConfiguration sinkConfiguration,
             PulsarCrypto pulsarCrypto,
             SinkWriterMetricGroup metricGroup) {

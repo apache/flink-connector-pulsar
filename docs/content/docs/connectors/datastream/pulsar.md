@@ -31,7 +31,7 @@ Flink provides an [Apache Pulsar](https://pulsar.apache.org) connector for readi
 You can use the connector with the Pulsar 2.10.0 or higher. It is recommended to always use the latest Pulsar version.
 The details on Pulsar compatibility can be found in [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification).
 
-{{< artifact flink-connector-pulsar >}}
+{{< artifact flink-connector-pulsar 4.0.0-SNAPSHOT >}}
 
 {{< py_download_link "pulsar" >}}
 
@@ -596,7 +596,7 @@ PulsarSource.builder()
 {{< /tabs >}}
 
 {{< hint warning >}}
-- Partition discovery is **enabled** by default. The Pulsar connector queries the topic metadata every 30 seconds.
+- Partition discovery is **enabled** by default. The Pulsar connector queries the topic metadata every 5 minutes.
 - To disable partition discovery, you need to set a negative partition discovery interval.
 - Partition discovery is disabled for bounded data even if you set this option with a non-negative value.
 {{< /hint >}}
@@ -760,6 +760,26 @@ For example, when using the `PulsarSink.builder().setTopics("some-topic1", "some
 this is simplified to `PulsarSink.builder().setTopics("some-topic1")`.
 {{< /hint >}}
 
+#### Dynamic Topics by incoming messages
+
+Topics could be defined by the incoming messages instead of providing the fixed topic set in builder. You can dynamically
+provide the topic by in a custom `TopicRouter`. The topic metadata can be queried by using `PulsarSinkContext.topicMetadata(String)`
+and the query result would be cached and expire in `PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL` milliseconds.
+
+If you want to write to a non-existed topic, just return it in `TopicRouter`. Pulsar connector will **try to create it**.
+
+{{< hint warning >}}
+You need to enable the topic auto creation in Pulsar's `broker.conf` when you want to write messages to a non-existed topic.
+Set the `allowAutoTopicCreation=true` to enable it.
+
+The `allowAutoTopicCreationType` option in `broker.conf` is used to control the type of topic that is allowed to be automatically created.
+
+- `non-partitioned`: The default type for the auto-created topic.
+  It doesn't have any partition and can't be converted to a partitioned topic.
+- `partitioned`: The topic will be created as a partitioned topic.
+  Set the `defaultNumPartitions` option to control the auto created partition size.
+{{< /hint >}}
+
 ### Serializer
 
 A serializer (`PulsarSerializationSchema`) is required for serializing the record instance into bytes.
@@ -897,7 +917,7 @@ Thus, you do not need to specify topics using the `PulsarSinkBuilder.setTopics` 
 @PublicEvolving
 public interface TopicRouter<IN> extends Serializable {
 
-    String route(IN in, List<String> partitions, PulsarSinkContext context);
+    TopicPartition route(IN in, List<TopicPartition> partitions, PulsarSinkContext context);
 
     default void open(SinkConfiguration sinkConfiguration) {
         // Nothing to do by default.

@@ -44,7 +44,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
 
 /**
- * Common source test context for pulsar based test. We use the string text as the basic send
+ * Common source test context for the pulsar based tests. We use the string text as the basic send
  * content.
  */
 public abstract class PulsarSourceTestContext extends PulsarTestContext<String>

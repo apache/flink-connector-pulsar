@@ -85,8 +85,8 @@ public class PulsarSourceEnumStateSerializer
 
             // Only deserialize these fields for backward compatibility.
             if (version == 0) {
-                deserializeSet(in, deserializeSplit(0));
-                deserializeMap(in, DataInput::readInt, i -> deserializeSet(i, deserializeSplit(0)));
+                deserializeSet(in, deserializeSplit());
+                deserializeMap(in, DataInput::readInt, i -> deserializeSet(i, deserializeSplit()));
                 deserializeMap(in, DataInput::readInt, i -> deserializeSet(i, DataInput::readUTF));
                 in.readBoolean();
             }
@@ -103,7 +103,7 @@ public class PulsarSourceEnumStateSerializer
     }
 
     private FunctionWithException<DataInputStream, PulsarPartitionSplit, IOException>
-            deserializeSplit(int version) {
-        return in -> SPLIT_SERIALIZER.deserializePulsarPartitionSplit(version, in);
+            deserializeSplit() {
+        return in -> SPLIT_SERIALIZER.deserializePulsarPartitionSplit(0, in);
     }
 }

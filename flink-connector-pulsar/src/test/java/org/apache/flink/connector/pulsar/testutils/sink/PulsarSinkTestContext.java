@@ -1,22 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package org.apache.flink.connector.pulsar.testutils.sink.cases;
+package org.apache.flink.connector.pulsar.testutils.sink;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -24,6 +6,9 @@ import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.sink.PulsarSink;
 import org.apache.flink.connector.pulsar.sink.PulsarSinkBuilder;
+import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
+import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
+import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContext;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.sink.reader.PulsarPartitionDataReader;
@@ -38,46 +23,59 @@ import org.apache.pulsar.client.api.Schema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES;
+import static org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode.ROUND_ROBIN;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.toDeliveryGuarantee;
 
-/** Common sink test context for pulsar based test. */
-public class PulsarSinkTestContext extends PulsarTestContext<String>
+/**
+ * Common sink test context for the pulsar based tests. We use the string text as the basic send
+ * content.
+ */
+public abstract class PulsarSinkTestContext extends PulsarTestContext<String>
         implements DataStreamSinkV2ExternalContext<String> {
 
-    private static final String TOPIC_NAME_PREFIX = "flink-sink-topic-";
+    private static final String TOPIC_NAME_PREFIX = "persistent://public/default/flink-sink-topic-";
     private static final int RECORD_SIZE_UPPER_BOUND = 300;
     private static final int RECORD_SIZE_LOWER_BOUND = 100;
     private static final int RECORD_STRING_SIZE = 20;
 
-    protected String topicName = topicName();
-    protected final Closer closer = Closer.create();
+    private List<String> topics = generateTopics();
+    private final Closer closer = Closer.create();
 
     public PulsarSinkTestContext(PulsarTestEnvironment environment) {
         super(environment, Schema.STRING);
     }
 
     @Override
-    protected String displayName() {
-        return "write messages into one topic in Pulsar";
-    }
-
-    @Override
     public Sink<String> createSink(TestingSinkSettings sinkSettings) {
-        operator.createTopic(topicName, 4);
+        // Create the topic if it needs.
+        if (creatTopic()) {
+            for (String topic : topics) {
+                operator.createTopic(topic, 4);
+            }
+        }
+
+        // We don't have NONE delivery guarantee and no need to test it by default.
         DeliveryGuarantee guarantee = toDeliveryGuarantee(sinkSettings.getCheckpointingMode());
 
         PulsarSinkBuilder<String> builder =
                 PulsarSink.builder()
                         .setServiceUrl(operator.serviceUrl())
                         .setAdminUrl(operator.adminUrl())
-                        .setTopics(topicName)
                         .setDeliveryGuarantee(guarantee)
                         .setSerializationSchema(schema)
                         .enableSchemaEvolution()
                         .setConfig(PULSAR_BATCHING_MAX_MESSAGES, 4);
+        if (creatTopic()) {
+            builder.setTopics(topics).setTopicRoutingMode(ROUND_ROBIN);
+        } else {
+            builder.setTopicRouter(new CustomTopicRouter(topics));
+        }
+
         setSinkBuilder(builder);
 
         return builder.build();
@@ -85,8 +83,7 @@ public class PulsarSinkTestContext extends PulsarTestContext<String>
 
     @Override
     public ExternalSystemDataReader<String> createSinkDataReader(TestingSinkSettings sinkSettings) {
-        PulsarPartitionDataReader<String> reader =
-                new PulsarPartitionDataReader<>(operator, topicName, Schema.STRING);
+        PulsarPartitionDataReader<String> reader = createSinkDataReader(topics);
         closer.register(reader);
 
         return reader;
@@ -115,16 +112,53 @@ public class PulsarSinkTestContext extends PulsarTestContext<String>
 
     @Override
     public void close() throws Exception {
-        // Change the topic name after finishing a test case.
-        closer.register(() -> topicName = topicName());
+        // Switch to another topic info after finishing a test case.
+        this.topics = generateTopics();
+
         closer.close();
     }
 
+    /** Return topic info. We would use only one topic by default. */
+    protected List<String> generateTopics() {
+        String topicName = TOPIC_NAME_PREFIX + randomAlphanumeric(8);
+        return singletonList(topicName);
+    }
+
+    /** Override the default sink behavior. */
     protected void setSinkBuilder(PulsarSinkBuilder<String> builder) {
         // Nothing to do by default.
     }
 
-    private String topicName() {
-        return TOPIC_NAME_PREFIX + randomAlphanumeric(8);
+    /** Set it to false for testing topic auto creation feature. */
+    protected boolean creatTopic() {
+        return true;
+    }
+
+    protected PulsarPartitionDataReader<String> createSinkDataReader(List<String> topics) {
+        return new PulsarPartitionDataReader<>(operator, topics, Schema.STRING);
+    }
+
+    /**
+     * Custom topic router for auto-generated topics. We will switch to another topic every 10
+     * messages.
+     */
+    public static class CustomTopicRouter implements TopicRouter<String> {
+        private static final long serialVersionUID = 1698701183626468094L;
+
+        private final List<String> topics;
+        private final AtomicInteger counter;
+
+        public CustomTopicRouter(List<String> topics) {
+            this.topics = topics;
+            this.counter = new AtomicInteger(0);
+        }
+
+        @Override
+        public TopicPartition route(
+                String s, String key, List<TopicPartition> partitions, PulsarSinkContext context) {
+            int index = counter.incrementAndGet() / 10 % topics.size();
+            String topic = topics.get(index);
+            return new TopicPartition(topic);
+        }
     }
 }
