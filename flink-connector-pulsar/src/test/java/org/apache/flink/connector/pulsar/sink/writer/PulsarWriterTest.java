@@ -162,6 +162,11 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         }
 
         @Override
+        public int getAttemptNumber() {
+            return 0;
+        }
+
+        @Override
         public SinkWriterMetricGroup metricGroup() {
             return metricGroup;
         }

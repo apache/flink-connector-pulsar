@@ -800,6 +800,8 @@ you can use the predefined `PulsarSerializationSchema`. The Pulsar sink provides
   {{< /tab >}}
   {{< /tabs >}}
 
+#### Schema evolution
+
 [Schema evolution][schema-evolution] can be enabled by users using `PulsarSerializationSchema.pulsarSchema()` and
 `PulsarSinkBuilder.enableSchemaEvolution()`. This means that any broker schema validation is in place.
 
@@ -820,6 +822,46 @@ Consumers will need to handle the deserialization (if needed) themselves.
 For example, if you set `PulsarSerializationSchema.pulsarSchema(Schema.STRING)` without enabling schema evolution,
 the schema stored in Pulsar topics is `Schema.BYTES`.
 {{< /hint >}}
+
+#### PulsarMessage<byte[]> validation
+
+Pulsar topic always has at least one schema. The `Schema.BYTES` is the default one for any topic without schema being set.
+But sending messages bytes with `Schema.BYTES` bypass the schema validate. So the message sent with `SerializationSchema`
+and `Schema` which doesn't enable the schema evolution may save the invalid messages in the topic.
+
+You can enable the `pulsar.sink.validateSinkMessageBytes` option to let the connector use the Pulsar's `Schema.AUTO_PRODUCE_BYTES()`
+which supports extra check for the message bytes before sending. It will query the latest schema in topic and use it to
+validate the message bytes.
+
+But some schemas in Pulsar don't support validation, so we disable this option by default. you should use it at your own risk.
+
+#### Custom serializer
+
+You can have your own serialization logic by implementing the `PulsarSerializationSchema` interface. The return type
+for this interface is `PulsarMessage` which you can't create it directly. Instead, we use builder method for creating
+three types of the Pulsar messages.
+
+- Create a message with a Pulsar `Scheme`. This is always when you know the schema in topic.
+  We will check if the given schema is compatible in the correspond topic.
+  ```java
+  PulsarMessage.builder(Schema<M> schema, M message)
+      ...
+      .build();
+  ```
+- Create the message without any Pulsar `Scheme`. The message type can only be the byte array.
+  It won't validate the message bytes by default.
+  ```java
+  PulsarMessage.builder(byte[] bytes)
+      ...
+      .build();
+  ```
+- Create a tombstone message with empty payloads. [Tombstone][tombstone-data-store] is a special message which is
+  supported in Pulsar.
+  ```java
+  PulsarMessage.builder()
+      ...
+      .build();
+  ```
 
 ### Message Routing
 
@@ -1225,3 +1267,4 @@ You can use the latest `pulsar-client-all` release to resolve this issue.
 
 [schema-evolution]: https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-evolution
 [standard-metrics]: https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics
+[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_(data_store)

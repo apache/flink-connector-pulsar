@@ -37,6 +37,7 @@ import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_EN
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_MAX_RECOMMIT_TIMES;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_MESSAGE_KEY_HASH;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_VALIDATE_SINK_MESSAGE_BYTES;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_TRANSACTION_TIMEOUT;
@@ -54,6 +55,7 @@ public class SinkConfiguration extends PulsarConfiguration {
     private final boolean enableSchemaEvolution;
     private final int maxRecommitTimes;
     private final boolean enableMetrics;
+    private final boolean validateSinkMessageBytes;
 
     public SinkConfiguration(Configuration configuration) {
         super(configuration);
@@ -67,6 +69,7 @@ public class SinkConfiguration extends PulsarConfiguration {
         this.maxRecommitTimes = get(PULSAR_MAX_RECOMMIT_TIMES);
         this.enableMetrics =
                 get(PULSAR_ENABLE_SINK_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
+        this.validateSinkMessageBytes = get(PULSAR_VALIDATE_SINK_MESSAGE_BYTES);
     }
 
     /** The delivery guarantee changes the behavior of {@link PulsarWriter}. */
@@ -123,6 +126,11 @@ public class SinkConfiguration extends PulsarConfiguration {
         return enableMetrics;
     }
 
+    /** Whether to add extra schema check for byte messages. */
+    public boolean isValidateSinkMessageBytes() {
+        return validateSinkMessageBytes;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -141,7 +149,8 @@ public class SinkConfiguration extends PulsarConfiguration {
                 && enableSchemaEvolution == that.enableSchemaEvolution
                 && messageKeyHash == that.messageKeyHash
                 && maxRecommitTimes == that.maxRecommitTimes
-                && enableMetrics == that.enableMetrics;
+                && enableMetrics == that.enableMetrics
+                && validateSinkMessageBytes == that.validateSinkMessageBytes;
     }
 
     @Override
@@ -154,6 +163,7 @@ public class SinkConfiguration extends PulsarConfiguration {
                 messageKeyHash,
                 enableSchemaEvolution,
                 maxRecommitTimes,
-                enableMetrics);
+                enableMetrics,
+                validateSinkMessageBytes);
     }
 }

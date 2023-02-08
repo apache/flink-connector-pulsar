@@ -37,6 +37,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /** The default implementation for {@link PulsarCrypto}. */
 @PublicEvolving
 public class DefaultPulsarCrypto implements PulsarCrypto {
+    private static final long serialVersionUID = 2246425411998723487L;
 
     private final CryptoKeyReader cryptoKeyReader;
     private final Set<String> encryptKeys;
@@ -93,7 +94,7 @@ public class DefaultPulsarCrypto implements PulsarCrypto {
         public DefaultPulsarCryptoBuilder messageCrypto(
                 SerializableSupplier<MessageCrypto<MessageMetadata, MessageMetadata>>
                         messageCryptoSupplier) {
-            this.messageCryptoSupplier = messageCryptoSupplier;
+            this.messageCryptoSupplier = checkNotNull(messageCryptoSupplier);
             return this;
         }
 

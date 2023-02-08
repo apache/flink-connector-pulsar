@@ -24,10 +24,13 @@ import org.apache.flink.connector.pulsar.sink.writer.router.KeyHashTopicRouter;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 
+import javax.annotation.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** {@link TypedMessageBuilder} wrapper for providing the required method for end-users. */
@@ -37,12 +40,21 @@ public class PulsarMessageBuilder<T> {
     private byte[] orderingKey;
     private String key;
     private long eventTime;
-    Schema<T> schema;
-    private T value;
-    private Map<String, String> properties = new HashMap<>();
+    private final Schema<T> schema;
+    private final T value;
+    private final Map<String, String> properties = new HashMap<>();
     private Long sequenceId;
     private List<String> replicationClusters;
     private boolean disableReplication = false;
+
+    /**
+     * Make this constructor package private for in favor of the {@link PulsarMessage#builder()}
+     * method in {@link PulsarMessage}.
+     */
+    PulsarMessageBuilder(Schema<T> schema, @Nullable T value) {
+        this.schema = schema;
+        this.value = value;
+    }
 
     /** Method wrapper of {@link TypedMessageBuilder#orderingKey(byte[])}. */
     public PulsarMessageBuilder<T> orderingKey(byte[] orderingKey) {
@@ -51,32 +63,21 @@ public class PulsarMessageBuilder<T> {
     }
 
     /**
-     * Property {@link TypedMessageBuilder#key(String)}. This property would also be used in {@link
-     * KeyHashTopicRouter}.
+     * Method wrapper of {@link TypedMessageBuilder#key(String)}. This key would also be used in
+     * {@link KeyHashTopicRouter}.
      */
     public PulsarMessageBuilder<T> key(String key) {
         this.key = checkNotNull(key);
         return this;
     }
 
-    /** Method wrapper of {@link TypedMessageBuilder#eventTime(long)}. */
-    public PulsarMessageBuilder<T> eventTime(long eventTime) {
-        this.eventTime = eventTime;
-        return this;
-    }
-
     /**
-     * Method wrapper of {@link TypedMessageBuilder#value(Object)}. You can pass any schema for
-     * validating it on Pulsar. This is called schema evolution. But the topic on Pulsar should bind
-     * to a fixed {@link Schema}. You can't have multiple schemas on the same topic unless it's
-     * compatible with each other.
-     *
-     * @param value The value could be null, which is called tombstones message in Pulsar. (It will
-     *     be skipped and considered deleted.)
+     * Method wrapper of {@link TypedMessageBuilder#eventTime(long)}. If you don't provide the event
+     * time, we will try to use Flink's sink context time instead.
      */
-    public PulsarMessageBuilder<T> value(Schema<T> schema, T value) {
-        this.schema = checkNotNull(schema);
-        this.value = value;
+    public PulsarMessageBuilder<T> eventTime(long eventTime) {
+        checkArgument(eventTime > 0, "The given event time should above 0.");
+        this.eventTime = eventTime;
         return this;
     }
 
@@ -111,8 +112,6 @@ public class PulsarMessageBuilder<T> {
     }
 
     public PulsarMessage<T> build() {
-        checkNotNull(schema, "Schema should be provided.");
-
         return new PulsarMessage<>(
                 orderingKey,
                 key,

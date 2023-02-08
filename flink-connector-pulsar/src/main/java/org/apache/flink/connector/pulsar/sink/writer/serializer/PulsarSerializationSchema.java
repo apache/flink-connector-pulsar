@@ -53,6 +53,7 @@ public interface PulsarSerializationSchema<IN> extends Serializable {
      * @param sinkConfiguration All the configure options for the Pulsar sink. You can add custom
      *     options.
      */
+    @SuppressWarnings("java:S112")
     default void open(
             InitializationContext initializationContext,
             PulsarSinkContext sinkContext,
@@ -70,6 +71,7 @@ public interface PulsarSerializationSchema<IN> extends Serializable {
      * @param element Element to be serialized.
      * @param sinkContext Context to provide extra information.
      */
+    @SuppressWarnings("java:S1452")
     PulsarMessage<?> serialize(IN element, PulsarSinkContext sinkContext);
 
     /**

@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.sink.committer;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.sink2.Committer;
 import org.apache.flink.connector.base.DeliveryGuarantee;
-import org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils;
 import org.apache.flink.connector.pulsar.sink.PulsarSink;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.util.FlinkRuntimeException;
@@ -34,7 +33,6 @@ import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientExce
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.MetaStoreHandlerNotExistsException;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.TransactionNotFoundException;
 import org.apache.pulsar.client.api.transaction.TxnID;
-import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +41,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
+import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.getTcClient;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.pulsar.common.naming.TopicName.TRANSACTION_COORDINATOR_ASSIGN;
 
@@ -65,8 +64,8 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
     }
 
     @Override
-    public void commit(Collection<CommitRequest<PulsarCommittable>> requests)
-            throws IOException, InterruptedException {
+    @SuppressWarnings("java:S3776")
+    public void commit(Collection<CommitRequest<PulsarCommittable>> requests) {
         TransactionCoordinatorClient client = transactionCoordinatorClient();
 
         for (CommitRequest<PulsarCommittable> request : requests) {
@@ -77,66 +76,61 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
             LOG.debug("Start committing the Pulsar transaction {} for topic {}", txnID, topic);
             try {
                 client.commit(txnID);
-            } catch (TransactionCoordinatorClientException e) {
-                // This is a known bug for Pulsar Transaction.
-                // We have to use instanceof instead of catching them.
-                TransactionCoordinatorClientException ex = PulsarTransactionUtils.unwrap(e);
-                if (ex instanceof CoordinatorNotFoundException) {
+            } catch (CoordinatorNotFoundException e) {
+                LOG.error(
+                        "We couldn't find the Transaction Coordinator from Pulsar broker {}. "
+                                + "Check your broker configuration.",
+                        committable,
+                        e);
+                request.signalFailedWithKnownReason(e);
+            } catch (InvalidTxnStatusException e) {
+                LOG.error(
+                        "Unable to commit transaction ({}) because it's in an invalid state. "
+                                + "Most likely the transaction has been aborted for some reason. "
+                                + "Please check the Pulsar broker logs for more details.",
+                        committable,
+                        e);
+                request.signalAlreadyCommitted();
+            } catch (TransactionNotFoundException e) {
+                if (request.getNumberOfRetries() == 0) {
                     LOG.error(
-                            "We couldn't find the Transaction Coordinator from Pulsar broker {}. "
-                                    + "Check your broker configuration.",
+                            "Unable to commit transaction ({}) because it's not found on Pulsar broker. "
+                                    + "Most likely the checkpoint interval exceed the transaction timeout.",
                             committable,
-                            ex);
-                    request.signalFailedWithKnownReason(ex);
-                } else if (ex instanceof InvalidTxnStatusException) {
-                    LOG.error(
-                            "Unable to commit transaction ({}) because it's in an invalid state. "
-                                    + "Most likely the transaction has been aborted for some reason. "
-                                    + "Please check the Pulsar broker logs for more details.",
-                            committable,
-                            ex);
-                    request.signalAlreadyCommitted();
-                } else if (ex instanceof TransactionNotFoundException) {
-                    if (request.getNumberOfRetries() == 0) {
-                        LOG.error(
-                                "Unable to commit transaction ({}) because it's not found on Pulsar broker. "
-                                        + "Most likely the checkpoint interval exceed the transaction timeout.",
-                                committable,
-                                ex);
-                        request.signalFailedWithKnownReason(ex);
-                    } else {
-                        LOG.warn(
-                                "We can't find the transaction {} after {} retry committing. "
-                                        + "This may mean that the transaction have been committed in previous but failed with timeout. "
-                                        + "So we just mark it as committed.",
-                                txnID,
-                                request.getNumberOfRetries());
-                        request.signalAlreadyCommitted();
-                    }
-                } else if (ex instanceof MetaStoreHandlerNotExistsException) {
-                    LOG.error(
-                            "We can't find the meta store handler by the mostSigBits from TxnID {}. "
-                                    + "Did you change the metadata for topic {}?",
-                            committable,
-                            TRANSACTION_COORDINATOR_ASSIGN,
-                            ex);
-                    request.signalFailedWithKnownReason(ex);
+                            e);
+                    request.signalFailedWithKnownReason(e);
                 } else {
-                    LOG.error(
-                            "Encountered retriable exception while committing transaction {} for topic {}.",
-                            committable,
-                            topic,
-                            ex);
-                    int maxRecommitTimes = sinkConfiguration.getMaxRecommitTimes();
-                    if (request.getNumberOfRetries() < maxRecommitTimes) {
-                        request.retryLater();
-                    } else {
-                        String message =
-                                String.format(
-                                        "Failed to commit transaction %s after retrying %d times",
-                                        txnID, maxRecommitTimes);
-                        request.signalFailedWithKnownReason(new FlinkRuntimeException(message, ex));
-                    }
+                    LOG.warn(
+                            "We can't find the transaction {} after {} retry committing. "
+                                    + "This may mean that the transaction have been committed in previous but failed with timeout. "
+                                    + "So we just mark it as committed.",
+                            txnID,
+                            request.getNumberOfRetries());
+                    request.signalAlreadyCommitted();
+                }
+            } catch (MetaStoreHandlerNotExistsException e) {
+                LOG.error(
+                        "We can't find the meta store handler by the mostSigBits from TxnID {}. "
+                                + "Did you change the metadata for topic {}?",
+                        committable,
+                        TRANSACTION_COORDINATOR_ASSIGN,
+                        e);
+                request.signalFailedWithKnownReason(e);
+            } catch (TransactionCoordinatorClientException e) {
+                LOG.error(
+                        "Encountered retriable exception while committing transaction {} for topic {}.",
+                        committable,
+                        topic,
+                        e);
+                int maxRecommitTimes = sinkConfiguration.getMaxRecommitTimes();
+                if (request.getNumberOfRetries() < maxRecommitTimes) {
+                    request.retryLater();
+                } else {
+                    String message =
+                            String.format(
+                                    "Failed to commit transaction %s after retrying %d times",
+                                    txnID, maxRecommitTimes);
+                    request.signalFailedWithKnownReason(new FlinkRuntimeException(message, e));
                 }
             } catch (Exception e) {
                 LOG.error(
@@ -156,10 +150,7 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
     private TransactionCoordinatorClient transactionCoordinatorClient() {
         if (coordinatorClient == null) {
             this.pulsarClient = createClient(sinkConfiguration);
-            this.coordinatorClient = ((PulsarClientImpl) pulsarClient).getTcClient();
-
-            // Ensure you have enabled transaction.
-            checkNotNull(coordinatorClient, "You haven't enable transaction in Pulsar client.");
+            this.coordinatorClient = getTcClient(pulsarClient);
         }
 
         return coordinatorClient;

@@ -88,7 +88,7 @@ public final class PulsarSinkOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "This option is used when the user require the %s semantic.",
+                                            "This option is used when the user require the %s semantic. ",
                                             code("DeliveryGuarantee.EXACTLY_ONCE"))
                                     .text(
                                             "We would use transaction for making sure the message could be write only once.")
@@ -137,10 +137,22 @@ public final class PulsarSinkOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "The metrics from Pulsar Producer are only exposed if you enable this option.")
+                                            "The metrics from Pulsar Producer are only exposed if you enable this option. ")
                                     .text(
                                             "You should set the %s to a positive value if you enable this option.",
                                             code(PULSAR_STATS_INTERVAL_SECONDS.key()))
+                                    .build());
+
+    public static final ConfigOption<Boolean> PULSAR_VALIDATE_SINK_MESSAGE_BYTES =
+            ConfigOptions.key(SINK_CONFIG_PREFIX + "validateSinkMessageBytes")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "Pulsar client can validate the raw message bytes with the latest topic schema. ")
+                                    .text(
+                                            "This can make sure your serialized messages bytes is valid for consumer.")
                                     .build());
 
     ///////////////////////////////////////////////////////////////////////////////

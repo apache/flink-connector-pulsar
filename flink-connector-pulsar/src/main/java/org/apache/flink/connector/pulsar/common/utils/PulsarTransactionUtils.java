@@ -23,14 +23,17 @@ import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.transaction.Transaction;
-import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
+import org.apache.pulsar.client.api.transaction.TxnID;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
-import static org.apache.flink.util.ExceptionUtils.findThrowable;
+import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.unwrap;
 
 /** A suit of workarounds for the Pulsar Transaction. */
 @Internal
@@ -53,18 +56,21 @@ public final class PulsarTransactionUtils {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         } catch (ExecutionException e) {
-            throw new FlinkRuntimeException(e);
+            throw new FlinkRuntimeException(unwrap(e));
         }
     }
 
     /**
-     * This is a bug in original {@link TransactionCoordinatorClientException#unwrap(Throwable)}
-     * method. Pulsar wraps the {@link ExecutionException} which hides the real execution exception.
-     *
-     * <p>This bug should be fixed after the 2.10.0 release. We just keep this for safety.
+     * {@link PulsarClient} didn't expose the internal {@link TransactionCoordinatorClient} to the
+     * end user. But the connector needs it to manually commit/abort the transaction by {@link
+     * TxnID}.
      */
-    public static TransactionCoordinatorClientException unwrap(
-            TransactionCoordinatorClientException e) {
-        return findThrowable(e.getCause(), TransactionCoordinatorClientException.class).orElse(e);
+    public static TransactionCoordinatorClient getTcClient(PulsarClient pulsarClient) {
+        TransactionCoordinatorClient coordinatorClient =
+                ((PulsarClientImpl) pulsarClient).getTcClient();
+        // Ensure you have enabled transaction.
+        checkNotNull(coordinatorClient, "You haven't enable transaction in Pulsar client.");
+
+        return coordinatorClient;
     }
 }

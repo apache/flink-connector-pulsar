@@ -28,6 +28,8 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.util.Preconditions.checkNotNull;
+
 /**
  * The message instance would be used for {@link TypedMessageBuilder}. We create this class because
  * the Pulsar lacks such kind of POJO class.
@@ -38,19 +40,25 @@ public class PulsarMessage<T> {
     @Nullable private final byte[] orderingKey;
     @Nullable private final String key;
     private final long eventTime;
-    private final Schema<T> schema;
+    @Nullable private final Schema<T> schema;
     @Nullable private final T value;
     @Nullable private final Map<String, String> properties;
     @Nullable private final Long sequenceId;
     @Nullable private final List<String> replicationClusters;
     private final boolean disableReplication;
 
-    /** Package private for building this class only in {@link PulsarMessageBuilder}. */
+    /**
+     * Package private for building this class only in {@link PulsarMessageBuilder}. Use the {@link
+     * #builder(byte[])}, {@link #builder(Schema, Object)} methods for creating the builder. And
+     * {@link #builder()} is only used for creating a special tombstone message, use it as you
+     * needs.
+     */
+    @SuppressWarnings("java:S107")
     PulsarMessage(
             @Nullable byte[] orderingKey,
             @Nullable String key,
             long eventTime,
-            Schema<T> schema,
+            @Nullable Schema<T> schema,
             @Nullable T value,
             @Nullable Map<String, String> properties,
             @Nullable Long sequenceId,
@@ -67,6 +75,38 @@ public class PulsarMessage<T> {
         this.disableReplication = disableReplication;
     }
 
+    /**
+     * Method wrapper of {@link TypedMessageBuilder#value(Object)}. You can pass any schema for
+     * validating it on Pulsar. This is called schema evolution. But the topic on Pulsar should bind
+     * to a fixed {@link Schema}. You may not have multiple schemas on the same topic unless it's
+     * compatible with each other. This is determined by the configured <a
+     * href="https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-compatibility-check-strategy">schema
+     * evolution policy</a> on corresponding topic.
+     */
+    public static <M> PulsarMessageBuilder<M> builder(Schema<M> schema, M message) {
+        checkNotNull(schema, "Schema should be provided.");
+        checkNotNull(message, "Message should be provided.");
+        return new PulsarMessageBuilder<>(schema, message);
+    }
+
+    /**
+     * Create a message with a pre-serialized byte array. This message can be sent to any topic with
+     * any schema. We will just bypass the Pulsar's schema evolution check. But if the target topic
+     * does not exist on Pulsar. The auto-created topic won't have any schema in this way.
+     */
+    public static PulsarMessageBuilder<byte[]> builder(byte[] bytes) {
+        checkNotNull(bytes, "Message bytes should be provided.");
+        return new PulsarMessageBuilder<>(Schema.BYTES, bytes);
+    }
+
+    /**
+     * Create a tombstone message with empty payloads. It will be skipped and considered deleted
+     * (akin to the concept of tombstones in key-value databases).
+     */
+    public static PulsarMessageBuilder<byte[]> builder() {
+        return new PulsarMessageBuilder<>(null, null);
+    }
+
     @Nullable
     public byte[] getOrderingKey() {
         return orderingKey;
@@ -81,6 +121,7 @@ public class PulsarMessage<T> {
         return eventTime;
     }
 
+    @Nullable
     public Schema<T> getSchema() {
         return schema;
     }
