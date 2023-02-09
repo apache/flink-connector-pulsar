@@ -19,9 +19,7 @@
 package org.apache.flink.connector.pulsar.sink.writer.serializer;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema.InitializationContext;
-import org.apache.flink.connector.pulsar.sink.PulsarSinkBuilder;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessage;
@@ -29,16 +27,16 @@ import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessageBuilde
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
-import org.apache.pulsar.common.schema.KeyValue;
 
 import java.io.Serializable;
 
 /**
  * The serialization schema for how to serialize records into Pulsar.
  *
- * @param <IN> The message type send to Pulsar.
+ * @param <IN> The message type sent to Pulsar.
  */
 @PublicEvolving
+@SuppressWarnings({"java:S112", "java:S1452"})
 public interface PulsarSerializationSchema<IN> extends Serializable {
 
     /**
@@ -50,8 +48,8 @@ public interface PulsarSerializationSchema<IN> extends Serializable {
      *
      * @param initializationContext Contextual information that can be used during initialization.
      * @param sinkContext Runtime information i.e. partitions, subtaskId.
-     * @param sinkConfiguration All the configure options for the Pulsar sink. You can add custom
-     *     options.
+     * @param sinkConfiguration All the configuration options for the Pulsar sink. You can add
+     *     custom options.
      */
     @SuppressWarnings("java:S112")
     default void open(
@@ -73,68 +71,4 @@ public interface PulsarSerializationSchema<IN> extends Serializable {
      */
     @SuppressWarnings("java:S1452")
     PulsarMessage<?> serialize(IN element, PulsarSinkContext sinkContext);
-
-    /**
-     * Create a PulsarSerializationSchema by using the flink's {@link SerializationSchema}. It would
-     * serialize the message into byte array and send it to Pulsar with {@link Schema#BYTES}.
-     *
-     * @deprecated Use {@link PulsarSinkBuilder#setSerializationSchema(SerializationSchema)}
-     *     instead.
-     */
-    @Deprecated
-    static <T> PulsarSerializationSchema<T> flinkSchema(
-            SerializationSchema<T> serializationSchema) {
-        return new PulsarSerializationSchemaWrapper<>(serializationSchema);
-    }
-
-    /**
-     * Create a PulsarSerializationSchema by using the Pulsar {@link Schema} instance. We can send
-     * message with the given schema to Pulsar, this would be enabled by {@link
-     * PulsarSinkBuilder#enableSchemaEvolution()}. We would serialize the message into bytes and
-     * send it as {@link Schema#BYTES} by default.
-     *
-     * <p>We only support <a
-     * href="https://pulsar.apache.org/docs/en/schema-understand/#primitive-type">primitive
-     * types</a> here.
-     *
-     * @deprecated Use {@link PulsarSinkBuilder#setSerializationSchema(Schema)} instead.
-     */
-    @Deprecated
-    static <T> PulsarSerializationSchema<T> pulsarSchema(Schema<T> schema) {
-        return new PulsarSchemaWrapper<>(schema);
-    }
-
-    /**
-     * Create a PulsarSerializationSchema by using the Pulsar {@link Schema} instance. We can send
-     * message with the given schema to Pulsar, this would be enabled by {@link
-     * PulsarSinkBuilder#enableSchemaEvolution()}. We would serialize the message into bytes and
-     * send it as {@link Schema#BYTES} by default.
-     *
-     * <p>We only support <a
-     * href="https://pulsar.apache.org/docs/en/schema-understand/#struct">struct types</a> here.
-     *
-     * @deprecated Use {@link PulsarSinkBuilder#setSerializationSchema(Schema, Class)} instead.
-     */
-    @Deprecated
-    static <T> PulsarSerializationSchema<T> pulsarSchema(Schema<T> schema, Class<T> typeClass) {
-        return new PulsarSchemaWrapper<>(schema, typeClass);
-    }
-
-    /**
-     * Create a PulsarSerializationSchema by using the Pulsar {@link Schema} instance. We can send
-     * message with the given schema to Pulsar, this would be enabled by {@link
-     * PulsarSinkBuilder#enableSchemaEvolution()}. We would serialize the message into bytes and
-     * send it as {@link Schema#BYTES} by default.
-     *
-     * <p>We only support <a
-     * href="https://pulsar.apache.org/docs/en/schema-understand/#keyvalue">keyvalue types</a> here.
-     *
-     * @deprecated Use {@link PulsarSinkBuilder#setSerializationSchema(Schema, Class, Class)}
-     *     instead.
-     */
-    @Deprecated
-    static <K, V> PulsarSerializationSchema<KeyValue<K, V>> pulsarSchema(
-            Schema<KeyValue<K, V>> schema, Class<K> keyClass, Class<V> valueClass) {
-        return new PulsarSchemaWrapper<>(schema, keyClass, valueClass);
-    }
 }

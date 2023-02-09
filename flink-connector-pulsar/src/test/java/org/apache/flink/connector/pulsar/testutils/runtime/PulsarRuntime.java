@@ -24,6 +24,8 @@ import org.apache.flink.connector.pulsar.testutils.runtime.singleton.PulsarSingl
 
 import org.testcontainers.containers.GenericContainer;
 
+import java.util.Map;
+
 /**
  * An abstraction for different pulsar runtimes. Providing the common methods for {@link
  * PulsarTestEnvironment}.
@@ -31,6 +33,12 @@ import org.testcontainers.containers.GenericContainer;
  * <p>All the Pulsar runtime should enable the transaction by default.
  */
 public interface PulsarRuntime {
+
+    /**
+     * Override the default broker configs with some new values. This method is called before
+     * executing the {@link #startUp()} method.
+     */
+    PulsarRuntime setConfigs(Map<String, String> configs);
 
     /** Start up this pulsar runtime, block the thread until everytime is ready for this runtime. */
     void startUp();

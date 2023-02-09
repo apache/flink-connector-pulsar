@@ -29,6 +29,8 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -52,16 +54,32 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     // This url is used on the container side.
     private static final String PULSAR_ADMIN_URL =
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);
-    private static final DockerImageName PULSAR_IMAGE =
-            DockerImageName.parse("apachepulsar/pulsar:2.10.2");
 
-    /** Create a pulsar container provider by a predefined version. */
-    private final PulsarContainer container = new PulsarContainer(PULSAR_IMAGE);
+    private static final DockerImageName PULSAR_IMAGE_NAME =
+            DockerImageName.parse("apachepulsar/pulsar");
+    private static final String CURRENT_VERSION = "2.10.2";
+    private static final DockerImageName PULSAR_IMAGE = PULSAR_IMAGE_NAME.withTag(CURRENT_VERSION);
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final PulsarContainer container;
+    private final AtomicBoolean started;
+    private final Map<String, String> brokerConfigs;
 
     private boolean boundFlink = false;
     private PulsarRuntimeOperator operator;
+
+    public PulsarContainerRuntime() {
+        this.container = new PulsarContainer(PULSAR_IMAGE);
+        this.started = new AtomicBoolean(false);
+        this.brokerConfigs = new HashMap<>();
+
+        brokerConfigs.put("transactionCoordinatorEnabled", "true");
+        brokerConfigs.put("acknowledgmentAtBatchIndexLevelEnabled", "true");
+        brokerConfigs.put("systemTopicEnabled", "true");
+        brokerConfigs.put("defaultNumberOfNamespaceBundles", "1");
+        brokerConfigs.put("allowAutoTopicCreation", "true");
+        brokerConfigs.put("allowAutoTopicCreationType", "partitioned");
+        brokerConfigs.put("defaultNumPartitions", "4");
+    }
 
     public PulsarContainerRuntime bindWithFlinkContainer(GenericContainer<?> flinkContainer) {
         checkArgument(
@@ -77,6 +95,12 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     }
 
     @Override
+    public PulsarRuntime setConfigs(Map<String, String> configs) {
+        brokerConfigs.putAll(configs);
+        return this;
+    }
+
+    @Override
     public void startUp() {
         if (!started.compareAndSet(false, true)) {
             LOG.warn("You have started the Pulsar Container. We will skip this execution.");
@@ -84,14 +108,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
         }
 
         // Override the default standalone configuration by system environments.
-        container.withEnv("PULSAR_PREFIX_transactionCoordinatorEnabled", "true");
-        container.withEnv("PULSAR_PREFIX_acknowledgmentAtBatchIndexLevelEnabled", "true");
-        container.withEnv("PULSAR_PREFIX_systemTopicEnabled", "true");
-        container.withEnv("PULSAR_PREFIX_brokerDeduplicationEnabled", "true");
-        container.withEnv("PULSAR_PREFIX_defaultNumberOfNamespaceBundles", "1");
-        container.withEnv("PULSAR_PREFIX_allowAutoTopicCreation", "true");
-        container.withEnv("PULSAR_PREFIX_allowAutoTopicCreationType", "partitioned");
-        container.withEnv("PULSAR_PREFIX_defaultNumPartitions", "4");
+        brokerConfigs.forEach((key, value) -> container.withEnv("PULSAR_PREFIX_" + key, value));
         // Change the default bootstrap script, it will override the default configuration
         // and start a standalone Pulsar without streaming storage and function worker.
         container.withCommand(

@@ -39,7 +39,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubs
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 import org.apache.flink.connector.pulsar.source.reader.PulsarSourceReader;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
-import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchemaInitializationContext;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
@@ -133,11 +132,6 @@ public final class PulsarSource<OUT>
     @Override
     public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext)
             throws Exception {
-        // Initialize the deserialization schema before creating the pulsar reader.
-        PulsarDeserializationSchemaInitializationContext initializationContext =
-                new PulsarDeserializationSchemaInitializationContext(readerContext);
-        deserializationSchema.open(initializationContext, sourceConfiguration);
-
         return PulsarSourceReader.create(
                 sourceConfiguration, deserializationSchema, pulsarCrypto, readerContext);
     }

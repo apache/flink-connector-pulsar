@@ -36,6 +36,8 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.FullRangeGenerator;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.GenericRecordDeserializationSchema;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.GenericRecordDeserializer;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarSchemaWrapper;
@@ -44,8 +46,10 @@ import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarTypeIn
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.schema.KeyValue;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -171,22 +175,6 @@ public final class PulsarSourceBuilder<OUT> {
      */
     public PulsarSourceBuilder<OUT> setSubscriptionName(String subscriptionName) {
         return setConfig(PULSAR_SUBSCRIPTION_NAME, subscriptionName);
-    }
-
-    /**
-     * {@link SubscriptionType} is the consuming behavior for pulsar, we would generate different
-     * split by the given subscription type. Please take some time to consider which subscription
-     * type matches your application best. Default is {@link SubscriptionType#Shared}.
-     *
-     * @param subscriptionType The type of subscription.
-     * @return this PulsarSourceBuilder.
-     * @see <a href="https://pulsar.apache.org/docs/en/concepts-messaging/#subscriptions">Pulsar
-     *     Subscriptions</a>
-     * @deprecated We don't support setting the subscription type now.
-     */
-    @Deprecated
-    public PulsarSourceBuilder<OUT> setSubscriptionType(SubscriptionType subscriptionType) {
-        return this;
     }
 
     /**
@@ -375,6 +363,16 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
+     * Deserialize the messages from Pulsar by using {@link Schema#AUTO_CONSUME()}. It will turn the
+     * pulsar message into a {@link GenericRecord} first. Using this method can consume the messages
+     * with multiple schemas in the same topic.
+     */
+    public <T extends OUT> PulsarSourceBuilder<T> setDeserializationSchema(
+            GenericRecordDeserializer<T> deserializer) {
+        return setDeserializationSchema(new GenericRecordDeserializationSchema<>(deserializer));
+    }
+
+    /**
      * Deserialize messages from Pulsar by using the Pulsar {@link Schema} instance. It would
      * consume the pulsar message as a byte array and decode the message by using flink's logic.
      *
@@ -383,6 +381,7 @@ public final class PulsarSourceBuilder<OUT> {
      * types</a> here.
      */
     public <T extends OUT> PulsarSourceBuilder<T> setDeserializationSchema(Schema<T> schema) {
+        ensureSchemaTypeIsValid(schema);
         return setDeserializationSchema(new PulsarSchemaWrapper<>(schema));
     }
 
@@ -395,6 +394,7 @@ public final class PulsarSourceBuilder<OUT> {
      */
     public <T extends OUT> PulsarSourceBuilder<T> setDeserializationSchema(
             Schema<T> schema, Class<T> typeClass) {
+        ensureSchemaTypeIsValid(schema);
         return setDeserializationSchema(new PulsarSchemaWrapper<>(schema, typeClass));
     }
 
@@ -407,6 +407,7 @@ public final class PulsarSourceBuilder<OUT> {
      */
     public <K, V, T extends OUT> PulsarSourceBuilder<T> setDeserializationSchema(
             Schema<KeyValue<K, V>> schema, Class<K> keyClass, Class<V> valueClass) {
+        ensureSchemaTypeIsValid(schema);
         return setDeserializationSchema(new PulsarSchemaWrapper<>(schema, keyClass, valueClass));
     }
 
@@ -606,13 +607,25 @@ public final class PulsarSourceBuilder<OUT> {
         return (PulsarSourceBuilder<T>) this;
     }
 
-    /** Topic name and topic pattern is conflict, make sure they are set only once. */
+    /** Topic name and topic pattern are conflict, make sure they are set only once. */
     private void ensureSubscriberIsNull(String attemptingSubscribeMode) {
         if (subscriber != null) {
             throw new IllegalStateException(
                     String.format(
-                            "Cannot use %s for consumption because a %s is already set for consumption.",
+                            "Cannot use %s for consumption because a %s is already set for consumption",
                             attemptingSubscribeMode, subscriber.getClass().getSimpleName()));
+        }
+    }
+
+    private void ensureSchemaTypeIsValid(Schema<?> schema) {
+        SchemaInfo info = schema.getSchemaInfo();
+        if (info.getType() == SchemaType.AUTO_CONSUME || info.getType() == SchemaType.AUTO) {
+            throw new IllegalArgumentException(
+                    "Auto schema is only supported by providing a GenericRecordDeserializer");
+        }
+        if (info.getType() == SchemaType.AUTO_PUBLISH) {
+            throw new IllegalStateException(
+                    "Auto produce schema is not supported in consuming messages");
         }
     }
 }
