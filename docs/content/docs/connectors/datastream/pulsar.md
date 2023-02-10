@@ -60,7 +60,7 @@ PulsarSource<String> source = PulsarSource.builder()
     .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
-    .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+    .setDeserializationSchema(new SimpleStringSchema())
     .setSubscriptionName("my-subscription")
     .build();
 
@@ -76,8 +76,7 @@ pulsar_source = PulsarSource.builder() \
     .set_admin_url('http://localhost:8080') \
     .set_start_cursor(StartCursor.earliest()) \
     .set_topics("my-topic") \
-    .set_deserialization_schema(
-        PulsarDeserializationSchema.flink_schema(SimpleStringSchema())) \
+    .set_deserialization_schema(SimpleStringSchema()) \
     .set_subscription_name('my-subscription') \
     .build()
 
@@ -216,41 +215,22 @@ you can use the predefined `PulsarDeserializationSchema`. Pulsar connector provi
   still needed to construct `PulsarSchemaTypeInformation`. So we provide two more APIs to pass the type info.
   ```java
   // Primitive types
-  PulsarDeserializationSchema.pulsarSchema(Schema);
+  PulsarSourceBuilder.setDeserializationSchema(Schema);
 
   // Struct types (JSON, Protobuf, Avro, etc.)
-  PulsarDeserializationSchema.pulsarSchema(Schema, Class);
+  PulsarSourceBuilder.setDeserializationSchema(Schema, Class);
 
   // KeyValue type
-  PulsarDeserializationSchema.pulsarSchema(Schema, Class, Class);
+  PulsarSourceBuilder.setDeserializationSchema(Schema, Class, Class);
   ```
 - Decode the message by using Flink's `DeserializationSchema`
-  {{< tabs "pulsar-deserializer-deserialization-schema" >}}
-  {{< tab "Java" >}}
   ```java
-  PulsarDeserializationSchema.flinkSchema(DeserializationSchema);
+  PulsarSourceBuilder.setDeserializationSchema(DeserializationSchema);
   ```
-  {{< /tab >}}
-  {{< tab "Python" >}}
-  ```python
-  PulsarDeserializationSchema.flink_schema(DeserializationSchema)
-  ```
-  {{< /tab >}}
-  {{< /tabs >}}
-
 - Decode the message by using Flink's `TypeInformation`
-  {{< tabs "pulsar-deserializer-type-information" >}}
-  {{< tab "Java" >}}
   ```java
-  PulsarDeserializationSchema.flinkTypeInfo(TypeInformation, ExecutionConfig);
+  PulsarSourceBuilder.setDeserializationSchema(TypeInformation, ExecutionConfig);
   ```
-  {{< /tab >}}
-  {{< tab "Python" >}}
-  ```python
-  PulsarDeserializationSchema.flink_type_info(TypeInformation)
-  ```
-  {{< /tab >}}
-  {{< /tabs >}}
 
 Pulsar `Message<byte[]>` contains some [extra properties](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#messages),
 such as message key, message publish time, message time, and application-defined key/value pairs etc.
@@ -260,7 +240,9 @@ If you want to deserialize the Pulsar message by these properties, you need to i
 Ensure that the `TypeInformation` from the `PulsarDeserializationSchema.getProducedType()` is correct.
 Flink uses this `TypeInformation` to pass the messages to downstream operators.
 
-[Schema evolution][schema-evolution] can be enabled by users using `PulsarDeserializationSchema.pulsarSchema()` and
+#### Schema Evolution in Source
+
+[Schema evolution][schema-evolution] can be enabled by users using Pulsar's `Schema` and
 `PulsarSourceBuilder.enableSchemaEvolution()`. This means that any broker schema validation is in place.
 
 ```java
@@ -275,6 +257,28 @@ PulsarSource<SomePojo> source = PulsarSource.builder()
 
 If you use Pulsar schema without enabling schema evolution, we will bypass the schema check. This may cause some
 errors when you use a wrong schema to deserialize the messages.
+
+#### Use Auto Consume Schema
+
+Pulsar provides `Schema.AUTO_CONSUME()` for consuming message without a predefined schema. This is always used when
+the topic has multiple schemas and may not be compatible with each other. Pulsar will auto decode the message into a
+`GenericRecord` for the user.
+
+But the `PulsarSourceBuilder.setDeserializationSchema(Schema)` method doesn't support the `Schema.AUTO_CONSUME()`.
+Instead, we provide the `GenericRecordDeserializer` for deserializing the `GenericRecord`. You can implement this
+interface and set it in the `PulsarSourceBuilder.setDeserializationSchema(GenericRecordDeserializer)`.
+
+```java
+GenericRecordDeserializer<SomePojo> deserializer = ...
+PulsarSource<SomePojo> source = PulsarSource.builder()
+    ...
+    .setDeserializationSchema(deserializer)
+    .build();
+```
+
+{{< hint warning >}}
+Currently, auto consume schema only supports AVRO, JSON and Protobuf schemas.
+{{< /hint >}}
 
 ### Define a RangeGenerator
 
@@ -672,7 +676,7 @@ PulsarSink<String> sink = PulsarSink.builder()
     .setServiceUrl(serviceUrl)
     .setAdminUrl(adminUrl)
     .setTopics("topic1")
-    .setSerializationSchema(PulsarSerializationSchema.flinkSchema(new SimpleStringSchema()))
+    .setSerializationSchema(new SimpleStringSchema())
     .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
     .build();
 
@@ -689,7 +693,7 @@ pulsar_sink = PulsarSink.builder() \
     .set_service_url('pulsar://localhost:6650') \
     .set_admin_url('http://localhost:8080') \
     .set_topics("topic1") \
-    .set_serialization_schema(PulsarSerializationSchema.flink_schema(SimpleStringSchema())) \
+    .set_serialization_schema(SimpleStringSchema()) \
     .set_delivery_guarantee(DeliveryGuarantee.AT_LEAST_ONCE) \
     .build()
 
@@ -784,7 +788,7 @@ The `allowAutoTopicCreationType` option in `broker.conf` is used to control the 
 
 A serializer (`PulsarSerializationSchema`) is required for serializing the record instance into bytes.
 Similar to `PulsarSource`, Pulsar sink supports both Flink's `SerializationSchema` and
-Pulsar's `Schema`. Pulsar's `Schema.AUTO_PRODUCE_BYTES()` is not supported in the Pulsar sink.
+Pulsar's `Schema`. But Pulsar's `Schema.AUTO_PRODUCE_BYTES()` is not supported.
 
 If you do not need the message key and other message properties in Pulsar's
 [Message](https://pulsar.apache.org/api/client/2.10.x/org/apache/pulsar/client/api/Message.html) interface,
@@ -793,37 +797,23 @@ you can use the predefined `PulsarSerializationSchema`. The Pulsar sink provides
 - Encode the message by using Pulsar's [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/).
   ```java
   // Primitive types
-  PulsarSerializationSchema.pulsarSchema(Schema)
+  PulsarSinkBuilder.setSerializationSchema(Schema)
 
   // Struct types (JSON, Protobuf, Avro, etc.)
-  PulsarSerializationSchema.pulsarSchema(Schema, Class)
+  PulsarSinkBuilder.setSerializationSchema(Schema, Class)
 
   // KeyValue type
-  PulsarSerializationSchema.pulsarSchema(Schema, Class, Class)
+  PulsarSinkBuilder.setSerializationSchema(Schema, Class, Class)
   ```
 - Encode the message by using Flink's `SerializationSchema`
-
-  {{< tabs "set-pulsar-serialization-flink-schema" >}}
-  {{< tab "Java" >}}
-
   ```java
-  PulsarSerializationSchema.flinkSchema(SerializationSchema)
+  PulsarSinkBuilder.setSerializationSchema(SerializationSchema)
   ```
 
-  {{< /tab >}}
-  {{< tab "Python" >}}
+#### Schema Evolution in Sink
 
-  ```python
-  PulsarSerializationSchema.flink_schema(SimpleStringSchema())
-  ```
-
-  {{< /tab >}}
-  {{< /tabs >}}
-
-#### Schema evolution
-
-[Schema evolution][schema-evolution] can be enabled by users using `PulsarSerializationSchema.pulsarSchema()` and
-`PulsarSinkBuilder.enableSchemaEvolution()`. This means that any broker schema validation is in place.
+[Schema evolution][schema-evolution] can be enabled by users using Pulsar's `Schema`
+and `PulsarSinkBuilder.enableSchemaEvolution()`. This means that any broker schema validation is in place.
 
 ```java
 Schema<SomePojo> schema = Schema.AVRO(SomePojo.class);
@@ -837,9 +827,10 @@ PulsarSink<SomePojo> sink = PulsarSink.builder()
 
 {{< hint warning >}}
 If you use Pulsar schema without enabling schema evolution, the target topic will have a `Schema.BYTES` schema.
-Consumers will need to handle the deserialization (if needed) themselves.
+But `Schema.BYTES` isn't stored in any Pulsar's topic. An auto-created topic in this way will present no schema.
+Consumers will need to handle deserialization without Pulsar's `Schema` (if needed) themselves.
 
-For example, if you set `PulsarSerializationSchema.pulsarSchema(Schema.STRING)` without enabling schema evolution,
+For example, if you set `PulsarSinkBuilder.setSerializationSchema(Schema.STRING)` without enabling schema evolution,
 the schema stored in Pulsar topics is `Schema.BYTES`.
 {{< /hint >}}
 
@@ -887,7 +878,7 @@ three types of the Pulsar messages.
 
 Routing in Pulsar Sink is operated on the partition level. For a list of partitioned topics,
 the routing algorithm first collects all partitions from different topics, and then calculates routing within all the partitions.
-By default Pulsar Sink supports two router implementation.
+By default, Pulsar Sink supports two router implementations.
 
 - `KeyHashTopicRouter`: use the hashcode of the message's key to decide the topic partition that messages are sent to.
 

@@ -20,7 +20,6 @@ package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.serialization.DeserializationSchema.InitializationContext;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.util.Collector;
@@ -29,8 +28,8 @@ import org.apache.pulsar.client.api.Message;
 
 /**
  * A {@link PulsarDeserializationSchema} implementation which based on the given flink's {@link
- * DeserializationSchema}. We would consume the message as byte array from pulsar and deserialize it
- * by using flink serialization logic.
+ * DeserializationSchema}. We would consume the message as a byte array from pulsar and deserialize
+ * it by using flink serialization logic.
  *
  * @param <T> The output type of the message.
  */
@@ -45,7 +44,7 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
     }
 
     @Override
-    public void open(InitializationContext context, SourceConfiguration configuration)
+    public void open(PulsarInitializationContext context, SourceConfiguration configuration)
             throws Exception {
         // Initialize it for some custom logic.
         deserializationSchema.open(context);

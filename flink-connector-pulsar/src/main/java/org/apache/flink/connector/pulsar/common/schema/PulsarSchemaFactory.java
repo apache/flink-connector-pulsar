@@ -25,6 +25,8 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
+import static org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils.decodeClassInfo;
+
 /**
  * The schema factory for a specified {@link SchemaType}. We add this factory because of pulsar
  * don't provide a serializable schema and we can't create it directly from {@link SchemaInfo}. So
@@ -40,5 +42,11 @@ public interface PulsarSchemaFactory<T> {
     Schema<T> createSchema(SchemaInfo info);
 
     /** Create the flink type information by the given schema info. */
-    TypeInformation<T> createTypeInfo(SchemaInfo info);
+    default TypeInformation<T> createTypeInfo(SchemaInfo info) {
+        Schema<T> pulsarSchema = createSchema(info);
+        Class<T> typeClass = decodeClassInfo(info);
+        PulsarSchema<T> schema = new PulsarSchema<>(pulsarSchema, typeClass);
+
+        return new PulsarSchemaTypeInformation<>(schema);
+    }
 }

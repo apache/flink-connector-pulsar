@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
@@ -31,6 +32,7 @@ import org.apache.pulsar.client.api.Message;
  * flink {@code TypeSerializer} by using given ExecutionConfig. This execution config could be
  * {@link ExecutionEnvironment#getConfig()}.
  */
+@Internal
 public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSchema<T> {
     private static final long serialVersionUID = 6647084180084963022L;
 

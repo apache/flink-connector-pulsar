@@ -55,7 +55,7 @@ PulsarSource<String> source = PulsarSource.builder()
     .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
-    .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+    .setDeserializationSchema(new SimpleStringSchema())
     .setSubscriptionName("my-subscription")
     .build();
 
@@ -71,8 +71,7 @@ pulsar_source = PulsarSource.builder() \
     .set_admin_url('http://localhost:8080') \
     .set_start_cursor(StartCursor.earliest()) \
     .set_topics("my-topic") \
-    .set_deserialization_schema(
-        PulsarDeserializationSchema.flink_schema(SimpleStringSchema())) \
+    .set_deserialization_schema(SimpleStringSchema()) \
     .set_subscription_name('my-subscription') \
     .build()
 
@@ -191,47 +190,30 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
 - 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 解析消息。如果使用 KeyValue 或者 Struct 类型的 Schema, 那么 Pulsar 的 `Schema` 将不会含有类型类信息， 但 `PulsarSchemaTypeInformation` 需要通过传入类型类信息来构造。因此我们提供的 API 支持用户传入类型信息。
   ```java
   // 基础数据类型
-  PulsarDeserializationSchema.pulsarSchema(Schema);
+  PulsarSourceBuilder.setDeserializationSchema(Schema);
 
   // 结构类型 (JSON, Protobuf, Avro, etc.)
-  PulsarDeserializationSchema.pulsarSchema(Schema, Class);
+  PulsarSourceBuilder.setDeserializationSchema(Schema, Class);
 
   // 键值对类型
-  PulsarDeserializationSchema.pulsarSchema(Schema, Class, Class);
+  PulsarSourceBuilder.setDeserializationSchema(Schema, Class, Class);
   ```
 - 使用 Flink 的 `DeserializationSchema` 解析消息。
-  {{< tabs "pulsar-deserializer-deserialization-schema" >}}
-  {{< tab "Java" >}}
   ```java
-  PulsarDeserializationSchema.flinkSchema(DeserializationSchema);
+  PulsarSourceBuilder.setDeserializationSchema(DeserializationSchema);
   ```
-  {{< /tab >}}
-  {{< tab "Python" >}}
-  ```python
-  PulsarDeserializationSchema.flink_schema(DeserializationSchema)
-  ```
-  {{< /tab >}}
-  {{< /tabs >}}
-
 - 使用 Flink 的 `TypeInformation` 解析消息。
-  {{< tabs "pulsar-deserializer-type-information" >}}
-  {{< tab "Java" >}}
   ```java
-  PulsarDeserializationSchema.flinkTypeInfo(TypeInformation, ExecutionConfig);
+  PulsarSourceBuilder.setDeserializationSchema(TypeInformation, ExecutionConfig);
   ```
-  {{< /tab >}}
-  {{< tab "Python" >}}
-  ```python
-  PulsarDeserializationSchema.flink_type_info(TypeInformation)
-  ```
-  {{< /tab >}}
-  {{< /tabs >}}
 
 Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#messages)。例如，消息的 key、消息发送时间、消息生产时间、用户在消息上自定义的键值对属性等。可以使用 `Message<byte[]>` 接口来获取这些属性。
 
 如果用户需要基于这些额外的属性来解析一条消息，可以实现 `PulsarDeserializationSchema` 接口。并一定要确保 `PulsarDeserializationSchema.getProducedType()` 方法返回的 `TypeInformation` 是正确的结果。Flink 使用 `TypeInformation` 将解析出来的结果序列化传递到下游算子。
 
-同时使用 `PulsarDeserializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSourceBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
+#### 在 Source 中启用 Schema Evolution
+
+同时使用 Pulsar 的 `Schema` 以及在 builder 中指定 `PulsarSourceBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
 
 ```java
 Schema<SomePojo> schema = Schema.AVRO(SomePojo.class);
@@ -244,6 +226,24 @@ PulsarSource<SomePojo> source = PulsarSource.builder()
 ```
 
 如果使用 Pulsar 原生的 Schema 来反序列化消息却不启用 Schema Evolution 特性，我们将会跳过 Schema 兼容性检查，解析一些消息时可能会遇到未知的错误。
+
+#### 使用动态 Schema
+
+Pulsar 提供了 `Schema.AUTO_CONSUME()` 这个 Schema 来消费消息。它支持所有的 Topic，并常常用于消费 Topic 中存在多种 Schema 的情况。使用此 Schema 消费时，Pulsar 会将消息解析为 `GenericRecord`。
+
+但是 `PulsarSourceBuilder.setDeserializationSchema(Schema)` 等方法并不支持 `Schema.AUTO_CONSUME()` 类型。所以，我们提供了 `GenericRecordDeserializer` 接口来让用户定义如何解析 `GenericRecord`。在 `PulsarSourceBuilder.setDeserializationSchema(GenericRecordDeserializer)` 方法内予以指定即可。
+
+```java
+GenericRecordDeserializer<SomePojo> deserializer = ...
+PulsarSource<SomePojo> source = PulsarSource.builder()
+    ...
+    .setDeserializationSchema(deserializer)
+    .build();
+```
+
+{{< hint warning >}}
+当前动态 Schema 只支持 AVRO，JSON 和 Protobuf 类型的消息解析。
+{{< /hint >}}
 
 ### 定义 RangeGenerator
 
@@ -583,7 +583,7 @@ PulsarSink<String> sink = PulsarSink.builder()
     .setServiceUrl(serviceUrl)
     .setAdminUrl(adminUrl)
     .setTopics("topic1")
-    .setSerializationSchema(PulsarSerializationSchema.flinkSchema(new SimpleStringSchema()))
+    .setSerializationSchema(new SimpleStringSchema())
     .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
     .build();
 
@@ -600,7 +600,7 @@ pulsar_sink = PulsarSink.builder() \
     .set_service_url('pulsar://localhost:6650') \
     .set_admin_url('http://localhost:8080') \
     .set_topics("topic1") \
-    .set_serialization_schema(PulsarSerializationSchema.flink_schema(SimpleStringSchema())) \
+    .set_serialization_schema(SimpleStringSchema()) \
     .set_delivery_guarantee(DeliveryGuarantee.AT_LEAST_ONCE) \
     .build()
 
@@ -688,52 +688,37 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
 - 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 来序列化 Flink 中的数据。
   ```java
   // 原始数据类型
-  PulsarSerializationSchema.pulsarSchema(Schema)
+  PulsarSinkBuilder.setSerializationSchema(Schema)
 
   // 有结构数据类型（JSON、Protobuf、Avro 等）
-  PulsarSerializationSchema.pulsarSchema(Schema, Class)
+  PulsarSinkBuilder.setSerializationSchema(Schema, Class)
 
   // 键值对类型
-  PulsarSerializationSchema.pulsarSchema(Schema, Class, Class)
+  PulsarSinkBuilder.setSerializationSchema(Schema, Class, Class)
   ```
 - 使用 Flink 的 `SerializationSchema` 来序列化数据。
-
-  {{< tabs "set-pulsar-serialization-flink-schema" >}}
-  {{< tab "Java" >}}
-
   ```java
-  PulsarSerializationSchema.flinkSchema(SerializationSchema)
+  PulsarSinkBuilder.setSerializationSchema(SerializationSchema)
   ```
 
-  {{< /tab >}}
-  {{< tab "Python" >}}
+#### 在 Sink 中启用 Schema Evolution
 
-  ```python
-  PulsarSerializationSchema.flink_schema(SimpleStringSchema())
-  ```
-
-  {{< /tab >}}
-  {{< /tabs >}}
-
-#### Schema evolution
-
-同时使用 `PulsarSerializationSchema.pulsarSchema()` 以及在 builder 中指定 `PulsarSinkBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
+同时使用 Pulsar 的 `Schema` 以及在 builder 中指定 `PulsarSinkBuilder.enableSchemaEvolution()` 可以启用 [Schema evolution][schema-evolution] 特性。该特性会使用 Pulsar Broker 端提供的 Schema 版本兼容性检测以及 Schema 版本演进。下列示例展示了如何启用 Schema Evolution。
 
 ```java
 Schema<SomePojo> schema = Schema.AVRO(SomePojo.class);
-PulsarSerializationSchema<SomePojo> pulsarSchema = PulsarSerializationSchema.pulsarSchema(schema, SomePojo.class);
 
 PulsarSink<String> sink = PulsarSink.builder()
     ...
-    .setSerializationSchema(pulsarSchema)
+    .setSerializationSchema(schema, SomePojo.class)
     .enableSchemaEvolution()
     .build();
 ```
 
 {{< hint warning >}}
-如果想要使用 Pulsar 原生的 Schema 序列化消息而不需要 Schema Evolution 特性，那么写入的 Topic 会使用 `Schema.BYTES` 作为消息的 Schema，对应 Topic 的消费者需要自己负责反序列化的工作。
+如果想要使用 Pulsar 原生的 Schema 序列化消息而不需要 Schema Evolution 特性，那么写入的 Topic 会使用 `Schema.BYTES` 作为消息的 Schema。Pulsar 并不会存储 `Schema.BYTES`，所以通过此方式写入的 Topic 可能不存在 Schema 信息，对应 Topic 的消费者需要自己负责反序列化的工作。
 
-例如，如果使用 `PulsarSerializationSchema.pulsarSchema(Schema.STRING)` 而不使用 `PulsarSinkBuilder.enableSchemaEvolution()`。那么在写入 Topic 中所记录的消息 Schema 将会是 `Schema.BYTES`。
+例如，如果使用 `PulsarSinkBuilder.setSerializationSchema(Schema.STRING)` 而不使用 `PulsarSinkBuilder.enableSchemaEvolution()`。那么在写入 Topic 中所记录的消息 Schema 将会是 `Schema.BYTES`。
 {{< /hint >}}
 
 #### PulsarMessage<byte[]> 类型的消息的校验

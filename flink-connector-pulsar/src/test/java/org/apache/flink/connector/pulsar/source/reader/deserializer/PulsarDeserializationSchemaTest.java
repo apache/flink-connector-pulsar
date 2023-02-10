@@ -27,6 +27,7 @@ import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.PulsarInitializationContext;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.testutils.source.deserialization.TestingDeserializationContext;
 import org.apache.flink.core.memory.DataOutputSerializer;
@@ -38,6 +39,7 @@ import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.function.FunctionWithException;
 
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.MessageImpl;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
@@ -50,6 +52,7 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.util.Preconditions.checkState;
 import static org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,15 +69,16 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     void createFromFlinkDeserializationSchema() throws Exception {
         PulsarDeserializationSchema<String> schema =
                 new PulsarDeserializationSchemaWrapper<>(new SimpleStringSchema());
-        schema.open(new TestingDeserializationContext(), mock(SourceConfiguration.class));
+        schema.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
         assertDoesNotThrow(() -> InstantiationUtil.clone(schema));
 
-        Message<byte[]> message = getMessage("some-sample-message", String::getBytes);
+        String content = "some-sample-message-" + randomAlphabetic(10);
+        Message<byte[]> message = getMessage(content, String::getBytes);
         SingleMessageCollector<String> collector = new SingleMessageCollector<>();
         schema.deserialize(message, collector);
 
         assertNotNull(collector.result);
-        assertEquals(collector.result, "some-sample-message");
+        assertEquals(content, collector.result);
     }
 
     @Test
@@ -82,7 +86,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         Schema<TestMessage> schema1 = PROTOBUF_NATIVE(TestMessage.class);
         PulsarDeserializationSchema<TestMessage> schema2 =
                 new PulsarSchemaWrapper<>(schema1, TestMessage.class);
-        schema2.open(new TestingDeserializationContext(), mock(SourceConfiguration.class));
+        schema2.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
         assertDoesNotThrow(() -> InstantiationUtil.clone(schema2));
 
         TestMessage message1 =
@@ -103,12 +107,13 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     void createFromFlinkTypeInformation() throws Exception {
         PulsarDeserializationSchema<String> schema =
                 new PulsarTypeInformationWrapper<>(Types.STRING, null);
-        schema.open(new TestingDeserializationContext(), mock(SourceConfiguration.class));
+        schema.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
         assertDoesNotThrow(() -> InstantiationUtil.clone(schema));
 
+        String content = "test-content-" + randomAlphanumeric(10);
         Message<byte[]> message =
                 getMessage(
-                        "test-content",
+                        content,
                         s -> {
                             DataOutputSerializer serializer = new DataOutputSerializer(10);
                             StringValue.writeString(s, serializer);
@@ -118,7 +123,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         schema.deserialize(message, collector);
 
         assertNotNull(collector.result);
-        assertEquals(collector.result, "test-content");
+        assertEquals(content, collector.result);
     }
 
     @Test
@@ -386,6 +391,15 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         @Override
         public void close() {
             // do nothing
+        }
+    }
+
+    private class PulsarTestingDeserializationContext extends TestingDeserializationContext
+            implements PulsarInitializationContext {
+
+        @Override
+        public PulsarClient getPulsarClient() {
+            return operator().client();
         }
     }
 }

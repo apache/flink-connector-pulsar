@@ -26,6 +26,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * The base class for the all Pulsar related test sites. It brings up:
  *
@@ -48,7 +51,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public abstract class PulsarTestSuiteBase {
 
     @RegisterExtension
-    final PulsarTestEnvironment environment = new PulsarTestEnvironment(runtime());
+    final PulsarTestEnvironment environment =
+            new PulsarTestEnvironment(runtime().setConfigs(runtimeConfigs()));
 
     /**
      * Choose the desired pulsar runtime as the test backend. The default test backend is a
@@ -61,5 +65,10 @@ public abstract class PulsarTestSuiteBase {
     /** Operate pulsar by acquiring a runtime operator. */
     protected PulsarRuntimeOperator operator() {
         return environment.operator();
+    }
+
+    /** Override the default runtime configuration. */
+    protected Map<String, String> runtimeConfigs() {
+        return Collections.emptyMap();
     }
 }

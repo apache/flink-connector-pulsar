@@ -18,31 +18,22 @@
 
 package org.apache.flink.connector.pulsar.common.schema.factories;
 
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
-import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaFactory;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.schema.StringSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 
 /** The schema factory for pulsar's {@link StringSchema}. */
-public class StringSchemaFactory implements PulsarSchemaFactory<String> {
+public class StringSchemaFactory extends PrimitiveSchemaFactory<String> {
 
-    @Override
-    public SchemaType type() {
-        return SchemaType.STRING;
+    public StringSchemaFactory() {
+        super(Schema.STRING, Types.STRING);
     }
 
     @Override
     public Schema<String> createSchema(SchemaInfo info) {
         // SchemaInfo contains the string encode type.
         return StringSchema.fromSchemaInfo(info);
-    }
-
-    @Override
-    public TypeInformation<String> createTypeInfo(SchemaInfo info) {
-        return Types.STRING;
     }
 }

@@ -26,6 +26,7 @@ import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -40,6 +41,11 @@ public class PulsarSingletonRuntime implements PulsarRuntime {
     private static final PulsarContainerRuntime container = new PulsarContainerRuntime();
     private static final AtomicReference<RuntimeStatus> status =
             new AtomicReference<>(RuntimeStatus.STOPPED);
+
+    @Override
+    public PulsarRuntime setConfigs(Map<String, String> configs) {
+        return container.setConfigs(configs);
+    }
 
     @Override
     public void startUp() {

@@ -226,7 +226,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         return topicName;
     }
 
-    private PulsarSourceReader<Integer> sourceReader() {
+    private PulsarSourceReader<Integer> sourceReader() throws Exception {
         Configuration configuration = operator().config();
 
         configuration.set(PULSAR_MAX_FETCH_RECORDS, 1);
@@ -239,7 +239,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         SourceReaderContext context = new TestingReaderContext();
         try {
             deserializationSchema.open(
-                    new PulsarDeserializationSchemaInitializationContext(context),
+                    new PulsarDeserializationSchemaInitializationContext(
+                            context, operator().client()),
                     mock(SourceConfiguration.class));
         } catch (Exception e) {
             fail("Error while opening deserializationSchema");

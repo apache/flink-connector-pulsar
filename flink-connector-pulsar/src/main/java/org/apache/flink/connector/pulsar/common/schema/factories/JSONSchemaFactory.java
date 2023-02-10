@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.common.schema.factories;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.AvroUtils;
+import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaFactory;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.schema.JSONSchema;
@@ -29,7 +30,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import static org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils.decodeClassInfo;
 
 /** The schema factory for pulsar's {@link JSONSchema}. */
-public class JSONSchemaFactory<T> extends BaseStructSchemaFactory<T> {
+public class JSONSchemaFactory<T> implements PulsarSchemaFactory<T> {
 
     @Override
     public SchemaType type() {
@@ -48,7 +49,7 @@ public class JSONSchemaFactory<T> extends BaseStructSchemaFactory<T> {
             Class<T> decodeClassInfo = decodeClassInfo(info);
             return AvroUtils.getAvroUtils().createAvroTypeInfo(decodeClassInfo);
         } catch (Exception e) {
-            return super.createTypeInfo(info);
+            return PulsarSchemaFactory.super.createTypeInfo(info);
         }
     }
 }

@@ -73,18 +73,6 @@ public interface StartCursor extends Serializable {
         return new MessageIdStartCursor(messageId, inclusive);
     }
 
-    /**
-     * This method is designed for seeking message from event time. But Pulsar didn't support
-     * seeking from message time, instead, it would seek the position from publish time. We only
-     * keep this method for backward compatible.
-     *
-     * @deprecated Use {@link #fromPublishTime(long)} instead.
-     */
-    @Deprecated
-    static StartCursor fromMessageTime(long timestamp) {
-        return new TimestampStartCursor(timestamp, true);
-    }
-
     /** Seek the start position by using message publish time. */
     static StartCursor fromPublishTime(long timestamp) {
         return new TimestampStartCursor(timestamp, true);
