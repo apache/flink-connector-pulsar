@@ -339,6 +339,8 @@ Pulsar Source 使用 `setStartCursor(StartCursor)` 方法给定开始消费的�
   {{< /tab >}}
   {{< /tabs >}}
 
+`StartCursor` 仅用于创建订阅的初始位置，消费初始位置的优先级顺序为：检查点 > 已有订阅里的起始位置 > `StartCursor`。但有时候，用户想一直使用 `StartCursor` 给定的位置作为起始消费的位置。此时，你可以通过启用 `pulsar.source.resetSubscriptionCursor` 配置项，并不基于 checkpoint 对应的文件启动程序来实现对应的诉求。需要注意的是，checkpoint 中给定的消费位置永远是最高优先级的。
+
 {{< hint info >}}
 每条消息都有一个固定的序列号，这个序列号在 Pulsar 上有序排列，其包含了 ledger、entry、partition 等原始信息，用于在 Pulsar 底层存储上查找到具体的消息。
 

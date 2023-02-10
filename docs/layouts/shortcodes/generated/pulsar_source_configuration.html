@@ -63,6 +63,12 @@
             <td>The interval (in ms) for the Pulsar source to discover the new partitions. A non-positive value disables the partition discovery.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.source.resetSubscriptionCursor</h5></td>
+            <td style="word-wrap: break-word;">false</td>
+            <td>Boolean</td>
+            <td>The <code class="highlighter-rouge">StartCursor</code> in connector is used to create the initial subscription. Enable this option will reset the start cursor in subscription by using <code class="highlighter-rouge">StartCursor</code> everytime you start the application without the checkpoint.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.source.verifyInitialOffsets</h5></td>
             <td style="word-wrap: break-word;">WARN_ON_MISMATCH</td>
             <td><p>Enum</p></td>

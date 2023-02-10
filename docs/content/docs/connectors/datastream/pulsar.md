@@ -398,6 +398,12 @@ You can use `StartCursor.fromPublishTime(long)` instead.
   {{< /tab >}}
   {{< /tabs >}}
 
+The `StartCursor` is used when the corresponding subscription is not created in Pulsar by default.
+The priority of the consumption start position is, checkpoint > existed subscription position > `StartCursor`.
+Sometimes, the end user may want to force the start position by using `StartCursor`. You should enable the `pulsar.source.resetSubscriptionCursor`
+option and start the pipeline without the saved checkpoint files.
+It is important to note that the given consumption position in the checkpoint is always the highest priority.
+
 {{< hint info >}}
 Each Pulsar message belongs to an ordered sequence on its topic.
 The sequence ID (`MessageId`) of the message is ordered in that sequence.
