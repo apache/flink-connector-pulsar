@@ -216,6 +216,22 @@ public final class PulsarSourceOptions {
                                             code(PULSAR_STATS_INTERVAL_SECONDS.key()))
                                     .build());
 
+    public static final ConfigOption<Boolean> PULSAR_RESET_SUBSCRIPTION_CURSOR =
+            ConfigOptions.key(SOURCE_CONFIG_PREFIX + "resetSubscriptionCursor")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "The %s in connector is used to create the initial subscription.",
+                                            code("StartCursor"))
+                                    .text(
+                                            " Enable this option will reset the start cursor in subscription")
+                                    .text(
+                                            " by using %s everytime you start the application without the checkpoint.",
+                                            code("StartCursor"))
+                                    .build());
+
     ///////////////////////////////////////////////////////////////////////////////
     //
     // The configuration for ConsumerConfigurationData part.

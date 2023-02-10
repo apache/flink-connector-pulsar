@@ -215,13 +215,17 @@ public class PulsarSourceEnumerator
     /** Create subscription on topic partition if it doesn't exist. */
     private void createSubscription(List<TopicPartition> newPartitions) {
         for (TopicPartition partition : newPartitions) {
-            String topicName = partition.getFullTopicName();
+            String topic = partition.getFullTopicName();
             String subscriptionName = sourceConfiguration.getSubscriptionName();
             CursorPosition position =
                     startCursor.position(partition.getTopic(), partition.getPartitionId());
 
-            sneakyAdmin(
-                    () -> position.createInitialPosition(pulsarAdmin, topicName, subscriptionName));
+            if (sourceConfiguration.isResetSubscriptionCursor()) {
+                sneakyAdmin(() -> position.seekPosition(pulsarAdmin, topic, subscriptionName));
+            } else {
+                sneakyAdmin(
+                        () -> position.createInitialPosition(pulsarAdmin, topic, subscriptionName));
+            }
         }
     }
 

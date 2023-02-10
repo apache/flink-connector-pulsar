@@ -44,6 +44,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_SCHEMA_EVOLUTION;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_RESET_SUBSCRIPTION_CURSOR;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_MODE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_VERIFY_INITIAL_OFFSETS;
@@ -66,6 +67,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final boolean allowKeySharedOutOfOrderDelivery;
     private final boolean enableSchemaEvolution;
     private final boolean enableMetrics;
+    private final boolean resetSubscriptionCursor;
 
     public SourceConfiguration(Configuration configuration) {
         super(configuration);
@@ -84,6 +86,7 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.enableSchemaEvolution = get(PULSAR_READ_SCHEMA_EVOLUTION);
         this.enableMetrics =
                 get(PULSAR_ENABLE_SOURCE_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
+        this.resetSubscriptionCursor = get(PULSAR_RESET_SUBSCRIPTION_CURSOR);
     }
 
     /** The capacity of the element queue in the source reader. */
@@ -196,6 +199,11 @@ public class SourceConfiguration extends PulsarConfiguration {
         return enableMetrics;
     }
 
+    /** Whether to reset the start cursor in subscription. */
+    public boolean isResetSubscriptionCursor() {
+        return resetSubscriptionCursor;
+    }
+
     /** Convert the subscription into a readable str. */
     public String getSubscriptionDesc() {
         return getSubscriptionName() + "(Exclusive," + getSubscriptionMode() + ")";
@@ -225,7 +233,8 @@ public class SourceConfiguration extends PulsarConfiguration {
                 && subscriptionMode == that.subscriptionMode
                 && allowKeySharedOutOfOrderDelivery == that.allowKeySharedOutOfOrderDelivery
                 && enableSchemaEvolution == that.enableSchemaEvolution
-                && enableMetrics == that.enableMetrics;
+                && enableMetrics == that.enableMetrics
+                && resetSubscriptionCursor == that.resetSubscriptionCursor;
     }
 
     @Override
@@ -244,6 +253,7 @@ public class SourceConfiguration extends PulsarConfiguration {
                 subscriptionMode,
                 allowKeySharedOutOfOrderDelivery,
                 enableSchemaEvolution,
-                enableMetrics);
+                enableMetrics,
+                resetSubscriptionCursor);
     }
 }
