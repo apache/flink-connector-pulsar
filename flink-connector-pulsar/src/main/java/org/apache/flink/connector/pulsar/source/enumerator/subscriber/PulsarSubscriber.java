@@ -25,6 +25,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 
 import java.io.Serializable;
@@ -50,13 +51,21 @@ public interface PulsarSubscriber extends Serializable {
      * Get a set of subscribed {@link TopicPartition}s. The method could throw {@link
      * IllegalStateException}, an extra try catch is required.
      *
-     * @param pulsarAdmin The admin interface used to retrieve subscribed topic partitions.
-     * @param rangeGenerator The range for different partitions.
+     * @param generator The range for different partitions.
      * @param parallelism The parallelism of flink source.
      * @return A subscribed {@link TopicPartition} for each pulsar topic partition.
      */
-    Set<TopicPartition> getSubscribedTopicPartitions(
-            PulsarAdmin pulsarAdmin, RangeGenerator rangeGenerator, int parallelism);
+    @SuppressWarnings("java:S112")
+    Set<TopicPartition> getSubscribedTopicPartitions(RangeGenerator generator, int parallelism)
+            throws Exception;
+
+    /**
+     * Initialize the topic subscriber.
+     *
+     * @param client The client interface for querying the topics by regex pattern.
+     * @param admin The admin interface used to retrieve subscribed topic partitions.
+     */
+    void open(PulsarClient client, PulsarAdmin admin);
 
     // ----------------- factory methods --------------
 

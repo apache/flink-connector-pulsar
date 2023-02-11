@@ -35,6 +35,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.SourceReaderMetricGroup;
+import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
@@ -50,6 +51,7 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.slf4j.Logger;
@@ -78,7 +80,6 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_BYTES_RECEIVED;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_MSGS_RECEIVED;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_RECEIVED_FAILED;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.source.config.CursorVerification.FAIL_ON_MISMATCH;
 import static org.apache.flink.connector.pulsar.source.config.PulsarSourceConfigUtils.createConsumerBuilder;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.isFullTopicRanges;
@@ -231,7 +232,11 @@ public class PulsarPartitionSplitReader
         }
 
         // Create pulsar consumer.
-        this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
+        try {
+            this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
+        } catch (PulsarClientException e) {
+            throw new FlinkRuntimeException(e);
+        }
 
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
     }
@@ -258,24 +263,26 @@ public class PulsarPartitionSplitReader
     }
 
     @Override
-    public void close() {
+    public void close() throws PulsarClientException {
         if (pulsarConsumer != null) {
-            sneakyClient(() -> pulsarConsumer.close());
+            pulsarConsumer.close();
         }
     }
 
-    public void notifyCheckpointComplete(TopicPartition partition, MessageId offsetsToCommit) {
+    public void notifyCheckpointComplete(TopicPartition partition, MessageId offsetsToCommit)
+            throws PulsarClientException {
         if (pulsarConsumer == null) {
             this.pulsarConsumer = createPulsarConsumer(partition);
         }
 
-        sneakyClient(() -> pulsarConsumer.acknowledgeCumulative(offsetsToCommit));
+        pulsarConsumer.acknowledgeCumulative(offsetsToCommit);
     }
 
     // --------------------------- Helper Methods -----------------------------
 
     /** Create a specified {@link Consumer} by the given topic partition. */
-    private Consumer<byte[]> createPulsarConsumer(TopicPartition partition) {
+    private Consumer<byte[]> createPulsarConsumer(TopicPartition partition)
+            throws PulsarClientException {
         ConsumerBuilder<byte[]> consumerBuilder =
                 createConsumerBuilder(pulsarClient, schema, sourceConfiguration);
 
@@ -304,7 +311,7 @@ public class PulsarPartitionSplitReader
         }
 
         // Create the consumer configuration by using common utils.
-        Consumer<byte[]> consumer = sneakyClient(consumerBuilder::subscribe);
+        Consumer<byte[]> consumer = consumerBuilder.subscribe();
 
         // Exposing the consumer metrics.
         exposeConsumerMetrics(consumer);

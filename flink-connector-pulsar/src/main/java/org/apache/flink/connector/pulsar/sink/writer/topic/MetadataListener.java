@@ -36,6 +36,7 @@ import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 import org.slf4j.Logger;
@@ -99,7 +100,8 @@ public class MetadataListener implements Serializable, Closeable {
     }
 
     /** Register the topic metadata update action in process time service. */
-    public void open(SinkConfiguration sinkConfiguration, ProcessingTimeService timeService) {
+    public void open(SinkConfiguration sinkConfiguration, ProcessingTimeService timeService)
+            throws PulsarClientException {
         // Initialize listener properties.
         this.pulsarAdmin = createAdmin(sinkConfiguration);
         this.topicMetadataRefreshInterval = sinkConfiguration.getTopicMetadataRefreshInterval();

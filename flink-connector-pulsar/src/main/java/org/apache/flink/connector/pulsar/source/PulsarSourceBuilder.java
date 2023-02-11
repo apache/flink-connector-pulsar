@@ -619,7 +619,7 @@ public final class PulsarSourceBuilder<OUT> {
 
     private void ensureSchemaTypeIsValid(Schema<?> schema) {
         SchemaInfo info = schema.getSchemaInfo();
-        if (info.getType() == SchemaType.AUTO_CONSUME || info.getType() == SchemaType.AUTO) {
+        if (info.getType() == SchemaType.AUTO_CONSUME) {
             throw new IllegalArgumentException(
                     "Auto schema is only supported by providing a GenericRecordDeserializer");
         }

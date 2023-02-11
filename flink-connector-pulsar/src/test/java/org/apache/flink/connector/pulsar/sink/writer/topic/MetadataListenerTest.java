@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MetadataListenerTest extends PulsarTestSuiteBase {
 
     @Test
-    void listenEmptyTopics() {
+    void listenEmptyTopics() throws Exception {
         MetadataListener listener = new MetadataListener();
         SinkConfiguration configuration = sinkConfiguration(Duration.ofMinutes(5).toMillis());
         TestProcessingTimeService timeService = new TestProcessingTimeService();
@@ -80,7 +80,7 @@ class MetadataListenerTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void fetchTopicPartitionInformation() {
+    void fetchTopicPartitionInformation() throws Exception {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
 
@@ -128,7 +128,7 @@ class MetadataListenerTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void fetchNonPartitionTopic() {
+    void fetchNonPartitionTopic() throws Exception {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 0);
         List<TopicPartition> nonPartitionTopic = singletonList(new TopicPartition(topic));

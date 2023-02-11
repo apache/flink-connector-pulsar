@@ -127,7 +127,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void primitiveStringPulsarSchema() {
+    void primitiveStringPulsarSchema() throws Exception {
         final String topicName =
                 "primitiveString-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);
@@ -143,7 +143,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void unversionedJsonStructPulsarSchema() {
+    void unversionedJsonStructPulsarSchema() throws Exception {
         final String topicName =
                 "unversionedJsonStruct-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);
@@ -162,7 +162,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void keyValueJsonStructPulsarSchema() {
+    void keyValueJsonStructPulsarSchema() throws Exception {
         final String topicName =
                 "keyValueJsonStruct-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);
@@ -187,7 +187,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void keyValueAvroStructPulsarSchema() {
+    void keyValueAvroStructPulsarSchema() throws Exception {
         final String topicName =
                 "keyValueAvroStruct-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);
@@ -212,7 +212,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void keyValuePrimitivePulsarSchema() {
+    void keyValuePrimitivePulsarSchema() throws Exception {
         final String topicName =
                 "keyValuePrimitive-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);
@@ -233,7 +233,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void keyValuePrimitiveKeyStructValuePulsarSchema() {
+    void keyValuePrimitiveKeyStructValuePulsarSchema() throws Exception {
         final String topicName =
                 "primitiveKeyStructValue-"
                         + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
@@ -256,7 +256,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void keyValueStructKeyPrimitiveValuePulsarSchema() {
+    void keyValueStructKeyPrimitiveValuePulsarSchema() throws Exception {
         final String topicName =
                 "structKeyPrimitiveValue-"
                         + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
@@ -279,7 +279,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void simpleFlinkSchema() {
+    void simpleFlinkSchema() throws Exception {
         final String topicName =
                 "simpleFlinkSchema-" + ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
         operator().createTopic(topicName, 1);

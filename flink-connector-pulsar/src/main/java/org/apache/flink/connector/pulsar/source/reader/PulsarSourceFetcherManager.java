@@ -32,6 +32,7 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,20 +106,25 @@ public class PulsarSourceFetcherManager
         }
     }
 
-    public void acknowledgeMessages(Map<TopicPartition, MessageId> cursorsToCommit) {
+    public void acknowledgeMessages(Map<TopicPartition, MessageId> cursorsToCommit)
+            throws PulsarClientException {
         LOG.debug("Acknowledge messages {}", cursorsToCommit);
-        cursorsToCommit.forEach(
-                (partition, messageId) -> {
-                    SplitFetcher<Message<byte[]>, PulsarPartitionSplit> fetcher =
-                            getOrCreateFetcher(partition.toString());
-                    triggerAcknowledge(fetcher, partition, messageId);
-                });
+
+        for (Map.Entry<TopicPartition, MessageId> entry : cursorsToCommit.entrySet()) {
+            TopicPartition partition = entry.getKey();
+            MessageId messageId = entry.getValue();
+
+            SplitFetcher<Message<byte[]>, PulsarPartitionSplit> fetcher =
+                    getOrCreateFetcher(partition.toString());
+            triggerAcknowledge(fetcher, partition, messageId);
+        }
     }
 
     private void triggerAcknowledge(
             SplitFetcher<Message<byte[]>, PulsarPartitionSplit> splitFetcher,
             TopicPartition partition,
-            MessageId messageId) {
+            MessageId messageId)
+            throws PulsarClientException {
         PulsarPartitionSplitReader splitReader =
                 (PulsarPartitionSplitReader) splitFetcher.getSplitReader();
         splitReader.notifyCheckpointComplete(partition, messageId);

@@ -23,11 +23,10 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.naming.TopicName;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -55,26 +54,21 @@ public class TopicListSubscriber extends BasePulsarSubscriber {
 
     @Override
     public Set<TopicPartition> getSubscribedTopicPartitions(
-            PulsarAdmin pulsarAdmin, RangeGenerator rangeGenerator, int parallelism) {
-        Set<TopicPartition> results = new HashSet<>();
+            RangeGenerator generator, int parallelism) throws PulsarAdminException {
 
         // Query topics from Pulsar.
-        for (String topic : fullTopicNames) {
-            TopicMetadata metadata = queryTopicMetadata(pulsarAdmin, topic);
-            List<TopicRange> ranges = rangeGenerator.range(metadata, parallelism);
+        Set<TopicPartition> results = createTopicPartitions(fullTopicNames, generator, parallelism);
 
-            results.addAll(toTopicPartitions(metadata, ranges));
-        }
-
+        // Query partitions from Pulsar.
         for (String partition : partitions) {
             TopicName topicName = TopicName.get(partition);
             String name = topicName.getPartitionedTopicName();
             int index = topicName.getPartitionIndex();
-
-            TopicMetadata metadata = queryTopicMetadata(pulsarAdmin, name);
-            List<TopicRange> ranges = rangeGenerator.range(metadata, parallelism);
-
-            results.add(new TopicPartition(name, index, ranges));
+            TopicMetadata metadata = queryTopicMetadata(name);
+            if (metadata != null) {
+                List<TopicRange> ranges = generator.range(metadata, parallelism);
+                results.add(new TopicPartition(name, index, ranges));
+            }
         }
 
         return results;

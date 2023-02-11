@@ -15,6 +15,7 @@ import org.apache.flink.connector.pulsar.testutils.sink.reader.PulsarPartitionDa
 import org.apache.flink.connector.testframe.external.ExternalSystemDataReader;
 import org.apache.flink.connector.testframe.external.sink.DataStreamSinkV2ExternalContext;
 import org.apache.flink.connector.testframe.external.sink.TestingSinkSettings;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.flink.shaded.guava30.com.google.common.io.Closer;
 
@@ -55,7 +56,11 @@ public abstract class PulsarSinkTestContext extends PulsarTestContext<String>
         // Create the topic if it needs.
         if (creatTopic()) {
             for (String topic : topics) {
-                operator.createTopic(topic, 4);
+                try {
+                    operator.createTopic(topic, 4);
+                } catch (Exception e) {
+                    throw new FlinkRuntimeException(e);
+                }
             }
         }
 

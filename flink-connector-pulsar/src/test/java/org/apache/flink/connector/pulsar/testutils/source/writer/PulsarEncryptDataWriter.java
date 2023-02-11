@@ -21,11 +21,13 @@ package org.apache.flink.connector.pulsar.testutils.source.writer;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalSystemSplitDataWriter;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.ProducerCryptoFailureAction;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
@@ -34,7 +36,6 @@ import org.apache.pulsar.common.api.proto.MessageMetadata;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.pulsar.client.api.ProducerAccessMode.Shared;
 
 /** Encrypt the messages with the given public key and send the message to Pulsar. */
@@ -67,15 +68,23 @@ public class PulsarEncryptDataWriter<T> implements ExternalSystemSplitDataWriter
             conf.setMessageCrypto(messageCrypto);
         }
 
-        this.producer = sneakyClient(builder::create);
+        try {
+            this.producer = builder.create();
+        } catch (PulsarClientException e) {
+            throw new FlinkRuntimeException(e);
+        }
     }
 
     @Override
     public void writeRecords(List<T> records) {
-        for (T record : records) {
-            sneakyClient(() -> producer.newMessage().value(record).send());
+        try {
+            for (T record : records) {
+                producer.newMessage().value(record).send();
+            }
+            producer.flush();
+        } catch (PulsarClientException e) {
+            throw new FlinkRuntimeException(e);
         }
-        sneakyClient(producer::flush);
     }
 
     @Override

@@ -101,7 +101,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     }
 
     @Override
-    public void startUp() {
+    public void startUp() throws Exception {
         if (!started.compareAndSet(false, true)) {
             LOG.warn("You have started the Pulsar Container. We will skip this execution.");
             return;
@@ -144,16 +144,12 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     }
 
     @Override
-    public void tearDown() {
-        try {
-            if (operator != null) {
-                operator.close();
-            }
-            container.stop();
-            started.compareAndSet(true, false);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
+    public void tearDown() throws Exception {
+        if (operator != null) {
+            operator.close();
         }
+        container.stop();
+        started.compareAndSet(true, false);
     }
 
     @Override

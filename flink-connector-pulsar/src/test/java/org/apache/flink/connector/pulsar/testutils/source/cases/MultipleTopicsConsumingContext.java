@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.testutils.source.cases;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.source.PulsarSourceTestContext;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
@@ -30,7 +31,8 @@ import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNam
  */
 public class MultipleTopicsConsumingContext extends PulsarSourceTestContext {
 
-    private final String topicPrefix = "flink-multiple-topic-" + randomAlphabetic(8) + "-";
+    private final String topicPrefix =
+            "public/default/flink-multiple-topic-" + randomAlphabetic(8) + "-";
 
     private int index = 0;
 
@@ -45,7 +47,7 @@ public class MultipleTopicsConsumingContext extends PulsarSourceTestContext {
 
     @Override
     protected String topicPattern() {
-        return topicPrefix + ".+";
+        return topicPrefix + "\\d+";
     }
 
     @Override
@@ -56,7 +58,11 @@ public class MultipleTopicsConsumingContext extends PulsarSourceTestContext {
     @Override
     protected String generatePartitionName() {
         String topic = topicPrefix + index;
-        operator.createTopic(topic, 1);
+        try {
+            operator.createTopic(topic, 1);
+        } catch (Exception e) {
+            throw new FlinkRuntimeException(e);
+        }
         index++;
 
         return topicNameWithPartition(topic, 0);

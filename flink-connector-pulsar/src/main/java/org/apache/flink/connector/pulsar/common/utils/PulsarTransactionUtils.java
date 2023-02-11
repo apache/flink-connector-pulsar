@@ -19,21 +19,17 @@
 package org.apache.flink.connector.pulsar.common.utils;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.unwrap;
 
 /** A suit of workarounds for the Pulsar Transaction. */
 @Internal
@@ -44,19 +40,19 @@ public final class PulsarTransactionUtils {
     }
 
     /** Create transaction with given timeout millis. */
-    public static Transaction createTransaction(PulsarClient pulsarClient, long timeoutMs) {
+    public static Transaction createTransaction(PulsarClient pulsarClient, long timeoutMs)
+            throws PulsarClientException {
         try {
-            CompletableFuture<Transaction> future =
-                    sneakyClient(pulsarClient::newTransaction)
-                            .withTransactionTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                            .build();
-
-            return future.get();
+            return pulsarClient
+                    .newTransaction()
+                    .withTransactionTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                    .build()
+                    .get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (ExecutionException e) {
-            throw new FlinkRuntimeException(unwrap(e));
+            throw new PulsarClientException(e);
+        } catch (Exception e) {
+            throw PulsarClientException.unwrap(e);
         }
     }
 

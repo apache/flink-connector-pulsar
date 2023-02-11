@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.testutils.sink.reader;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalSystemDataReader;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -44,7 +45,6 @@ import java.util.List;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 
 /** The data reader for a specified topic partition from Pulsar. */
 public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>, Closeable {
@@ -52,7 +52,6 @@ public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionDataReader.class);
 
     private final Consumer<T> consumer;
-    private final PulsarRuntimeOperator operator;
 
     public PulsarPartitionDataReader(
             PulsarRuntimeOperator operator, List<String> topics, Schema<T> schema) {
@@ -87,8 +86,11 @@ public class PulsarPartitionDataReader<T> implements ExternalSystemDataReader<T>
             }
         }
 
-        this.consumer = sneakyClient(builder::subscribe);
-        this.operator = operator;
+        try {
+            this.consumer = builder.subscribe();
+        } catch (PulsarClientException e) {
+            throw new FlinkRuntimeException(e);
+        }
     }
 
     @Override

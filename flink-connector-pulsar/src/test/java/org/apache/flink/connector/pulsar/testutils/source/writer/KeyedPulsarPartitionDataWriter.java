@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.testutils.source.writer;
 
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalSystemSplitDataWriter;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.Schema;
 
@@ -51,12 +52,16 @@ public class KeyedPulsarPartitionDataWriter implements ExternalSystemSplitDataWr
 
     @Override
     public void writeRecords(List<String> records) {
-        // Send messages with the key we don't need.
-        List<String> newRecords = records.stream().map(a -> a + keyToRead).collect(toList());
-        operator.sendMessages(fullTopicName, Schema.STRING, keyToExclude, newRecords);
+        try {
+            // Send messages with the key we don't need.
+            List<String> newRecords = records.stream().map(a -> a + keyToRead).collect(toList());
+            operator.sendMessages(fullTopicName, Schema.STRING, keyToExclude, newRecords);
 
-        // Send messages with the given key.
-        operator.sendMessages(fullTopicName, Schema.STRING, keyToRead, records);
+            // Send messages with the given key.
+            operator.sendMessages(fullTopicName, Schema.STRING, keyToRead, records);
+        } catch (Exception e) {
+            throw new FlinkRuntimeException(e);
+        }
     }
 
     @Override

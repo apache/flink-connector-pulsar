@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -53,7 +52,7 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
     @ParameterizedTest
     @EnumSource(DeliveryGuarantee.class)
     void createMessageBuilderForSendingMessage(DeliveryGuarantee deliveryGuarantee)
-            throws IOException {
+            throws Exception {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
 
@@ -83,7 +82,8 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
     @EnumSource(
             value = DeliveryGuarantee.class,
             names = {"AT_LEAST_ONCE", "NONE"})
-    void noneAndAtLeastOnceWouldNotCreateTransaction(DeliveryGuarantee deliveryGuarantee) {
+    void noneAndAtLeastOnceWouldNotCreateTransaction(DeliveryGuarantee deliveryGuarantee)
+            throws Exception {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
 

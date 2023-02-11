@@ -37,6 +37,7 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.ProducerStats;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.Transaction;
@@ -85,7 +86,6 @@ import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_BYTES_SENT;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_MSGS_SENT;
 import static org.apache.flink.connector.pulsar.common.metrics.MetricNames.TOTAL_SEND_FAILED;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.createTransaction;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.getTcClient;
 import static org.apache.flink.connector.pulsar.sink.config.PulsarSinkConfigUtils.createProducerBuilder;
@@ -112,7 +112,8 @@ public class ProducerRegister implements Closeable {
     public ProducerRegister(
             SinkConfiguration sinkConfiguration,
             PulsarCrypto pulsarCrypto,
-            SinkWriterMetricGroup metricGroup) {
+            SinkWriterMetricGroup metricGroup)
+            throws PulsarClientException {
         this.pulsarClient = createClient(sinkConfiguration);
         this.sinkConfiguration = sinkConfiguration;
         this.pulsarCrypto = pulsarCrypto;
@@ -143,8 +144,8 @@ public class ProducerRegister implements Closeable {
      * have to manually create it.
      */
     @SuppressWarnings("unchecked")
-    public <T> TypedMessageBuilder<T> createMessageBuilder(
-            String topic, @Nullable Schema<?> schema) {
+    public <T> TypedMessageBuilder<T> createMessageBuilder(String topic, @Nullable Schema<?> schema)
+            throws PulsarClientException {
         if (schema == null || schema.getSchemaInfo().getType() == SchemaType.BYTES) {
             schema = getBytesSchema(topic);
         }
@@ -209,7 +210,8 @@ public class ProducerRegister implements Closeable {
 
     /** Create or return the cached topic-related producer. */
     @SuppressWarnings("unchecked")
-    private <T> Producer<T> getOrCreateProducer(String topic, Schema<T> schema) {
+    private <T> Producer<T> getOrCreateProducer(String topic, Schema<T> schema)
+            throws PulsarClientException {
         Map<SchemaHash, Producer<?>> set = producers.computeIfAbsent(topic, t -> new HashMap<>());
         SchemaHash hash = PulsarSchemaUtils.hash(schema);
         if (set.containsKey(hash)) {
@@ -241,7 +243,7 @@ public class ProducerRegister implements Closeable {
         // Set the sending counter for metrics.
         builder.intercept(new ProducerMetricsInterceptor(metricGroup));
 
-        Producer<T> producer = sneakyClient(builder::create);
+        Producer<T> producer = builder.create();
 
         // Expose the stats for calculating and monitoring.
         exposeProducerMetrics(producer);
@@ -280,13 +282,16 @@ public class ProducerRegister implements Closeable {
     /**
      * Get the cached topic-related transaction. Or create a new transaction after checkpointing.
      */
-    private Transaction getOrCreateTransaction(String topic) {
-        return transactions.computeIfAbsent(
-                topic,
-                t -> {
-                    long timeoutMillis = sinkConfiguration.getTransactionTimeoutMillis();
-                    return createTransaction(pulsarClient, timeoutMillis);
-                });
+    private Transaction getOrCreateTransaction(String topic) throws PulsarClientException {
+        if (transactions.containsKey(topic)) {
+            return transactions.get(topic);
+        }
+
+        long timeoutMillis = sinkConfiguration.getTransactionTimeoutMillis();
+        Transaction transaction = createTransaction(pulsarClient, timeoutMillis);
+        transactions.put(topic, transaction);
+
+        return transaction;
     }
 
     /**

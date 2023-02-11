@@ -38,6 +38,8 @@ import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializat
 import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
+import org.apache.pulsar.client.api.PulsarClientException;
+
 import javax.annotation.Nullable;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -128,7 +130,8 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
 
     @Internal
     @Override
-    public PrecommittingSinkWriter<IN, PulsarCommittable> createWriter(InitContext initContext) {
+    public PrecommittingSinkWriter<IN, PulsarCommittable> createWriter(InitContext initContext)
+            throws PulsarClientException {
         return new PulsarWriter<>(
                 sinkConfiguration,
                 serializationSchema,
