@@ -52,7 +52,7 @@ public abstract class PulsarTestSuiteBase {
 
     @RegisterExtension
     final PulsarTestEnvironment environment =
-            new PulsarTestEnvironment(runtime().setConfigs(runtimeConfigs()));
+            new PulsarTestEnvironment(runtime().withConfigs(runtimeConfigs()));
 
     /**
      * Choose the desired pulsar runtime as the test backend. The default test backend is a

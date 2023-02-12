@@ -41,6 +41,7 @@ import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BA
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_PUBLISH_DELAY_MICROS;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_PARTITION_SWITCH_FREQUENCY_BY_PUBLISH_DELAY;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_CHUNKING_ENABLED;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_CHUNK_MAX_MESSAGE_SIZE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_COMPRESSION_TYPE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_INITIAL_SEQUENCE_ID;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_PRODUCER_CRYPTO_FAILURE_ACTION;
@@ -88,6 +89,7 @@ public final class PulsarSinkConfigUtils {
         configuration.useOption(PULSAR_BATCHING_MAX_BYTES, builder::batchingMaxBytes);
         configuration.useOption(PULSAR_BATCHING_ENABLED, builder::enableBatching);
         configuration.useOption(PULSAR_CHUNKING_ENABLED, builder::enableChunking);
+        configuration.useOption(PULSAR_CHUNK_MAX_MESSAGE_SIZE, builder::chunkMaxMessageSize);
         configuration.useOption(PULSAR_COMPRESSION_TYPE, builder::compressionType);
         configuration.useOption(PULSAR_INITIAL_SEQUENCE_ID, builder::initialSequenceId);
         configuration.useOption(

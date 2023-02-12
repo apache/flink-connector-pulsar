@@ -137,6 +137,27 @@ public final class PulsarOptions {
                                             " If the operation is not completed during this interval, the operation will be marked as failed.")
                                     .build());
 
+    public static final ConfigOption<Integer> PULSAR_LOOKUP_TIMEOUT_MS =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "lookupTimeoutMs")
+                    .intType()
+                    .defaultValue(-1)
+                    .withDescription(
+                            Description.builder()
+                                    .text("Client lookup timeout (in milliseconds).")
+                                    .linebreak()
+                                    .text(
+                                            "Lookup operations have a different load pattern to other operations.")
+                                    .text(
+                                            " They can be handled by any broker, are not proportional to throughput, and are harmless to retry.")
+                                    .text(
+                                            " Given this, it makes sense to allow them to retry longer than normal operation, especially if they experience a timeout.")
+                                    .linebreak()
+                                    .text(
+                                            "By default, this is set to match operation timeout. This is to maintain legacy behaviour.")
+                                    .text(
+                                            " However, in practice it should be set to 5-10x the operation timeout.")
+                                    .build());
+
     public static final ConfigOption<Long> PULSAR_STATS_INTERVAL_SECONDS =
             ConfigOptions.key(CLIENT_CONFIG_PREFIX + "statsIntervalSeconds")
                     .longType()
@@ -191,6 +212,18 @@ public final class PulsarOptions {
                                             " Increasing this parameter may improve throughput when using many producers over a high latency connection.")
                                     .build());
 
+    public static final ConfigOption<Integer> PULSAR_CONNECTION_MAX_IDLE_SECONDS =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "connectionMaxIdleSeconds")
+                    .intType()
+                    .defaultValue(180)
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "Release the connection if it is not used for more than [connectionMaxIdleSeconds] seconds. ")
+                                    .text(
+                                            "If [connectionMaxIdleSeconds] < 0, disabled the feature that auto release the idle connections")
+                                    .build());
+
     public static final ConfigOption<Boolean> PULSAR_USE_TCP_NO_DELAY =
             ConfigOptions.key(CLIENT_CONFIG_PREFIX + "useTcpNoDelay")
                     .booleanType()
@@ -212,10 +245,22 @@ public final class PulsarOptions {
                                     .text("By default, it is set to %s.", code("true"))
                                     .build());
 
+    public static final ConfigOption<String> PULSAR_TLS_KEY_FILE_PATH =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsKeyFilePath")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Path to the TLS key file.");
+
+    public static final ConfigOption<String> PULSAR_TLS_CERTIFICATE_FILE_PATH =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsCertificateFilePath")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Path to the TLS certificate file.");
+
     public static final ConfigOption<String> PULSAR_TLS_TRUST_CERTS_FILE_PATH =
             ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsTrustCertsFilePath")
                     .stringType()
-                    .defaultValue("")
+                    .noDefaultValue()
                     .withDescription("Path to the trusted TLS certificate file.");
 
     public static final ConfigOption<Boolean> PULSAR_TLS_ALLOW_INSECURE_CONNECTION =
@@ -384,6 +429,24 @@ public final class PulsarOptions {
                                             " The default value is the default security provider of the JVM.")
                                     .build());
 
+    public static final ConfigOption<String> PULSAR_TLS_KEY_STORE_TYPE =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsKeyStoreType")
+                    .stringType()
+                    .defaultValue("JKS")
+                    .withDescription("The file format of the key store file.");
+
+    public static final ConfigOption<String> PULSAR_TLS_KEY_STORE_PATH =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsKeyStorePath")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The location of the key store file.");
+
+    public static final ConfigOption<String> PULSAR_TLS_KEY_STORE_PASSWORD =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsKeyStorePassword")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The store password for the key store file.");
+
     public static final ConfigOption<String> PULSAR_TLS_TRUST_STORE_TYPE =
             ConfigOptions.key(CLIENT_CONFIG_PREFIX + "tlsTrustStoreType")
                     .stringType()
@@ -442,9 +505,7 @@ public final class PulsarOptions {
                                     .text(
                                             "The limit (in bytes) on the amount of direct memory that will be allocated by this client instance.")
                                     .linebreak()
-                                    .text(
-                                            "Note: at this moment this is only limiting the memory for producers.")
-                                    .text(" Setting this to %s will disable the limit.", code("0"))
+                                    .text("Setting this to %s will disable the limit.", code("0"))
                                     .build());
 
     public static final ConfigOption<String> PULSAR_PROXY_SERVICE_URL =
@@ -480,6 +541,46 @@ public final class PulsarOptions {
                                             code("transactionCoordinatorClient"),
                                             code("PulsarClient"))
                                     .build());
+
+    public static final ConfigOption<String> PULSAR_DNS_LOOKUP_BIND_ADDRESS =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "dnsLookupBindAddress")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "The Pulsar client dns lookup bind address, default behavior is bind on %s",
+                                            code("0.0.0.0:0"))
+                                    .text(
+                                            " The default port is %s which means random port. The max allowed port is %s.",
+                                            code("0"), code("65535"))
+                                    .text(
+                                            " The bind address should in %s format.",
+                                            code("host:port"))
+                                    .build());
+
+    public static final ConfigOption<String> PULSAR_SOCKS5_PROXY_ADDRESS =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "socks5ProxyAddress")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "Address of SOCKS5 proxy. It should in %s format.",
+                                            code("host:port"))
+                                    .build());
+
+    public static final ConfigOption<String> PULSAR_SOCKS5_PROXY_USERNAME =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "socks5ProxyUsername")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("User name of SOCKS5 proxy.");
+
+    public static final ConfigOption<String> PULSAR_SOCKS5_PROXY_PASSWORD =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "socks5ProxyPassword")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Password of SOCKS5 proxy.");
 
     ///////////////////////////////////////////////////////////////////////////////
     //

@@ -221,7 +221,29 @@ public final class PulsarSinkOptions {
             ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "chunkingEnabled")
                     .booleanType()
                     .defaultValue(false)
-                    .withDescription("");
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "If message size is higher than allowed max publish-payload size by broker,")
+                                    .text(
+                                            " then enableChunking helps producer to split message into multiple chunks")
+                                    .text(" and publish them to broker separately and in order.")
+                                    .text(
+                                            " So, it allows client to successfully publish large size of messages in pulsar.")
+                                    .build());
+
+    public static final ConfigOption<Integer> PULSAR_CHUNK_MAX_MESSAGE_SIZE =
+            ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "chunkMaxMessageSize")
+                    .intType()
+                    .defaultValue(-1)
+                    .withDescription(
+                            Description.builder()
+                                    .text("Max chunk message size in bytes.")
+                                    .text(
+                                            " Producer chunks the message if chunking is enabled and message size is larger than max chunk-message size.")
+                                    .text(
+                                            " By default, chunkMaxMessageSize value is -1 and producer chunks based on max-message size configured at the broker.")
+                                    .build());
 
     public static final ConfigOption<CompressionType> PULSAR_COMPRESSION_TYPE =
             ConfigOptions.key(PRODUCER_CONFIG_PREFIX + "compressionType")

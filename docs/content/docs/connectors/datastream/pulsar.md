@@ -210,7 +210,7 @@ The `PulsarDeserializationSchema` defines how to deserialize a Pulsar `Message<b
 If only the raw payload of a message (message data in bytes) is needed,
 you can use the predefined `PulsarDeserializationSchema`. Pulsar connector provides three implementation methods.
 
-- Decode the message by using Pulsar's [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/).
+- Decode the message by using Pulsar's [Schema](https://pulsar.apache.org/docs/2.11.x/schema-understand/).
   If using KeyValue type or Struct types, the pulsar `Schema` does not contain type class info. But it is
   still needed to construct `PulsarSchemaTypeInformation`. So we provide two more APIs to pass the type info.
   ```java
@@ -232,7 +232,7 @@ you can use the predefined `PulsarDeserializationSchema`. Pulsar connector provi
   PulsarSourceBuilder.setDeserializationSchema(TypeInformation, ExecutionConfig);
   ```
 
-Pulsar `Message<byte[]>` contains some [extra properties](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#messages),
+Pulsar `Message<byte[]>` contains some [extra properties](https://pulsar.apache.org/docs/2.11.x/concepts-messaging/#messages),
 such as message key, message publish time, message time, and application-defined key/value pairs etc.
 These properties could be defined in the `Message<byte[]>` interface.
 
@@ -547,7 +547,7 @@ In addition to configuration options described above, you can set arbitrary opti
 
 #### PulsarClient Options
 
-The Pulsar connector uses the [client API](https://pulsar.apache.org/docs/2.10.x/client-libraries-java/)
+The Pulsar connector uses the [client API](https://pulsar.apache.org/docs/2.11.x/client-libraries-java/)
 to create the `Consumer` instance. The Pulsar connector extracts most parts of Pulsar's `ClientConfigurationData`,
 which is required for creating a `PulsarClient`, as Flink configuration options in `PulsarOptions`.
 
@@ -555,7 +555,7 @@ which is required for creating a `PulsarClient`, as Flink configuration options 
 
 #### PulsarAdmin Options
 
-The [admin API](https://pulsar.apache.org/docs/2.10.x/admin-api-overview/) is used for querying topic metadata
+The [admin API](https://pulsar.apache.org/docs/2.11.x/admin-api-overview/) is used for querying topic metadata
 and for discovering the desired topics when the Pulsar connector uses topic-pattern subscription.
 It shares most part of the configuration options with the client API.
 The configuration options listed here are only used in the admin API.
@@ -639,7 +639,7 @@ details about how to define a `WatermarkStrategy`.
 
 ### Message Acknowledgement
 
-When a subscription is created, Pulsar [retains](https://pulsar.apache.org/docs/2.10.x/concepts-architecture-overview/#persistent-storage) all messages,
+When a subscription is created, Pulsar [retains](https://pulsar.apache.org/docs/2.11.x/concepts-architecture-overview/#persistent-storage) all messages,
 even if the consumer is disconnected. The retained messages are discarded only when the connector acknowledges that all these messages are processed successfully.
 
 We use `Exclusive` subscription as the default subscription type. It supports cumulative acknowledgment. In this subscription type,
@@ -800,7 +800,7 @@ If you do not need the message key and other message properties in Pulsar's
 [Message](https://pulsar.apache.org/api/client/2.10.x/org/apache/pulsar/client/api/Message.html) interface,
 you can use the predefined `PulsarSerializationSchema`. The Pulsar sink provides two implementation methods.
 
-- Encode the message by using Pulsar's [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/).
+- Encode the message by using Pulsar's [Schema](https://pulsar.apache.org/docs/2.11.x/schema-understand/).
   ```java
   // Primitive types
   PulsarSinkBuilder.setSerializationSchema(Schema)
@@ -927,7 +927,7 @@ Internally, a Pulsar partition is implemented as a topic. The Pulsar client prov
 implementation detail and handles routing under the hood automatically. Pulsar Sink uses a lower client
 API to implement its own routing layer to support multiple topics routing.
 
-For details, see [partitioned topics](https://pulsar.apache.org/docs/2.10.x/cookbooks-partitioned/).
+For details, see [partitioned topics](https://pulsar.apache.org/docs/2.11.x/cookbooks-partitioned/).
 {{< /hint >}}
 
 ### Delivery Guarantee
@@ -939,7 +939,7 @@ For details, see [partitioned topics](https://pulsar.apache.org/docs/2.10.x/cook
   It means that this mode has the highest throughput.
 - `AT_LEAST_ONCE`: No data loss happens, but data duplication can happen after a restart from checkpoint.
 - `EXACTLY_ONCE`: No data loss happens. Each record is sent to the Pulsar broker only once.
-  Pulsar Sink uses [Pulsar transaction](https://pulsar.apache.org/docs/2.10.x/transactions/)
+  Pulsar Sink uses [Pulsar transaction](https://pulsar.apache.org/docs/2.11.x/transactions/)
   and two-phase commit (2PC) to ensure records are sent only once even after the pipeline restarts.
 
 {{< hint warning >}}
@@ -952,7 +952,7 @@ You can acquire these messages only when the corresponding transaction is commit
 
 ### Delayed message delivery
 
-[Delayed message delivery](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#delayed-message-delivery)
+[Delayed message delivery](https://pulsar.apache.org/docs/2.11.x/concepts-messaging/#delayed-message-delivery)
 enables you to delay the possibility to consume a message. With delayed message enabled, the Pulsar sink sends a message to the Pulsar topic
 **immediately**, but the message is delivered to a consumer once the specified delay is over.
 
@@ -1282,6 +1282,6 @@ You can use the latest `pulsar-client-all` release to resolve this issue.
 
 {{< top >}}
 
-[schema-evolution]: https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-evolution
+[schema-evolution]: https://pulsar.apache.org/docs/2.11.x/schema-evolution-compatibility/#schema-evolution
 [standard-metrics]: https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics
-[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_(data_store)
+[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_%28data_store%29

@@ -33,6 +33,12 @@
             <td>Buffering a large number of outstanding uncompleted chunked messages can bring memory pressure and it can be guarded by providing this <code class="highlighter-rouge">pulsar.consumer.maxPendingChunkedMessage</code> threshold. Once a consumer reaches this threshold, it drops the outstanding unchunked-messages by silently acknowledging if <code class="highlighter-rouge">pulsar.consumer.autoAckOldestChunkedMessageOnQueueFull</code> is true. Otherwise, it marks them for redelivery.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.consumer.autoScaledReceiverQueueSizeEnabled</h5></td>
+            <td style="word-wrap: break-word;">true</td>
+            <td>Boolean</td>
+            <td>This option is enabled by default. The consumer receiver queue size is initialized with 1, and will double itself until it reaches the value set by <code class="highlighter-rouge">pulsar.consumer.receiverQueueSize</code>.<br />The feature should be able to reduce client memory usage.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.consumer.consumerName</h5></td>
             <td style="word-wrap: break-word;">(none)</td>
             <td>String</td>
@@ -145,6 +151,12 @@ C5, 1, 1
             <td style="word-wrap: break-word;">(none)</td>
             <td>String</td>
             <td>Specify the subscription name for this consumer. This argument is required when constructing the consumer.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.consumer.subscriptionProperties</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>Map</td>
+            <td>Subscription properties is an optional attribute, which can be set when subscribing to topic. These properties cannot be modified. We can only delete the subscription and create it again.</td>
         </tr>
         <tr>
             <td><h5>pulsar.consumer.tickDurationMillis</h5></td>

@@ -267,6 +267,18 @@ public final class PulsarSourceOptions {
                                                     code("NonDurable")))
                                     .build());
 
+    public static final ConfigOption<Map<String, String>> PULSAR_SUBSCRIPTION_PROPERTIES =
+            ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "subscriptionProperties")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "Subscription properties is an optional attribute, which can be set when subscribing to topic.")
+                                    .text(
+                                            " These properties cannot be modified. We can only delete the subscription and create it again.")
+                                    .build());
+
     public static final ConfigOption<Integer> PULSAR_RECEIVER_QUEUE_SIZE =
             ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "receiverQueueSize")
                     .intType()
@@ -599,4 +611,20 @@ public final class PulsarSourceOptions {
                     .booleanType()
                     .defaultValue(false)
                     .withDescription("Enable pooling of messages and the underlying data buffers.");
+
+    public static final ConfigOption<Boolean> PULSAR_AUTO_SCALED_RECEIVER_QUEUE_SIZE_ENABLED =
+            ConfigOptions.key(CONSUMER_CONFIG_PREFIX + "autoScaledReceiverQueueSizeEnabled")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "This option is enabled by default. The consumer receiver queue size is initialized with 1,")
+                                    .text(
+                                            " and will double itself until it reaches the value set by %s.",
+                                            code("pulsar.consumer.receiverQueueSize"))
+                                    .linebreak()
+                                    .text(
+                                            "The feature should be able to reduce client memory usage.")
+                                    .build());
 }

@@ -187,7 +187,7 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
 
 如果用户只关心消息体的二进制字节流，并不需要其他属性来解析数据。可以直接使用预定义的 `PulsarDeserializationSchema`。Pulsar Source里面提供了 3 种预定义的反序列化器。
 
-- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 解析消息。如果使用 KeyValue 或者 Struct 类型的 Schema, 那么 Pulsar 的 `Schema` 将不会含有类型类信息， 但 `PulsarSchemaTypeInformation` 需要通过传入类型类信息来构造。因此我们提供的 API 支持用户传入类型信息。
+- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.11.x/schema-understand/) 解析消息。如果使用 KeyValue 或者 Struct 类型的 Schema, 那么 Pulsar 的 `Schema` 将不会含有类型类信息， 但 `PulsarSchemaTypeInformation` 需要通过传入类型类信息来构造。因此我们提供的 API 支持用户传入类型信息。
   ```java
   // 基础数据类型
   PulsarSourceBuilder.setDeserializationSchema(Schema);
@@ -207,7 +207,7 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
   PulsarSourceBuilder.setDeserializationSchema(TypeInformation, ExecutionConfig);
   ```
 
-Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#messages)。例如，消息的 key、消息发送时间、消息生产时间、用户在消息上自定义的键值对属性等。可以使用 `Message<byte[]>` 接口来获取这些属性。
+Pulsar 的 `Message<byte[]>` 包含了很多 [额外的属性](https://pulsar.apache.org/docs/2.11.x/concepts-messaging/#messages)。例如，消息的 key、消息发送时间、消息生产时间、用户在消息上自定义的键值对属性等。可以使用 `Message<byte[]>` 接口来获取这些属性。
 
 如果用户需要基于这些额外的属性来解析一条消息，可以实现 `PulsarDeserializationSchema` 接口。并一定要确保 `PulsarDeserializationSchema.getProducedType()` 方法返回的 `TypeInformation` 是正确的结果。Flink 使用 `TypeInformation` 将解析出来的结果序列化传递到下游算子。
 
@@ -473,13 +473,13 @@ Pulsar Source 默认情况下使用流的方式消费数据。除非任务失败
 
 #### Pulsar Java 客户端配置项
 
-Pulsar Source 使用 [Java 客户端](https://pulsar.apache.org/docs/2.10.x/client-libraries-java/)来创建消费实例，相关的配置定义于 Pulsar 的 `ClientConfigurationData` 内。在 `PulsarOptions` 选项中，定义大部分的可供用户定义的配置。
+Pulsar Source 使用 [Java 客户端](https://pulsar.apache.org/docs/2.11.x/client-libraries-java/)来创建消费实例，相关的配置定义于 Pulsar 的 `ClientConfigurationData` 内。在 `PulsarOptions` 选项中，定义大部分的可供用户定义的配置。
 
 {{< generated/pulsar_client_configuration >}}
 
 #### Pulsar 管理 API 配置项
 
-[管理 API](https://pulsar.apache.org/docs/2.10.x/admin-api-overview/) 用于查询 Topic 的元数据和用正则订阅的时候的 Topic 查找，它与 Java 客户端共享大部分配置。下面列举的配置只供管理 API 使用，`PulsarOptions` 包含了这些配置 。
+[管理 API](https://pulsar.apache.org/docs/2.11.x/admin-api-overview/) 用于查询 Topic 的元数据和用正则订阅的时候的 Topic 查找，它与 Java 客户端共享大部分配置。下面列举的配置只供管理 API 使用，`PulsarOptions` 包含了这些配置 。
 
 {{< generated/pulsar_admin_configuration >}}
 
@@ -551,7 +551,7 @@ env.from_source(pulsar_source, CustomWatermarkStrategy(), "Pulsar Source With Cu
 
 ### 消息确认
 
-一旦在 Topic 上创建了订阅，消息便会[存储](https://pulsar.apache.org/docs/2.10.x/concepts-architecture-overview/#persistent-storage)在 Pulsar 里。即使没有消费者，消息也不会被丢弃。只有当 Flink 同 Pulsar 确认此条消息已经被消费，该消息才以某种机制会被移除。
+一旦在 Topic 上创建了订阅，消息便会[存储](https://pulsar.apache.org/docs/2.11.x/concepts-architecture-overview/#persistent-storage)在 Pulsar 里。即使没有消费者，消息也不会被丢弃。只有当 Flink 同 Pulsar 确认此条消息已经被消费，该消息才以某种机制会被移除。
 
 我们使用 `独占` 作为默认的订阅模式。此订阅下，Pulsar Source 使用累进式确认方式。确认某条消息已经被处理时，其前面消息会自动被置为已读。Pulsar Source 会在 Flink 完成检查点时将对应时刻消费的消息置为已读，以此来保证 Pulsar 状态与 Flink 状态一致。
 
@@ -687,7 +687,7 @@ PulsarSink.builder().set_topics(["topic-a-partition-0", "topic-a-partition-2", "
 
 如果不需要指定 [Message](https://pulsar.apache.org/api/client/2.10.x/org/apache/pulsar/client/api/Message.html) 接口中提供的 key 或者其他的消息属性，可以从上述 2 种预定义的 `PulsarSerializationSchema` 实现中选择适合需求的一种使用。
 
-- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.10.x/schema-understand/) 来序列化 Flink 中的数据。
+- 使用 Pulsar 的 [Schema](https://pulsar.apache.org/docs/2.11.x/schema-understand/) 来序列化 Flink 中的数据。
   ```java
   // 原始数据类型
   PulsarSinkBuilder.setSerializationSchema(Schema)
@@ -789,7 +789,7 @@ public interface TopicRouter<IN> extends Serializable {
 {{< hint info >}}
 如前文所述，Pulsar 分区的内部被实现为一个无分区的 Topic，一般情况下 Pulsar 客户端会隐藏这个实现，并且提供内置的消息路由策略。Pulsar Sink 并没有使用 Pulsar 客户端提供的路由策略和封装，而是使用了 Pulsar 客户端更底层的 API 自行实现了消息路由逻辑。这样做的主要目的是能够在属于不同 Topic 的分区之间定义更灵活的消息路由策略。
 
-详情请参考 Pulsar 的 [partitioned topics](https://pulsar.apache.org/docs/2.10.x/cookbooks-partitioned/) 文档。
+详情请参考 Pulsar 的 [partitioned topics](https://pulsar.apache.org/docs/2.11.x/cookbooks-partitioned/) 文档。
 {{< /hint >}}
 
 ### 发送一致性
@@ -798,7 +798,7 @@ public interface TopicRouter<IN> extends Serializable {
 
 - `NONE`：Flink 应用运行时可能出现数据丢失的情况。在这种模式下，Pulsar Sink 发送消息后并不会检查消息是否发送成功。此模式具有最高的吞吐量，可用于一致性没有要求的场景。
 - `AT_LEAST_ONCE`：每条消息**至少有**一条对应消息发送至 Pulsar，发送至 Pulsar 的消息可能会因为 Flink 应用重启而出现重复。
-- `EXACTLY_ONCE`：每条消息**有且仅有**一条对应消息发送至 Pulsar。发送至 Pulsar 的消息不会有重复也不会丢失。Pulsar Sink 内部依赖 [Pulsar 事务](https://pulsar.apache.org/docs/2.10.x/transactions/)和两阶段提交协议来保证每条记录都能正确发往 Pulsar。
+- `EXACTLY_ONCE`：每条消息**有且仅有**一条对应消息发送至 Pulsar。发送至 Pulsar 的消息不会有重复也不会丢失。Pulsar Sink 内部依赖 [Pulsar 事务](https://pulsar.apache.org/docs/2.11.x/transactions/)和两阶段提交协议来保证每条记录都能正确发往 Pulsar。
 
 {{< hint warning >}}
 如果想要使用 `EXACTLY_ONCE`，需要用户确保在 Flink 程序上启用 checkpoint，同时在 Pulsar 上启用事务。在此模式下，Pulsar sink 会将消息写入到某个未提交的事务下，并在成功执行完 checkpoint 后提交对应的事务。
@@ -808,7 +808,7 @@ public interface TopicRouter<IN> extends Serializable {
 
 ### 消息延时发送
 
-[消息延时发送](https://pulsar.apache.org/docs/2.10.x/concepts-messaging/#delayed-message-delivery)特性可以让指定发送的每一条消息需要延时一段时间后才能被下游的消费者所消费。当延时消息发送特性启用时，Pulsar Sink 会**立刻**将消息发送至 Pulsar Broker。但该消息在指定的延迟时间到达前将会保持对下游消费者不可见。
+[消息延时发送](https://pulsar.apache.org/docs/2.11.x/concepts-messaging/#delayed-message-delivery)特性可以让指定发送的每一条消息需要延时一段时间后才能被下游的消费者所消费。当延时消息发送特性启用时，Pulsar Sink 会**立刻**将消息发送至 Pulsar Broker。但该消息在指定的延迟时间到达前将会保持对下游消费者不可见。
 
 消息延时发送仅在 `Shared` 订阅模式下有效，在 `Exclusive` 和 `Failover` 模式下该特性无效。
 
@@ -1098,6 +1098,6 @@ Pulsar 事务机制仍在积极发展中，当前版本并不稳定。 Pulsar 2.
 
 {{< top >}}
 
-[schema-evolution]: https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-evolution
+[schema-evolution]: https://pulsar.apache.org/docs/2.11.x/schema-evolution-compatibility/#schema-evolution
 [standard-metrics]: https://cwiki.apache.org/confluence/display/FLINK/FLIP-33%3A+Standardize+Connector+Metrics
-[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_(data_store)
+[tombstone-data-store]: https://en.wikipedia.org/wiki/Tombstone_%28data_store%29

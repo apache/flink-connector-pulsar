@@ -33,6 +33,12 @@
             <td>The number of concurrent lookup requests allowed to send on each broker connection to prevent overload on the broker. It should be configured with a higher value only in case of it requires to produce or subscribe on thousands of topic using a created <code class="highlighter-rouge">PulsarClient</code></td>
         </tr>
         <tr>
+            <td><h5>pulsar.client.connectionMaxIdleSeconds</h5></td>
+            <td style="word-wrap: break-word;">180</td>
+            <td>Integer</td>
+            <td>Release the connection if it is not used for more than [connectionMaxIdleSeconds] seconds. If [connectionMaxIdleSeconds] &lt; 0, disabled the feature that auto release the idle connections</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.client.connectionTimeoutMs</h5></td>
             <td style="word-wrap: break-word;">10000</td>
             <td>Integer</td>
@@ -43,6 +49,12 @@
             <td style="word-wrap: break-word;">1</td>
             <td>Integer</td>
             <td>The maximum number of connections that the client library will open to a single broker.<br /> By default, the connection pool will use a single connection for all the producers and consumers. Increasing this parameter may improve throughput when using many producers over a high latency connection.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.dnsLookupBindAddress</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>The Pulsar client dns lookup bind address, default behavior is bind on <code class="highlighter-rouge">0.0.0.0:0</code> The default port is <code class="highlighter-rouge">0</code> which means random port. The max allowed port is <code class="highlighter-rouge">65535</code>. The bind address should in <code class="highlighter-rouge">host:port</code> format.</td>
         </tr>
         <tr>
             <td><h5>pulsar.client.enableBusyWait</h5></td>
@@ -75,6 +87,12 @@
             <td>Configure the <code class="highlighter-rouge">listenerName</code> that the broker will return the corresponding <code class="highlighter-rouge">advertisedListener</code>.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.client.lookupTimeoutMs</h5></td>
+            <td style="word-wrap: break-word;">-1</td>
+            <td>Integer</td>
+            <td>Client lookup timeout (in milliseconds).<br />Lookup operations have a different load pattern to other operations. They can be handled by any broker, are not proportional to throughput, and are harmless to retry. Given this, it makes sense to allow them to retry longer than normal operation, especially if they experience a timeout.<br />By default, this is set to match operation timeout. This is to maintain legacy behaviour. However, in practice it should be set to 5-10x the operation timeout.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.client.maxBackoffIntervalNanos</h5></td>
             <td style="word-wrap: break-word;">60000000000</td>
             <td>Long</td>
@@ -102,7 +120,7 @@
             <td><h5>pulsar.client.memoryLimitBytes</h5></td>
             <td style="word-wrap: break-word;">67108864</td>
             <td>Long</td>
-            <td>The limit (in bytes) on the amount of direct memory that will be allocated by this client instance.<br />Note: at this moment this is only limiting the memory for producers. Setting this to <code class="highlighter-rouge">0</code> will disable the limit.</td>
+            <td>The limit (in bytes) on the amount of direct memory that will be allocated by this client instance.<br />Setting this to <code class="highlighter-rouge">0</code> will disable the limit.</td>
         </tr>
         <tr>
             <td><h5>pulsar.client.numIoThreads</h5></td>
@@ -147,6 +165,24 @@
             <td>Service URL provider for Pulsar service.<br />To connect to Pulsar using client libraries, you need to specify a Pulsar protocol URL.<br />You can assign Pulsar protocol URLs to specific clusters and use the Pulsar scheme.<br /><ul><li>This is an example of <code class="highlighter-rouge">localhost</code>: <code class="highlighter-rouge">pulsar://localhost:6650</code>.</li><li>If you have multiple brokers, the URL is as: <code class="highlighter-rouge">pulsar://localhost:6550,localhost:6651,localhost:6652</code></li><li>A URL for a production Pulsar cluster is as: <code class="highlighter-rouge">pulsar://pulsar.us-west.example.com:6650</code></li><li>If you use TLS authentication, the URL is as <code class="highlighter-rouge">pulsar+ssl://pulsar.us-west.example.com:6651</code></li></ul></td>
         </tr>
         <tr>
+            <td><h5>pulsar.client.socks5ProxyAddress</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>Address of SOCKS5 proxy. It should in <code class="highlighter-rouge">host:port</code> format.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.socks5ProxyPassword</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>Password of SOCKS5 proxy.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.socks5ProxyUsername</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>User name of SOCKS5 proxy.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.client.sslProvider</h5></td>
             <td style="word-wrap: break-word;">(none)</td>
             <td>String</td>
@@ -165,6 +201,12 @@
             <td>Whether the Pulsar client accepts untrusted TLS certificate from the broker.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.client.tlsCertificateFilePath</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>Path to the TLS certificate file.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.client.tlsCiphers</h5></td>
             <td style="word-wrap: break-word;"></td>
             <td>List&lt;String&gt;</td>
@@ -175,6 +217,30 @@
             <td style="word-wrap: break-word;">false</td>
             <td>Boolean</td>
             <td>Whether to enable TLS hostname verification. It allows to validate hostname verification when a client connects to the broker over TLS. It validates incoming x509 certificate and matches provided hostname (CN/SAN) with the expected broker's host name. It follows RFC 2818, 3.1. Server Identity hostname verification.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.tlsKeyFilePath</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>Path to the TLS key file.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.tlsKeyStorePassword</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>The store password for the key store file.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.tlsKeyStorePath</h5></td>
+            <td style="word-wrap: break-word;">(none)</td>
+            <td>String</td>
+            <td>The location of the key store file.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.client.tlsKeyStoreType</h5></td>
+            <td style="word-wrap: break-word;">"JKS"</td>
+            <td>String</td>
+            <td>The file format of the key store file.</td>
         </tr>
         <tr>
             <td><h5>pulsar.client.tlsProtocols</h5></td>
