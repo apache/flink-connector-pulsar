@@ -57,7 +57,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
  *     .setServiceUrl(getServiceUrl())
  *     .setAdminUrl(getAdminUrl())
  *     .setSubscriptionName("test")
- *     .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+ *     .setDeserializationSchema(new SimpleStringSchema())
  *     .setBounded(StopCursor::defaultStopCursor)
  *     .build();
  * }</pre>
