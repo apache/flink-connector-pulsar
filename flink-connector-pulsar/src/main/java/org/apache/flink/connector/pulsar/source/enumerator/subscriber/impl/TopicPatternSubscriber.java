@@ -25,12 +25,13 @@ import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.isInternal;
+import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 
 /** Subscribe to matching topics based on topic pattern. */
 public class TopicPatternSubscriber extends BasePulsarSubscriber {
@@ -56,16 +57,19 @@ public class TopicPatternSubscriber extends BasePulsarSubscriber {
     @Override
     public Set<TopicPartition> getSubscribedTopicPartitions(
             RangeGenerator generator, int parallelism) throws Exception {
-        List<String> topics = admin.namespaces().getTopics(namespace);
-        List<String> results = new ArrayList<>(topics.size());
+        // This method will query a set of existed topic partitions.
+        List<String> partitions = admin.namespaces().getTopics(namespace);
+        Set<String> results = new HashSet<>(partitions.size());
 
-        for (String topic : topics) {
+        for (String partition : partitions) {
+            String topic = topicName(partition);
             if (matchesSubscriptionMode(topic)
                     && !isInternal(topic)
                     && matchesTopicPattern(topic)) {
                 results.add(topic);
             }
         }
+
         return createTopicPartitions(results, generator, parallelism);
     }
 

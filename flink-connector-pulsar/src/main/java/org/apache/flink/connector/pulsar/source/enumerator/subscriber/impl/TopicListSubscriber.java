@@ -26,7 +26,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGene
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.naming.TopicName;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -36,12 +36,12 @@ import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNam
 public class TopicListSubscriber extends BasePulsarSubscriber {
     private static final long serialVersionUID = 6473918213832993116L;
 
-    private final List<String> partitions;
-    private final List<String> fullTopicNames;
+    private final Set<String> partitions;
+    private final Set<String> fullTopicNames;
 
     public TopicListSubscriber(List<String> fullTopicNameOrPartitions) {
-        this.partitions = new ArrayList<>();
-        this.fullTopicNames = new ArrayList<>();
+        this.partitions = new HashSet<>();
+        this.fullTopicNames = new HashSet<>();
 
         for (String fullTopicNameOrPartition : fullTopicNameOrPartitions) {
             if (isPartition(fullTopicNameOrPartition)) {

@@ -58,7 +58,7 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     }
 
     protected Set<TopicPartition> createTopicPartitions(
-            List<String> topics, RangeGenerator generator, int parallelism)
+            Set<String> topics, RangeGenerator generator, int parallelism)
             throws PulsarAdminException {
         Set<TopicPartition> results = new HashSet<>();
 
