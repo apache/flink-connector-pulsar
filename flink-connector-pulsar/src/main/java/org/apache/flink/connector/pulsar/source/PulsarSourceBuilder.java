@@ -89,7 +89,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
- *     .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+ *     .setDeserializationSchema(new SimpleStringSchema())
  *     .build();
  * }</pre>
  *
@@ -118,7 +118,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
- *     .setDeserializationSchema(PulsarDeserializationSchema.flinkSchema(new SimpleStringSchema()))
+ *     .setDeserializationSchema(new SimpleStringSchema())
  *     .setUnboundedStopCursor(StopCursor.atEventTime(System.currentTimeMillis()))
  *     .build();
  * }</pre>
