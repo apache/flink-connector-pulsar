@@ -42,7 +42,7 @@ import java.io.Serializable;
 public interface StopCursor extends Serializable {
 
     /** The open method for the cursor initializer. This method could be executed multiple times. */
-    default void open(PulsarAdmin admin, TopicPartition partition) {}
+    default void open(PulsarAdmin admin, TopicPartition partition) throws Exception {}
 
     /** Determine whether to pause consumption on the current message by the returned enum. */
     StopCondition shouldStop(Message<?> message);

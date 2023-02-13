@@ -27,7 +27,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGene
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 
 import java.util.HashSet;
@@ -38,7 +37,6 @@ import java.util.Set;
 public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     private static final long serialVersionUID = 2053021503331058888L;
 
-    protected transient PulsarClient client;
     protected transient PulsarAdmin admin;
 
     protected TopicMetadata queryTopicMetadata(String topicName) throws PulsarAdminException {
@@ -84,8 +82,7 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     }
 
     @Override
-    public void open(PulsarClient client, PulsarAdmin admin) {
-        this.client = client;
+    public void open(PulsarAdmin admin) {
         this.admin = admin;
     }
 }

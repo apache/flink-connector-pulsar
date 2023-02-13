@@ -35,7 +35,6 @@ import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,6 @@ import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createAdmin;
-import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState.initialState;
 import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssigner.createAssigner;
 
@@ -59,7 +57,6 @@ public class PulsarSourceEnumerator
 
     private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceEnumerator.class);
 
-    private final PulsarClient pulsarClient;
     private final PulsarAdmin pulsarAdmin;
     private final PulsarSubscriber subscriber;
     private final StartCursor startCursor;
@@ -96,7 +93,6 @@ public class PulsarSourceEnumerator
             SplitEnumeratorContext<PulsarPartitionSplit> context,
             PulsarSourceEnumState enumState)
             throws PulsarClientException {
-        this.pulsarClient = createClient(sourceConfiguration);
         this.pulsarAdmin = createAdmin(sourceConfiguration);
         this.subscriber = subscriber;
         this.startCursor = startCursor;
@@ -109,7 +105,7 @@ public class PulsarSourceEnumerator
 
     @Override
     public void start() {
-        subscriber.open(pulsarClient, pulsarAdmin);
+        subscriber.open(pulsarAdmin);
         rangeGenerator.open(sourceConfiguration);
 
         // Expose the split assignment metrics if Flink has supported.
@@ -175,9 +171,6 @@ public class PulsarSourceEnumerator
 
     @Override
     public void close() throws PulsarClientException {
-        if (pulsarClient != null) {
-            pulsarClient.close();
-        }
         if (pulsarAdmin != null) {
             pulsarAdmin.close();
         }

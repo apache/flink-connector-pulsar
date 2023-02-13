@@ -192,7 +192,11 @@ public class PulsarPartitionSplitReader
         this.registeredSplit = newSplits.get(0);
 
         // Open stop cursor.
-        registeredSplit.open(pulsarAdmin);
+        try {
+            registeredSplit.open(pulsarAdmin);
+        } catch (Exception e) {
+            throw new FlinkRuntimeException(e);
+        }
 
         // Reset the start position before creating the consumer.
         MessageId latestConsumedId = registeredSplit.getLatestConsumedId();
