@@ -74,6 +74,31 @@ under the License.
 									<include>org.slf4j:jul-to-slf4j</include>
 								</includes>
 							</artifactSet>
+							<filters>
+								<filter>
+									<artifact>org.apache.pulsar:pulsar-client-all</artifact>
+									<excludes>
+										<exclude>META-INF/versions/**/*</exclude>
+										<exclude>io/swagger/**/*</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.bouncycastle:*</artifact>
+									<excludes>
+										<exclude>META-INF/versions/**/*</exclude>
+									</excludes>
+								</filter>
+							</filters>
+							<relocations>
+								<relocation>
+									<pattern>org.bouncycastle</pattern>
+									<shadedPattern>org.apache.pulsar.shade.org.bouncycastle</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>com.scurrilous</pattern>
+									<shadedPattern>org.apache.pulsar.shade.com.scurrilous</shadedPattern>
+								</relocation>
+							</relocations>
 						</configuration>
 					</execution>
 				</executions>
