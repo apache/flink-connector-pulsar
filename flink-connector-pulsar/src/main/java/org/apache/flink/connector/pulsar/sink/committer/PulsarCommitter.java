@@ -26,6 +26,7 @@ import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.CoordinatorNotFoundException;
@@ -65,7 +66,8 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
 
     @Override
     @SuppressWarnings("java:S3776")
-    public void commit(Collection<CommitRequest<PulsarCommittable>> requests) {
+    public void commit(Collection<CommitRequest<PulsarCommittable>> requests)
+            throws PulsarClientException {
         TransactionCoordinatorClient client = transactionCoordinatorClient();
 
         for (CommitRequest<PulsarCommittable> request : requests) {
@@ -147,7 +149,8 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
      * DeliveryGuarantee#NONE} and {@link DeliveryGuarantee#AT_LEAST_ONCE}. So we couldn't create
      * the Pulsar client at first.
      */
-    private TransactionCoordinatorClient transactionCoordinatorClient() {
+    private TransactionCoordinatorClient transactionCoordinatorClient()
+            throws PulsarClientException {
         if (coordinatorClient == null) {
             this.pulsarClient = createClient(sinkConfiguration);
             this.coordinatorClient = getTcClient(pulsarClient);

@@ -33,8 +33,6 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
@@ -51,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StopCursorTest extends PulsarTestSuiteBase {
 
     @Test
-    void publishTimeStopCursor() throws IOException {
+    void publishTimeStopCursor() throws Exception {
         String topicName = "stop-cursor-" + randomAlphanumeric(5);
         operator().createTopic(topicName, 2);
 

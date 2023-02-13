@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceSplit;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
+import org.apache.flink.connector.pulsar.source.reader.PulsarSourceReader;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
@@ -44,8 +45,8 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable {
     private final StopCursor stopCursor;
 
     /**
-     * Since this field in only used in {@link PulsarOrderedSourceReader#snapshotState(long)}, it's
-     * no need to serialize this field into flink checkpoint state.
+     * Since this field in only used in {@link PulsarSourceReader#snapshotState(long)}, it's no need
+     * to serialize this field into flink checkpoint state.
      */
     @Nullable private final MessageId latestConsumedId;
 
@@ -93,7 +94,7 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable {
     }
 
     /** Open stop cursor. */
-    public void open(PulsarAdmin admin) {
+    public void open(PulsarAdmin admin) throws Exception {
         stopCursor.open(admin, partition);
     }
 

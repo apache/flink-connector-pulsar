@@ -40,13 +40,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyAdmin;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_FETCH_ONE_MESSAGE_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
@@ -67,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
 
     @Test
-    void pollMessageAfterTimeout() throws InterruptedException, TimeoutException {
+    void pollMessageAfterTimeout() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -93,7 +91,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedAfterHandleSplitChangesAndFetch() {
+    void consumeMessageCreatedAfterHandleSplitChangesAndFetch() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -103,7 +101,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChanges() {
+    void consumeMessageCreatedBeforeHandleSplitsChanges() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -113,7 +111,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndResetToEarliestPosition() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndResetToEarliestPosition()
+            throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -123,7 +122,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndResetToLatestPosition() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndResetToLatestPosition() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -133,20 +132,18 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseSecondLastMessageIdCursor() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseSecondLastMessageIdCursor()
+            throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
-                        sneakyAdmin(
-                                () ->
-                                        operator()
-                                                .admin()
-                                                .topics()
-                                                .getLastMessageId(
-                                                        topicNameWithPartition(topicName, 0)));
+                        operator()
+                                .admin()
+                                .topics()
+                                .getLastMessageId(topicNameWithPartition(topicName, 0));
         // when doing seek directly on consumer, by default it includes the specified messageId
         seekStartPositionAndHandleSplit(
                 splitReader,
@@ -160,7 +157,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void emptyTopic() {
+    void emptyTopic() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -170,7 +167,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void emptyTopicWithoutSeek() {
+    void emptyTopicWithoutSeek() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -211,7 +208,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesWithoutSeek() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesWithoutSeek() throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -221,7 +218,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseLatestStartCursorWithoutSeek() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseLatestStartCursorWithoutSeek()
+            throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -231,7 +229,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseEarliestStartCursorWithoutSeek() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseEarliestStartCursorWithoutSeek()
+            throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
@@ -241,20 +240,18 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     @Test
-    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseSecondLastMessageWithoutSeek() {
+    void consumeMessageCreatedBeforeHandleSplitsChangesAndUseSecondLastMessageWithoutSeek()
+            throws Exception {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
-                        sneakyAdmin(
-                                () ->
-                                        operator()
-                                                .admin()
-                                                .topics()
-                                                .getLastMessageId(
-                                                        topicNameWithPartition(topicName, 0)));
+                        operator()
+                                .admin()
+                                .topics()
+                                .getLastMessageId(topicNameWithPartition(topicName, 0));
         // when recover, use exclusive startCursor
         handleSplit(
                 splitReader,
@@ -307,7 +304,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     }
 
     private void seekStartPositionAndHandleSplit(
-            PulsarPartitionSplitReader reader, String topicName, int partitionId) {
+            PulsarPartitionSplitReader reader, String topicName, int partitionId) throws Exception {
         seekStartPositionAndHandleSplit(reader, topicName, partitionId, MessageId.latest);
     }
 
@@ -315,7 +312,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
             PulsarPartitionSplitReader reader,
             String topicName,
             int partitionId,
-            MessageId startPosition) {
+            MessageId startPosition)
+            throws Exception {
         TopicPartition partition = new TopicPartition(topicName, partitionId);
         PulsarPartitionSplit split =
                 new PulsarPartitionSplit(partition, StopCursor.never(), null, null);
@@ -326,23 +324,13 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         SourceConfiguration sourceConfiguration = reader.sourceConfiguration;
         PulsarAdmin pulsarAdmin = reader.pulsarAdmin;
         String subscriptionName = sourceConfiguration.getSubscriptionName();
-        List<String> subscriptions =
-                sneakyAdmin(() -> pulsarAdmin.topics().getSubscriptions(topicName));
+        List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
         if (!subscriptions.contains(subscriptionName)) {
             // If this subscription is not available. Just create it.
-            sneakyAdmin(
-                    () ->
-                            pulsarAdmin
-                                    .topics()
-                                    .createSubscription(
-                                            topicName, subscriptionName, startPosition));
+            pulsarAdmin.topics().createSubscription(topicName, subscriptionName, startPosition);
         } else {
             // Reset the subscription if this is existed.
-            sneakyAdmin(
-                    () ->
-                            pulsarAdmin
-                                    .topics()
-                                    .resetCursor(topicName, subscriptionName, startPosition));
+            pulsarAdmin.topics().resetCursor(topicName, subscriptionName, startPosition);
         }
 
         // Accept the split and start consuming.

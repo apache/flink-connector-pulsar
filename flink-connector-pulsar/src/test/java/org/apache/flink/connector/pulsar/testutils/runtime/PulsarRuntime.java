@@ -41,10 +41,10 @@ public interface PulsarRuntime {
     PulsarRuntime setConfigs(Map<String, String> configs);
 
     /** Start up this pulsar runtime, block the thread until everytime is ready for this runtime. */
-    void startUp();
+    void startUp() throws Exception;
 
     /** Shutdown this pulsar runtime. */
-    void tearDown();
+    void tearDown() throws Exception;
 
     /**
      * Return an operator for operating this pulsar runtime. This operator predefined a set of

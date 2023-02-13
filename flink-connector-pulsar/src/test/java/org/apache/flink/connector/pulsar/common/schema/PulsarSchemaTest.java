@@ -85,6 +85,7 @@ class PulsarSchemaTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void invalidPulsarSchemaCreationWithoutClassType() {
         assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(AVRO));
         assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(JSON));

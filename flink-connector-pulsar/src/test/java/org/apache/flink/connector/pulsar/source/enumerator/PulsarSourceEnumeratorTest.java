@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
@@ -57,6 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Unit tests for {@link PulsarSourceEnumerator}. */
 class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
+    private static final String TOPIC_PREFIX = "enumerator-topic-";
     private static final int NUM_SUBTASKS = 3;
     private static final int READER0 = 0;
     private static final int READER1 = 1;
@@ -126,7 +128,7 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
 
     @Test
     void discoverPartitionsPeriodically() throws Throwable {
-        String dynamicTopic = "topic3-" + randomAlphabetic(10);
+        String dynamicTopic = TOPIC_PREFIX + randomAlphabetic(10);
         Set<String> preexistingTopics = setupPreexistingTopics();
         Set<String> topicsToSubscribe = new HashSet<>(preexistingTopics);
         topicsToSubscribe.add(dynamicTopic);
@@ -241,9 +243,9 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
         }
     }
 
-    private Set<String> setupPreexistingTopics() {
-        String topic1 = "topic1-" + randomAlphabetic(10);
-        String topic2 = "topic2-" + randomAlphabetic(10);
+    private Set<String> setupPreexistingTopics() throws Exception {
+        String topic1 = "enumerator-topic-" + randomAlphabetic(10);
+        String topic2 = "enumerator-topic-" + randomAlphabetic(10);
 
         operator().setupTopic(topic1);
         operator().setupTopic(topic2);
@@ -274,7 +276,8 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
     private PulsarSourceEnumerator createEnumerator(
             Set<String> topics,
             MockSplitEnumeratorContext<PulsarPartitionSplit> enumContext,
-            boolean enablePeriodicPartitionDiscovery) {
+            boolean enablePeriodicPartitionDiscovery)
+            throws Exception {
         return createEnumerator(
                 topics, enumContext, enablePeriodicPartitionDiscovery, initialState());
     }
@@ -283,10 +286,18 @@ class PulsarSourceEnumeratorTest extends PulsarTestSuiteBase {
             Set<String> topicsToSubscribe,
             MockSplitEnumeratorContext<PulsarPartitionSplit> enumContext,
             boolean enablePeriodicPartitionDiscovery,
-            PulsarSourceEnumState sourceEnumState) {
+            PulsarSourceEnumState sourceEnumState)
+            throws Exception {
         // Use a TopicPatternSubscriber so that no exception if a subscribed topic hasn't been
         // created yet.
-        String topicRegex = String.join("|", topicsToSubscribe);
+        String topicRegex =
+                topicsToSubscribe.stream()
+                        .map(s -> s.substring(TOPIC_PREFIX.length()))
+                        .collect(
+                                joining(
+                                        "|",
+                                        "persistent://public/default/" + TOPIC_PREFIX + "(",
+                                        ")"));
         Pattern topicPattern = Pattern.compile(topicRegex);
         PulsarSubscriber subscriber =
                 getTopicPatternSubscriber(topicPattern, RegexSubscriptionMode.AllTopics);

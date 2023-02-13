@@ -18,74 +18,68 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl;
 
-import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
-import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static java.util.stream.Collectors.toSet;
-import static org.apache.flink.shaded.guava30.com.google.common.base.Predicates.not;
+import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.isInternal;
+import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 
 /** Subscribe to matching topics based on topic pattern. */
 public class TopicPatternSubscriber extends BasePulsarSubscriber {
     private static final long serialVersionUID = 3307710093243745104L;
 
-    private final Pattern topicPattern;
-    private final RegexSubscriptionMode subscriptionMode;
+    private final Pattern shortenedPattern;
     private final String namespace;
+    private final RegexSubscriptionMode subscriptionMode;
 
     public TopicPatternSubscriber(Pattern topicPattern, RegexSubscriptionMode subscriptionMode) {
-        this.topicPattern = topicPattern;
         this.subscriptionMode = subscriptionMode;
+        String pattern = topicPattern.toString();
+        this.shortenedPattern =
+                pattern.contains("://") ? Pattern.compile(pattern.split("://")[1]) : topicPattern;
 
         // Extract the namespace from topic pattern regex.
         // If no namespace provided in the regex, we would directly use "default" as the namespace.
-        TopicName destination = TopicName.get(topicPattern.toString());
+        TopicName destination = TopicName.get(topicPattern.pattern());
         NamespaceName namespaceName = destination.getNamespaceObject();
         this.namespace = namespaceName.toString();
     }
 
     @Override
     public Set<TopicPartition> getSubscribedTopicPartitions(
-            PulsarAdmin pulsarAdmin, RangeGenerator rangeGenerator, int parallelism) {
-        try {
-            return pulsarAdmin
-                    .namespaces()
-                    .getTopics(namespace)
-                    .parallelStream()
-                    .filter(this::matchesSubscriptionMode)
-                    .filter(not(TopicNameUtils::isInternal))
-                    .filter(topic -> topicPattern.matcher(topic).find())
-                    .map(topic -> queryTopicMetadata(pulsarAdmin, topic))
-                    .filter(Objects::nonNull)
-                    .flatMap(
-                            metadata -> {
-                                List<TopicRange> ranges =
-                                        rangeGenerator.range(metadata, parallelism);
-                                return toTopicPartitions(metadata, ranges).stream();
-                            })
-                    .collect(toSet());
-        } catch (PulsarAdminException e) {
-            if (e.getStatusCode() == 404) {
-                // Skip the topic metadata query.
-                return Collections.emptySet();
-            } else {
-                // This method would cause failure for subscribers.
-                throw new IllegalStateException(e);
+            RangeGenerator generator, int parallelism) throws Exception {
+        // This method will query a set of existed topic partitions.
+        List<String> partitions = admin.namespaces().getTopics(namespace);
+        Set<String> results = new HashSet<>(partitions.size());
+
+        for (String partition : partitions) {
+            String topic = topicName(partition);
+            if (matchesSubscriptionMode(topic)
+                    && !isInternal(topic)
+                    && matchesTopicPattern(topic)) {
+                results.add(topic);
             }
         }
+
+        return createTopicPartitions(results, generator, parallelism);
+    }
+
+    /**
+     * If the topic matches 'topicsPattern'. This method is in the PulsarClient, and it's removed
+     * since 2.11.0 release. We keep the method here.
+     */
+    private boolean matchesTopicPattern(String topic) {
+        String shortenedTopic = topic.split("://")[1];
+        return shortenedPattern.matcher(shortenedTopic).matches();
     }
 
     /**
@@ -100,9 +94,11 @@ public class TopicPatternSubscriber extends BasePulsarSubscriber {
                 return topicName.isPersistent();
             case NonPersistentOnly:
                 return !topicName.isPersistent();
-            default:
-                // RegexSubscriptionMode.AllTopics
+            case AllTopics:
                 return true;
+            default:
+                throw new IllegalArgumentException(
+                        "We don't support such subscription mode " + subscriptionMode);
         }
     }
 }

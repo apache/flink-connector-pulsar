@@ -86,25 +86,25 @@ public class PulsarTestEnvironment
 
     /** JUnit 5 Extension setup method. */
     @Override
-    public void beforeAll(ExtensionContext context) {
+    public void beforeAll(ExtensionContext context) throws Exception {
         runtime.startUp();
     }
 
     /** Start up the test resource. */
     @Override
-    public void startUp() {
+    public void startUp() throws Exception {
         runtime.startUp();
     }
 
     /** JUnit 5 Extension shutdown method. */
     @Override
-    public void afterAll(ExtensionContext context) {
+    public void afterAll(ExtensionContext context) throws Exception {
         runtime.tearDown();
     }
 
     /** Tear down the test resource. */
     @Override
-    public void tearDown() {
+    public void tearDown() throws Exception {
         runtime.tearDown();
     }
 

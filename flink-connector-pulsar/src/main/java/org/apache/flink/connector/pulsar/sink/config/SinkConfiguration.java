@@ -19,7 +19,7 @@
 package org.apache.flink.connector.pulsar.sink.config;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.connector.sink.Sink.InitContext;
+import org.apache.flink.api.connector.sink2.Sink.InitContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;

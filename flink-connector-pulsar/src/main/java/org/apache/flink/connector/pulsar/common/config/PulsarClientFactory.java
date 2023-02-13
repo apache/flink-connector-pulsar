@@ -27,6 +27,7 @@ import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.ProxyProtocol;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 
 import java.util.Map;
@@ -76,7 +77,6 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_TYPE;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_KEY_STORE_TLS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_TCP_NO_DELAY;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.pulsar.client.api.SizeUnit.BYTES;
 
 /** The factory for creating pulsar client classes from {@link PulsarConfiguration}. */
@@ -88,7 +88,8 @@ public final class PulsarClientFactory {
     }
 
     /** Create a PulsarClient by using the flink Configuration and the config customizer. */
-    public static PulsarClient createClient(PulsarConfiguration configuration) {
+    public static PulsarClient createClient(PulsarConfiguration configuration)
+            throws PulsarClientException {
         ClientBuilder builder = PulsarClient.builder();
 
         // requestTimeoutMs don't have a setter method on ClientBuilder. We have to use low level
@@ -148,14 +149,15 @@ public final class PulsarClientFactory {
         }
         configuration.useOption(PULSAR_ENABLE_TRANSACTION, builder::enableTransaction);
 
-        return sneakyClient(builder::build);
+        return builder.build();
     }
 
     /**
      * PulsarAdmin shares almost the same configuration with PulsarClient, but we separate this
      * creating method for directly use it.
      */
-    public static PulsarAdmin createAdmin(PulsarConfiguration configuration) {
+    public static PulsarAdmin createAdmin(PulsarConfiguration configuration)
+            throws PulsarClientException {
         PulsarAdminBuilder builder = PulsarAdmin.builder();
 
         // Create the authentication instance for the Pulsar client.
@@ -182,7 +184,7 @@ public final class PulsarClientFactory {
         configuration.useOption(
                 PULSAR_AUTO_CERT_REFRESH_TIME, v -> builder.autoCertRefreshTime(v, MILLISECONDS));
 
-        return sneakyClient(builder::build);
+        return builder.build();
     }
 
     /**
@@ -192,14 +194,14 @@ public final class PulsarClientFactory {
      *
      * <p>This method behavior is the same as the pulsar command line tools.
      */
-    private static Authentication createAuthentication(PulsarConfiguration configuration) {
+    private static Authentication createAuthentication(PulsarConfiguration configuration)
+            throws PulsarClientException {
         if (configuration.contains(PULSAR_AUTH_PLUGIN_CLASS_NAME)) {
             String authPluginClassName = configuration.get(PULSAR_AUTH_PLUGIN_CLASS_NAME);
 
             if (configuration.contains(PULSAR_AUTH_PARAMS)) {
                 String authParamsString = configuration.get(PULSAR_AUTH_PARAMS);
-                return sneakyClient(
-                        () -> AuthenticationFactory.create(authPluginClassName, authParamsString));
+                return AuthenticationFactory.create(authPluginClassName, authParamsString);
             } else {
                 Map<String, String> paramsMap = configuration.getProperties(PULSAR_AUTH_PARAM_MAP);
                 if (paramsMap.isEmpty()) {
@@ -209,8 +211,7 @@ public final class PulsarClientFactory {
                                     PULSAR_AUTH_PARAMS.key(), PULSAR_AUTH_PARAM_MAP.key()));
                 }
 
-                return sneakyClient(
-                        () -> AuthenticationFactory.create(authPluginClassName, paramsMap));
+                return AuthenticationFactory.create(authPluginClassName, paramsMap);
             }
         }
 

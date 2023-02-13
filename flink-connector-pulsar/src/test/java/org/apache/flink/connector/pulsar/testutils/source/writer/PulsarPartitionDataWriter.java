@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.testutils.source.writer;
 
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalSystemSplitDataWriter;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.Schema;
 
@@ -44,7 +45,11 @@ public class PulsarPartitionDataWriter<T> implements ExternalSystemSplitDataWrit
 
     @Override
     public void writeRecords(List<T> records) {
-        operator.sendMessages(fullTopicName, schema, records);
+        try {
+            operator.sendMessages(fullTopicName, schema, records);
+        } catch (Exception e) {
+            throw new FlinkRuntimeException(e);
+        }
     }
 
     @Override

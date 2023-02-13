@@ -218,7 +218,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         reader.close();
     }
 
-    private String topicName() {
+    private String topicName() throws Exception {
         String topicName = randomAlphabetic(20);
         Random random = new Random(System.currentTimeMillis());
         operator().setupTopic(topicName, Schema.INT32, () -> random.nextInt(20));

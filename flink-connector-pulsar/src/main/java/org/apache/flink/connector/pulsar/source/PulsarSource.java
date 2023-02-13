@@ -43,6 +43,8 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
+import org.apache.pulsar.client.api.PulsarClientException;
+
 /**
  * The Source implementation of Pulsar. Please use a {@link PulsarSourceBuilder} to construct a
  * {@link PulsarSource}. The following example shows how to create a PulsarSource emitting records
@@ -139,7 +141,7 @@ public final class PulsarSource<OUT>
     @Internal
     @Override
     public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumState> createEnumerator(
-            SplitEnumeratorContext<PulsarPartitionSplit> enumContext) {
+            SplitEnumeratorContext<PulsarPartitionSplit> enumContext) throws PulsarClientException {
         return new PulsarSourceEnumerator(
                 subscriber,
                 startCursor,
@@ -153,7 +155,8 @@ public final class PulsarSource<OUT>
     @Override
     public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumState> restoreEnumerator(
             SplitEnumeratorContext<PulsarPartitionSplit> enumContext,
-            PulsarSourceEnumState checkpoint) {
+            PulsarSourceEnumState checkpoint)
+            throws PulsarClientException {
         return new PulsarSourceEnumerator(
                 subscriber,
                 startCursor,

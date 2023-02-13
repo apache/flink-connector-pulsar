@@ -32,7 +32,6 @@ import org.apache.flink.testutils.junit.SharedReference;
 import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles;
 
 import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -52,7 +51,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
-import static org.apache.flink.connector.pulsar.common.utils.PulsarExceptionUtils.sneakyClient;
 import static org.apache.pulsar.client.api.SubscriptionMode.Durable;
 import static org.apache.pulsar.client.api.SubscriptionType.Exclusive;
 
@@ -77,7 +75,8 @@ public class ControlSource extends AbstractRichFunction
             DeliveryGuarantee guarantee,
             int messageCounts,
             Duration interval,
-            Duration timeout) {
+            Duration timeout)
+            throws PulsarClientException {
         MessageGenerator generator =
                 new MessageGenerator(topic, guarantee, messageCounts, interval);
         StopSignal signal = new StopSignal(operator, topic, messageCounts, timeout);
@@ -200,20 +199,21 @@ public class ControlSource extends AbstractRichFunction
         private final AtomicReference<PulsarClientException> throwableException;
 
         public StopSignal(
-                PulsarRuntimeOperator operator, String topic, int messageCounts, Duration timeout) {
+                PulsarRuntimeOperator operator, String topic, int messageCounts, Duration timeout)
+                throws PulsarClientException {
             this.desiredCounts = messageCounts;
             this.consumedRecords = Collections.synchronizedList(new ArrayList<>(messageCounts));
             this.deadline = new AtomicLong(timeout.toMillis() + System.currentTimeMillis());
             this.executor = Executors.newSingleThreadExecutor();
-            ConsumerBuilder<String> consumerBuilder =
+            this.consumer =
                     operator.client()
                             .newConsumer(Schema.STRING)
                             .topic(topic)
                             .subscriptionName(randomAlphanumeric(10))
                             .subscriptionMode(Durable)
                             .subscriptionType(Exclusive)
-                            .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest);
-            this.consumer = sneakyClient(consumerBuilder::subscribe);
+                            .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                            .subscribe();
             this.throwableException = new AtomicReference<>();
 
             // Start consuming.
