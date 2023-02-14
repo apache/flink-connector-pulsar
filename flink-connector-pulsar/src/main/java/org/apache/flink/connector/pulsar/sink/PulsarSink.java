@@ -54,7 +54,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *      .setServiceUrl(operator().serviceUrl())
  *      .setAdminUrl(operator().adminUrl())
  *      .setTopic(topic)
- *      .setSerializationSchema(PulsarSerializationSchema.pulsarSchema(Schema.STRING))
+ *      .setSerializationSchema(Schema.STRING)
  *      .build();
  * }</pre>
  *
