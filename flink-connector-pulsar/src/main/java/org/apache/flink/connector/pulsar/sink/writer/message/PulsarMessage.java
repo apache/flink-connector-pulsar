@@ -80,7 +80,7 @@ public class PulsarMessage<T> {
      * validating it on Pulsar. This is called schema evolution. But the topic on Pulsar should bind
      * to a fixed {@link Schema}. You may not have multiple schemas on the same topic unless it's
      * compatible with each other. This is determined by the configured <a
-     * href="https://pulsar.apache.org/docs/2.10.x/schema-evolution-compatibility/#schema-compatibility-check-strategy">schema
+     * href="https://pulsar.apache.org/docs/2.11.x/schema-evolution-compatibility/#schema-compatibility-check-strategy">schema
      * evolution policy</a> on corresponding topic.
      */
     public static <M> PulsarMessageBuilder<M> builder(Schema<M> schema, M message) {

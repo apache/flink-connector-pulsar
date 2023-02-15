@@ -19,6 +19,7 @@
 package org.apache.flink.connector.pulsar.common.config;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.configuration.ConfigOption;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminBuilder;
@@ -30,8 +31,10 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.function.ObjIntConsumer;
 
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -44,13 +47,16 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTO_CERT_REFRESH_TIME;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONCURRENT_LOOKUP_REQUEST;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECTIONS_PER_BROKER;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECTION_MAX_IDLE_SECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECTION_TIMEOUT_MS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECT_TIMEOUT;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_DNS_LOOKUP_BIND_ADDRESS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_BUSY_WAIT;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_TRANSACTION;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_INITIAL_BACKOFF_INTERVAL_NANOS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_KEEP_ALIVE_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_LISTENER_NAME;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_LOOKUP_TIMEOUT_MS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_BACKOFF_INTERVAL_NANOS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_LOOKUP_REDIRECTS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MAX_LOOKUP_REQUEST;
@@ -65,11 +71,19 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_REQUEST_TIMEOUT;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_REQUEST_TIMEOUT_MS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SOCKS5_PROXY_ADDRESS;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SOCKS5_PROXY_PASSWORD;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SOCKS5_PROXY_USERNAME;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SSL_PROVIDER;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_ALLOW_INSECURE_CONNECTION;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_CERTIFICATE_FILE_PATH;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_CIPHERS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_HOSTNAME_VERIFICATION_ENABLE;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_KEY_FILE_PATH;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_KEY_STORE_PASSWORD;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_KEY_STORE_PATH;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_KEY_STORE_TYPE;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_PROTOCOLS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_CERTS_FILE_PATH;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_PASSWORD;
@@ -105,10 +119,16 @@ public final class PulsarClientFactory {
         configuration.useOption(
                 PULSAR_OPERATION_TIMEOUT_MS,
                 timeout -> builder.operationTimeout(timeout, MILLISECONDS));
+        configuration.useOption(
+                PULSAR_LOOKUP_TIMEOUT_MS, timeout -> builder.lookupTimeout(timeout, MILLISECONDS));
         configuration.useOption(PULSAR_NUM_IO_THREADS, builder::ioThreads);
         configuration.useOption(PULSAR_NUM_LISTENER_THREADS, builder::listenerThreads);
         configuration.useOption(PULSAR_CONNECTIONS_PER_BROKER, builder::connectionsPerBroker);
+        configuration.useOption(
+                PULSAR_CONNECTION_MAX_IDLE_SECONDS, builder::connectionMaxIdleSeconds);
         configuration.useOption(PULSAR_USE_TCP_NO_DELAY, builder::enableTcpNoDelay);
+        configuration.useOption(PULSAR_TLS_KEY_FILE_PATH, builder::tlsKeyFilePath);
+        configuration.useOption(PULSAR_TLS_CERTIFICATE_FILE_PATH, builder::tlsCertificateFilePath);
         configuration.useOption(PULSAR_TLS_TRUST_CERTS_FILE_PATH, builder::tlsTrustCertsFilePath);
         configuration.useOption(
                 PULSAR_TLS_ALLOW_INSECURE_CONNECTION, builder::allowTlsInsecureConnection);
@@ -116,6 +136,9 @@ public final class PulsarClientFactory {
                 PULSAR_TLS_HOSTNAME_VERIFICATION_ENABLE, builder::enableTlsHostnameVerification);
         configuration.useOption(PULSAR_USE_KEY_STORE_TLS, builder::useKeyStoreTls);
         configuration.useOption(PULSAR_SSL_PROVIDER, builder::sslProvider);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_TYPE, builder::tlsKeyStoreType);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_PATH, builder::tlsKeyStorePath);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_PASSWORD, builder::tlsKeyStorePassword);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_TYPE, builder::tlsTrustStoreType);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_PATH, builder::tlsTrustStorePath);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_PASSWORD, builder::tlsTrustStorePassword);
@@ -148,6 +171,18 @@ public final class PulsarClientFactory {
             builder.proxyServiceUrl(proxyServiceUrl, proxyProtocol);
         }
         configuration.useOption(PULSAR_ENABLE_TRANSACTION, builder::enableTransaction);
+        bindAddress(configuration, PULSAR_DNS_LOOKUP_BIND_ADDRESS, true, builder::dnsLookupBind);
+        bindAddress(
+                configuration,
+                PULSAR_SOCKS5_PROXY_ADDRESS,
+                false,
+                (host, port) -> {
+                    builder.socks5ProxyAddress(new InetSocketAddress(host, port));
+                    configuration.useOption(
+                            PULSAR_SOCKS5_PROXY_USERNAME, builder::socks5ProxyUsername);
+                    configuration.useOption(
+                            PULSAR_SOCKS5_PROXY_PASSWORD, builder::socks5ProxyPassword);
+                });
 
         return builder.build();
     }
@@ -164,6 +199,8 @@ public final class PulsarClientFactory {
         builder.authentication(createAuthentication(configuration));
 
         configuration.useOption(PULSAR_ADMIN_URL, builder::serviceHttpUrl);
+        configuration.useOption(PULSAR_TLS_KEY_FILE_PATH, builder::tlsKeyFilePath);
+        configuration.useOption(PULSAR_TLS_CERTIFICATE_FILE_PATH, builder::tlsCertificateFilePath);
         configuration.useOption(PULSAR_TLS_TRUST_CERTS_FILE_PATH, builder::tlsTrustCertsFilePath);
         configuration.useOption(
                 PULSAR_TLS_ALLOW_INSECURE_CONNECTION, builder::allowTlsInsecureConnection);
@@ -171,6 +208,9 @@ public final class PulsarClientFactory {
                 PULSAR_TLS_HOSTNAME_VERIFICATION_ENABLE, builder::enableTlsHostnameVerification);
         configuration.useOption(PULSAR_USE_KEY_STORE_TLS, builder::useKeyStoreTls);
         configuration.useOption(PULSAR_SSL_PROVIDER, builder::sslProvider);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_TYPE, builder::tlsKeyStoreType);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_PATH, builder::tlsKeyStorePath);
+        configuration.useOption(PULSAR_TLS_KEY_STORE_PASSWORD, builder::tlsKeyStorePassword);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_TYPE, builder::tlsTrustStoreType);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_PATH, builder::tlsTrustStorePath);
         configuration.useOption(PULSAR_TLS_TRUST_STORE_PASSWORD, builder::tlsTrustStorePassword);
@@ -216,5 +256,34 @@ public final class PulsarClientFactory {
         }
 
         return AuthenticationDisabled.INSTANCE;
+    }
+
+    private static void bindAddress(
+            PulsarConfiguration configuration,
+            ConfigOption<String> option,
+            boolean allowRandomPort,
+            ObjIntConsumer<String> setter) {
+        if (!configuration.contains(option)) {
+            return;
+        }
+
+        String address = configuration.get(option);
+        if (address.contains(":")) {
+            try {
+                String[] addresses = address.split(":");
+                String host = addresses[0];
+                int port = Integer.parseInt(addresses[1]);
+
+                setter.accept(host, port);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        "Invalid address '" + address + "', port should be int.");
+            }
+        } else if (allowRandomPort) {
+            setter.accept(address, 0);
+        } else {
+            throw new IllegalArgumentException(
+                    "The address '" + address + "' should be in host:port format.");
+        }
     }
 }

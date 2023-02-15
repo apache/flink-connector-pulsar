@@ -39,10 +39,16 @@
             <td>The maximum wait time for switching topic partitions.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.producer.chunkMaxMessageSize</h5></td>
+            <td style="word-wrap: break-word;">-1</td>
+            <td>Integer</td>
+            <td>Max chunk message size in bytes. Producer chunks the message if chunking is enabled and message size is larger than max chunk-message size. By default, chunkMaxMessageSize value is -1 and producer chunks based on max-message size configured at the broker.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.producer.chunkingEnabled</h5></td>
             <td style="word-wrap: break-word;">false</td>
             <td>Boolean</td>
-            <td></td>
+            <td>If message size is higher than allowed max publish-payload size by broker, then enableChunking helps producer to split message into multiple chunks and publish them to broker separately and in order. So, it allows client to successfully publish large size of messages in pulsar.</td>
         </tr>
         <tr>
             <td><h5>pulsar.producer.compressionType</h5></td>

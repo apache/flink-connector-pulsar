@@ -44,7 +44,7 @@ import java.util.Collection;
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.getTcClient;
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.apache.pulsar.common.naming.TopicName.TRANSACTION_COORDINATOR_ASSIGN;
+import static org.apache.pulsar.common.naming.SystemTopicNames.TRANSACTION_COORDINATOR_ASSIGN;
 
 /**
  * Committer implementation for {@link PulsarSink}.

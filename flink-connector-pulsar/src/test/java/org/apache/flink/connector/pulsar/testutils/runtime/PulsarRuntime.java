@@ -20,11 +20,14 @@ package org.apache.flink.connector.pulsar.testutils.runtime;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.container.PulsarContainerRuntime;
+import org.apache.flink.connector.pulsar.testutils.runtime.remote.PulsarRemoteRuntime;
 import org.apache.flink.connector.pulsar.testutils.runtime.singleton.PulsarSingletonRuntime;
 
 import org.testcontainers.containers.GenericContainer;
 
 import java.util.Map;
+
+import static java.util.Collections.singletonMap;
 
 /**
  * An abstraction for different pulsar runtimes. Providing the common methods for {@link
@@ -38,7 +41,11 @@ public interface PulsarRuntime {
      * Override the default broker configs with some new values. This method is called before
      * executing the {@link #startUp()} method.
      */
-    PulsarRuntime setConfigs(Map<String, String> configs);
+    PulsarRuntime withConfigs(Map<String, String> configs);
+
+    default PulsarRuntime withConfig(String key, String value) {
+        return withConfigs(singletonMap(key, value));
+    }
 
     /** Start up this pulsar runtime, block the thread until everytime is ready for this runtime. */
     void startUp() throws Exception;
@@ -52,13 +59,23 @@ public interface PulsarRuntime {
      */
     PulsarRuntimeOperator operator();
 
+    /** Connect to a remote running instance. */
+    static PulsarRuntime remote(String host) {
+        return new PulsarRemoteRuntime(host);
+    }
+
+    /** Connect to a remote running instance. */
+    static PulsarRuntime remote(String serviceUrl, String adminUrl) {
+        return new PulsarRemoteRuntime(serviceUrl, adminUrl);
+    }
+
     /**
      * A singleton instance of the Pulsar docker instance in the whole test lifecycle. We will start
      * the instance only once and didn't stop it after the tests finished. The instance will be
      * shared among all the tests.
      */
     static PulsarRuntime singletonContainer() {
-        return new PulsarSingletonRuntime();
+        return PulsarSingletonRuntime.INSTANCE;
     }
 
     /**
@@ -76,7 +93,7 @@ public interface PulsarRuntime {
      * disabled. The function worker is disabled on Pulsar broker.
      *
      * <p>We would link the created Pulsar docker instance with the given flink instance. This would
-     * enable the connection for Pulsar and Flink in docker environment.
+     * enable the connection for Pulsar and Flink in a docker environment.
      */
     static PulsarRuntime container(GenericContainer<?> flinkContainer) {
         return new PulsarContainerRuntime().bindWithFlinkContainer(flinkContainer);

@@ -26,6 +26,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.pulsar.testutils.SampleData.Bar;
 import org.apache.flink.connector.pulsar.testutils.SampleData.Foo;
+import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
 import org.apache.flink.runtime.minicluster.RpcServiceSharing;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
@@ -106,6 +107,11 @@ class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
             Optional<String> exist = foos.stream().filter(f -> f.contains(bar)).findFirst();
             assertThat(exist).isPresent();
         }
+    }
+
+    @Override
+    protected PulsarRuntime runtime() {
+        return PulsarRuntime.container();
     }
 
     @Override

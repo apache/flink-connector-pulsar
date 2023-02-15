@@ -36,52 +36,55 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>This runtime can't be used in end-to-end tests.
  */
-public class PulsarSingletonRuntime implements PulsarRuntime {
+public enum PulsarSingletonRuntime implements PulsarRuntime {
+    INSTANCE {
+        private final PulsarContainerRuntime container = new PulsarContainerRuntime();
+        private final AtomicReference<RuntimeStatus> status =
+                new AtomicReference<>(RuntimeStatus.STOPPED);
 
-    private static final PulsarContainerRuntime container = new PulsarContainerRuntime();
-    private static final AtomicReference<RuntimeStatus> status =
-            new AtomicReference<>(RuntimeStatus.STOPPED);
+        @Override
+        public PulsarRuntime withConfigs(Map<String, String> configs) {
+            return container.withConfigs(configs);
+        }
 
-    @Override
-    public PulsarRuntime setConfigs(Map<String, String> configs) {
-        return container.setConfigs(configs);
-    }
-
-    @Override
-    public void startUp() {
-        if (status.compareAndSet(RuntimeStatus.STOPPED, RuntimeStatus.STARTING)) {
-            // Entering the start operation.
-            try {
-                container.startUp();
-                status.set(RuntimeStatus.STARTED);
-            } catch (Exception e) {
-                status.set(RuntimeStatus.FATAL);
-                // Crash the test thread.
-                throw new FlinkRuntimeException(e);
-            }
-        } else {
-            // Other thread may have started the runtime. Waiting for the final status.
-            while (status.get() != RuntimeStatus.STARTED && status.get() != RuntimeStatus.FATAL) {
-                Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(500));
-            }
-            if (status.get() == RuntimeStatus.FATAL) {
-                // Crash the test thread.
-                throw new FlinkRuntimeException(
-                        "Fall to start this singleton container. Some error occurs.");
+        @Override
+        public void startUp() {
+            if (status.compareAndSet(RuntimeStatus.STOPPED, RuntimeStatus.STARTING)) {
+                // Entering the start operation.
+                try {
+                    container.startUp();
+                    status.set(RuntimeStatus.STARTED);
+                } catch (Exception e) {
+                    status.set(RuntimeStatus.FATAL);
+                    // Crash the test thread.
+                    throw new FlinkRuntimeException(e);
+                }
+            } else {
+                // Other thread may have started the runtime. Waiting for the final status.
+                while (status.get() != RuntimeStatus.STARTED
+                        && status.get() != RuntimeStatus.FATAL) {
+                    Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(500));
+                }
+                if (status.get() == RuntimeStatus.FATAL) {
+                    // Crash the test thread.
+                    throw new FlinkRuntimeException(
+                            "Fall to start this singleton container. Some error occurs.");
+                }
             }
         }
-    }
 
-    @Override
-    public void tearDown() {
-        // Nothing to do here. TestContainers will take care of stopping the Docker instance.
-        // See https://www.testcontainers.org/test_framework_integration/manual_lifecycle_control/
-    }
+        @Override
+        public void tearDown() {
+            // Nothing to do here. TestContainers will take care of stopping the Docker instance.
+            // See
+            // https://www.testcontainers.org/test_framework_integration/manual_lifecycle_control/
+        }
 
-    @Override
-    public PulsarRuntimeOperator operator() {
-        return container.operator();
-    }
+        @Override
+        public PulsarRuntimeOperator operator() {
+            return container.operator();
+        }
+    };
 
     /** The runtime signal which is used to share the status among different test threads. */
     private enum RuntimeStatus {
