@@ -73,8 +73,6 @@ import static org.apache.flink.shaded.guava30.com.google.common.util.concurrent.
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 
 /** Unit test for {@link PulsarSourceReader}. */
 class PulsarSourceReaderTest extends PulsarTestSuiteBase {
@@ -204,7 +202,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         reader.pauseOrResumeSplits(singletonList(split.splitId()), emptyList());
 
         InputStatus status = reader.pollNext(output);
-        assertEquals(InputStatus.NOTHING_AVAILABLE, status);
+        assertThat(status).isEqualTo(InputStatus.NOTHING_AVAILABLE);
 
         reader.pauseOrResumeSplits(emptyList(), Collections.singleton(split.splitId()));
 
@@ -213,7 +211,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
             Thread.sleep(5);
         } while (status != InputStatus.MORE_AVAILABLE);
 
-        assertEquals(InputStatus.MORE_AVAILABLE, status);
+        assertThat(status).isEqualTo(InputStatus.MORE_AVAILABLE);
 
         reader.close();
     }
@@ -241,7 +239,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
             deserializationSchema.open(
                     new PulsarDeserializationSchemaInitializationContext(
                             context, operator().client()),
-                    mock(SourceConfiguration.class));
+                    new SourceConfiguration(new Configuration()));
         } catch (Exception e) {
             fail("Error while opening deserializationSchema");
         }
@@ -294,9 +292,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
                         .subscriptionName("verify-message")
                         .topic(partitionName)
                         .subscribe()) {
-            assertEquals(
-                    expectedMessages - 1,
-                    ((MessageIdImpl) consumer.getLastMessageId()).getEntryId());
+            assertThat(((MessageIdImpl) consumer.getLastMessageId()).getEntryId())
+                    .isEqualTo(expectedMessages - 1);
         }
     }
 

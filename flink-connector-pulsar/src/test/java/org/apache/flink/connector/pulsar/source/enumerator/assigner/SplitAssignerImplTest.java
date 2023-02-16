@@ -44,8 +44,6 @@ import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEn
 import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssignerImpl.calculatePartitionOwner;
 import static org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor.defaultStopCursor;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Unit tests for {@link SplitAssignerImpl}. */
 class SplitAssignerImplTest {
@@ -99,19 +97,19 @@ class SplitAssignerImplTest {
     @Test
     void noMoreSplits() {
         SplitAssigner assigner = splitAssigner(true, 4);
-        assertFalse(assigner.noMoreSplits(3));
+        assertThat(assigner.noMoreSplits(3)).isFalse();
 
         assigner = splitAssigner(false, 4);
-        assertFalse(assigner.noMoreSplits(3));
+        assertThat(assigner.noMoreSplits(3)).isFalse();
 
         Set<TopicPartition> partitions = createPartitions("persistent://public/default/f", 8);
         int owner = calculatePartitionOwner("persistent://public/default/f", 8, 4);
 
         assigner.registerTopicPartitions(partitions);
-        assertFalse(assigner.noMoreSplits(owner));
+        assertThat(assigner.noMoreSplits(owner)).isFalse();
 
         assigner.createAssignment(singletonList(owner));
-        assertTrue(assigner.noMoreSplits(owner));
+        assertThat(assigner.noMoreSplits(owner)).isTrue();
     }
 
     @Test

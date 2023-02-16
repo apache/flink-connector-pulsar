@@ -34,7 +34,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Unit tests for {@link KeyValueSchemaFactory}. */
 class KeyValueSchemaFactoryTest {
@@ -68,7 +68,7 @@ class KeyValueSchemaFactoryTest {
         TypeInformation<KeyValue<Bar, FA>> info =
                 factory.createTypeInfo(pulsarSchema.getSchemaInfo());
         // TypeInformation serialization.
-        assertDoesNotThrow(() -> InstantiationUtil.clone(info));
+        assertThatCode(() -> InstantiationUtil.clone(info)).doesNotThrowAnyException();
         assertThat(InstantiationUtil.clone(info))
                 .isInstanceOf(PulsarSchemaTypeInformation.class)
                 .hasFieldOrPropertyWithValue("typeClass", KeyValue.class);

@@ -58,8 +58,8 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_RATES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_RETRIES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_WAIT_MILLIS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Unit test of {@link PulsarAdminInvocationHandler}. */
 class PulsarAdminInvocationHandlerTest {
@@ -90,7 +90,7 @@ class PulsarAdminInvocationHandlerTest {
         assertThatThrownBy(() -> proxyAdmin.lookups().lookupPartitionedTopic("aa"))
                 .isInstanceOf(PulsarAdminException.class)
                 .hasMessage(errorMsg);
-        assertEquals(retryTimes, admin.lookup.callingTimes());
+        assertThat(admin.lookup.callingTimes()).isEqualTo(retryTimes);
     }
 
     @Test
@@ -110,7 +110,7 @@ class PulsarAdminInvocationHandlerTest {
         assertThatThrownBy(() -> proxyAdmin.lookups().lookupTopic("some"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("not found");
-        assertEquals(1, admin.lookup.callingTimes());
+        assertThat(admin.lookup.callingTimes()).isEqualTo(1);
     }
 
     /** Test implementation for PulsarAdmin. */

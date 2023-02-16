@@ -38,24 +38,20 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link AvroSchemaFactory}. */
 class AvroSchemaFactoryTest {
-
-    private final AvroSchemaFactory<?> factory = new AvroSchemaFactory<>();
 
     @Test
     void createAvroSchemaFromSchemaInfo() {
         AvroSchema<DefaultStruct> schema1 = AvroSchema.of(DefaultStruct.class);
 
         // AvroSchema should provide type class
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new PulsarSchema<>(schema1),
-                "Avro Schema should provide the type class");
+        assertThatThrownBy(() -> new PulsarSchema<>(schema1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Avro Schema should provide the type class");
 
         PulsarSchema<DefaultStruct> pulsarSchema = new PulsarSchema<>(schema1, DefaultStruct.class);
         AvroSchemaFactory<DefaultStruct> factory = new AvroSchemaFactory<>();
@@ -74,7 +70,7 @@ class AvroSchemaFactoryTest {
         byte[] bytes = schema1.encode(struct1);
         DefaultStruct struct2 = schema2.decode(bytes);
 
-        assertEquals(struct1, struct2);
+        assertThat(struct2).isEqualTo(struct1);
     }
 
     @Test
@@ -97,8 +93,8 @@ class AvroSchemaFactoryTest {
         TypeSerializer<StructWithAnnotations> serializer =
                 information.createSerializer(new ExecutionConfig());
         // TypeInformation serialization.
-        assertDoesNotThrow(() -> InstantiationUtil.clone(information));
-        assertDoesNotThrow(() -> InstantiationUtil.clone(serializer));
+        assertThatCode(() -> InstantiationUtil.clone(information)).doesNotThrowAnyException();
+        assertThatCode(() -> InstantiationUtil.clone(serializer)).doesNotThrowAnyException();
 
         TestOutputView output = new TestOutputView();
         serializer.serialize(struct1, output);

@@ -38,10 +38,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link PulsarSchema}. */
 class PulsarSchemaTest {
@@ -55,44 +54,52 @@ class PulsarSchemaTest {
             KeyValueSchemaImpl.of(Foo.class, FA.class, SchemaType.JSON);
 
     @Test
-    void pulsarSchemaCreation() {
-        assertAll(
-                "Primitive schemas creation",
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.BYTES)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.STRING)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.INT8)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.INT16)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.INT32)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.INT64)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.BOOL)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.FLOAT)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.DOUBLE)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.DATE)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.TIME)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.TIMESTAMP)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.INSTANT)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.LOCAL_DATE)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.LOCAL_TIME)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(Schema.LOCAL_DATE_TIME)));
+    void primitivePulsarSchemaCreation() {
+        assertThatCode(() -> new PulsarSchema<>(Schema.BYTES)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.STRING)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.INT8)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.INT16)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.INT32)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.INT64)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.BOOL)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.FLOAT)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.DOUBLE)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.DATE)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.TIME)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.TIMESTAMP)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.INSTANT)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.LOCAL_DATE)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.LOCAL_TIME)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(Schema.LOCAL_DATE_TIME)).doesNotThrowAnyException();
+    }
 
-        assertAll(
-                "Struct & KeyValue schema creation",
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(JSON, FL.class)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(AVRO, Bar.class)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(PROTO, TestMessage.class)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(PROTO_N, SubMessage.class)),
-                () -> assertDoesNotThrow(() -> new PulsarSchema<>(KV, Foo.class, FA.class)));
+    @Test
+    void structAndKeyValuePulsarSchemaCreation() {
+        assertThatCode(() -> new PulsarSchema<>(JSON, FL.class)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(AVRO, Bar.class)).doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(PROTO, TestMessage.class))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(PROTO_N, SubMessage.class))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> new PulsarSchema<>(KV, Foo.class, FA.class))
+                .doesNotThrowAnyException();
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void invalidPulsarSchemaCreationWithoutClassType() {
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(AVRO));
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(JSON));
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(PROTO));
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(PROTO_N));
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema<>(KV));
-        assertThrows(IllegalArgumentException.class, () -> new PulsarSchema(KV, KeyValue.class));
+        assertThatThrownBy(() -> new PulsarSchema<>(AVRO))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PulsarSchema<>(JSON))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PulsarSchema<>(PROTO))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PulsarSchema<>(PROTO_N))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PulsarSchema<>(KV))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PulsarSchema(KV, KeyValue.class))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -129,8 +136,8 @@ class PulsarSchemaTest {
 
     private <T> void assertPulsarSchemaIsSerializable(PulsarSchema<T> schema) throws Exception {
         PulsarSchema<T> clonedSchema = InstantiationUtil.clone(schema);
-        assertEquals(clonedSchema.getSchemaInfo(), schema.getSchemaInfo());
-        assertEquals(clonedSchema.getRecordClass(), schema.getRecordClass());
+        assertThat(clonedSchema.getSchemaInfo()).isEqualTo(schema.getSchemaInfo());
+        assertThat(clonedSchema.getRecordClass()).isEqualTo(schema.getRecordClass());
     }
 
     /** A POJO Class which would generate a large schema by Avro. */

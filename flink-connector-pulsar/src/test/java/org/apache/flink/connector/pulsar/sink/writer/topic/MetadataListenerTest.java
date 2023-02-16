@@ -36,7 +36,6 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_TOPIC_METADATA_REFRESH_INTERVAL;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Unit tests for {@link MetadataListener}. */
 class MetadataListenerTest extends PulsarTestSuiteBase {
@@ -70,13 +69,13 @@ class MetadataListenerTest extends PulsarTestSuiteBase {
 
         listener.open(configuration, timeService);
         List<TopicPartition> partitions = listener.availablePartitions();
-        assertEquals(desiredPartitions, partitions);
+        assertThat(partitions).isEqualTo(desiredPartitions);
 
         operator().increaseTopicPartitions(topic, 12);
         listener.refreshTopicMetadata(topic);
         timeService.advance(interval);
         partitions = listener.availablePartitions();
-        assertEquals(desiredPartitions, partitions);
+        assertThat(partitions).isEqualTo(desiredPartitions);
     }
 
     @Test
@@ -140,7 +139,7 @@ class MetadataListenerTest extends PulsarTestSuiteBase {
 
         listener.open(configuration, timeService);
         List<TopicPartition> partitions = listener.availablePartitions();
-        assertEquals(partitions, nonPartitionTopic);
+        assertThat(partitions).isEqualTo(nonPartitionTopic);
     }
 
     private List<TopicPartition> topicPartitions(String topic, int partitionSize) {

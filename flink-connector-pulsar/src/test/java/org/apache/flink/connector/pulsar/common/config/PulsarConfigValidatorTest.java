@@ -24,8 +24,8 @@ import org.apache.flink.configuration.Configuration;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link PulsarConfigValidator}. */
 class PulsarConfigValidatorTest {
@@ -44,14 +44,18 @@ class PulsarConfigValidatorTest {
         Configuration configuration = new Configuration();
 
         // Required options
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(configuration));
+        assertThatThrownBy(() -> validator.validate(configuration))
+                .isInstanceOf(IllegalArgumentException.class);
+
         configuration.set(required, "required");
-        assertDoesNotThrow(() -> validator.validate(configuration));
+        assertThatCode(() -> validator.validate(configuration)).doesNotThrowAnyException();
 
         // Conflict options
         configuration.set(c1, "c1");
-        assertDoesNotThrow(() -> validator.validate(configuration));
+        assertThatCode(() -> validator.validate(configuration)).doesNotThrowAnyException();
+
         configuration.set(c2, "c2");
-        assertThrows(IllegalArgumentException.class, () -> validator.validate(configuration));
+        assertThatThrownBy(() -> validator.validate(configuration))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

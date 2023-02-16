@@ -26,9 +26,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link PulsarConfigBuilder}. */
 class PulsarConfigBuilderTest {
@@ -39,8 +39,10 @@ class PulsarConfigBuilderTest {
         PulsarConfigBuilder builder = new PulsarConfigBuilder();
         builder.set(option, "value1");
 
-        assertDoesNotThrow(() -> builder.set(option, "value1"));
-        assertThrows(IllegalArgumentException.class, () -> builder.set(option, "value2"));
+        assertThatCode(() -> builder.set(option, "value1")).doesNotThrowAnyException();
+
+        assertThatThrownBy(() -> builder.set(option, "value2"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -52,10 +54,11 @@ class PulsarConfigBuilderTest {
         configuration.set(option, "value1");
 
         builder.set(option, "value1");
-        assertDoesNotThrow(() -> builder.set(configuration));
+        assertThatCode(() -> builder.set(configuration)).doesNotThrowAnyException();
 
         configuration.set(option, "value2");
-        assertThrows(IllegalArgumentException.class, () -> builder.set(configuration));
+        assertThatThrownBy(() -> builder.set(configuration))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -65,12 +68,14 @@ class PulsarConfigBuilderTest {
 
         Properties properties = new Properties();
         properties.put("int.type", "6");
-        assertDoesNotThrow(() -> builder.set(properties));
+
+        assertThatCode(() -> builder.set(properties)).doesNotThrowAnyException();
 
         properties.put("int.type", "1");
-        assertThrows(IllegalArgumentException.class, () -> builder.set(properties));
+        assertThatThrownBy(() -> builder.set(properties))
+                .isInstanceOf(IllegalArgumentException.class);
 
         Integer value = builder.get(option);
-        assertEquals(value, 6);
+        assertThat(value).isEqualTo(6);
     }
 }

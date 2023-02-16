@@ -31,8 +31,7 @@ import org.junit.jupiter.api.Test;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer.INSTANCE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link PulsarPartitionSplitSerializer}. */
 class PulsarPartitionSplitSerializerTest {
@@ -48,8 +47,7 @@ class PulsarPartitionSplitSerializerTest {
         byte[] bytes = INSTANCE.serialize(split);
         PulsarPartitionSplit split1 = INSTANCE.deserialize(2, bytes);
 
-        assertEquals(split, split1);
-        assertNotSame(split, split1);
+        assertThat(split1).isEqualTo(split).isNotSameAs(split);
     }
 
     @Test
@@ -86,8 +84,7 @@ class PulsarPartitionSplitSerializerTest {
                         MessageId.latest,
                         new TxnID(1000, 2000));
 
-        assertEquals(split, expectedSplit);
-        assertNotSame(split, expectedSplit);
+        assertThat(split).isEqualTo(expectedSplit).isNotSameAs(expectedSplit);
     }
 
     @Test
@@ -118,7 +115,6 @@ class PulsarPartitionSplitSerializerTest {
                         MessageId.latest,
                         new TxnID(1000, 2000));
 
-        assertEquals(split, expectedSplit);
-        assertNotSame(split, expectedSplit);
+        assertThat(split).isEqualTo(expectedSplit).isNotSameAs(expectedSplit);
     }
 }

@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for serializing and deserializing {@link PulsarCommittable} with {@link
@@ -48,6 +48,6 @@ class PulsarCommittableSerializerTest {
         byte[] bytes = INSTANCE.serialize(committable);
         PulsarCommittable committable1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
 
-        assertEquals(committable1, committable);
+        assertThat(committable1).isEqualTo(committable);
     }
 }

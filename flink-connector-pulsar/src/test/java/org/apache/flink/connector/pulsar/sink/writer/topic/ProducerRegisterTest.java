@@ -43,8 +43,7 @@ import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_VALIDATE_SINK_MESSAGE_BYTES;
 import static org.apache.flink.metrics.groups.UnregisteredMetricsGroup.createSinkWriterMetricGroup;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link ProducerRegister}. */
 class ProducerRegisterTest extends PulsarTestSuiteBase {
@@ -75,7 +74,7 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
         }
 
         Message<String> receiveMessage = operator().receiveMessage(topic, Schema.STRING);
-        assertEquals(receiveMessage.getValue(), message);
+        assertThat(receiveMessage.getValue()).isEqualTo(message);
     }
 
     @ParameterizedTest
@@ -116,8 +115,7 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
         long message = ThreadLocalRandom.current().nextLong();
         TypedMessageBuilder<byte[]> builder = register.createMessageBuilder(topic, Schema.BYTES);
 
-        assertThrows(
-                SchemaSerializationException.class,
-                () -> builder.value(Schema.INT64.encode(message)));
+        assertThatThrownBy(() -> builder.value(Schema.INT64.encode(message)))
+                .isInstanceOf(SchemaSerializationException.class);
     }
 }
