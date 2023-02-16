@@ -30,7 +30,6 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
@@ -321,16 +320,17 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
 
         // Create the subscription and set the start position for this reader.
         // Remember not to use Consumer.seek(startPosition)
-        SourceConfiguration sourceConfiguration = reader.sourceConfiguration;
-        PulsarAdmin pulsarAdmin = reader.pulsarAdmin;
-        String subscriptionName = sourceConfiguration.getSubscriptionName();
-        List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
+        String subscriptionName = reader.getSubscriptionName();
+        List<String> subscriptions = operator().admin().topics().getSubscriptions(topicName);
         if (!subscriptions.contains(subscriptionName)) {
             // If this subscription is not available. Just create it.
-            pulsarAdmin.topics().createSubscription(topicName, subscriptionName, startPosition);
+            operator()
+                    .admin()
+                    .topics()
+                    .createSubscription(topicName, subscriptionName, startPosition);
         } else {
             // Reset the subscription if this is existed.
-            pulsarAdmin.topics().resetCursor(topicName, subscriptionName, startPosition);
+            operator().admin().topics().resetCursor(topicName, subscriptionName, startPosition);
         }
 
         // Accept the split and start consuming.

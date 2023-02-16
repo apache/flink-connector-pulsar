@@ -33,10 +33,28 @@
             <td>The server response read timeout (in ms) for the PulsarAdmin client for any request.</td>
         </tr>
         <tr>
+            <td><h5>pulsar.admin.requestRates</h5></td>
+            <td style="word-wrap: break-word;">5</td>
+            <td>Integer</td>
+            <td>It will add ratelimit for PulsarAdmin metadata requests, stands for requests per second.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.admin.requestRetries</h5></td>
+            <td style="word-wrap: break-word;">5</td>
+            <td>Integer</td>
+            <td>For PulsarAdmin request, it will retry until we get a success response, fail if we exhausted retry count.</td>
+        </tr>
+        <tr>
             <td><h5>pulsar.admin.requestTimeout</h5></td>
             <td style="word-wrap: break-word;">300000</td>
             <td>Integer</td>
             <td>The server request timeout (in ms) for the PulsarAdmin client for any request.</td>
+        </tr>
+        <tr>
+            <td><h5>pulsar.admin.requestWaitMillis</h5></td>
+            <td style="word-wrap: break-word;">3000</td>
+            <td>Long</td>
+            <td>For PulsarAdmin request, We will sleep the given time before retrying the failed request.</td>
         </tr>
     </tbody>
 </table>

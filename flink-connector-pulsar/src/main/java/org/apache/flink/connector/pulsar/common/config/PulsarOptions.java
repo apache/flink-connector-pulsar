@@ -27,6 +27,7 @@ import org.apache.flink.configuration.description.Description;
 
 import org.apache.pulsar.client.api.ProxyProtocol;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -627,4 +628,29 @@ public final class PulsarOptions {
                     .defaultValue(300000)
                     .withDescription(
                             "The auto cert refresh time (in ms) if Pulsar admin supports TLS authentication.");
+
+    // These config options below are passing to PulsarAdminInvocationHandler.
+    // A wrapper for PulsarAdmin.
+
+    public static final ConfigOption<Integer> PULSAR_ADMIN_REQUEST_RETRIES =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "requestRetries")
+                    .intType()
+                    .defaultValue(5)
+                    .withDescription(
+                            "For PulsarAdmin request, it will retry until we get a success response,"
+                                    + " fail if we exhausted retry count.");
+
+    public static final ConfigOption<Long> PULSAR_ADMIN_REQUEST_WAIT_MILLIS =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "requestWaitMillis")
+                    .longType()
+                    .defaultValue(Duration.ofSeconds(3).toMillis())
+                    .withDescription(
+                            "For PulsarAdmin request, We will sleep the given time before retrying the failed request.");
+
+    public static final ConfigOption<Integer> PULSAR_ADMIN_REQUEST_RATES =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "requestRates")
+                    .intType()
+                    .defaultValue(5)
+                    .withDescription(
+                            "It will add ratelimit for PulsarAdmin metadata requests, stands for requests per second.");
 }
