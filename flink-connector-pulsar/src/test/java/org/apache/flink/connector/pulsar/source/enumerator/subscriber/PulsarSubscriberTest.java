@@ -22,8 +22,10 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.FullRangeGenerator;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
+import org.apache.pulsar.common.naming.TopicName;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -38,31 +40,52 @@ import static org.apache.flink.connector.pulsar.source.enumerator.subscriber.Pul
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
+import static org.apache.pulsar.client.api.RegexSubscriptionMode.NonPersistentOnly;
+import static org.apache.pulsar.client.api.RegexSubscriptionMode.PersistentOnly;
+import static org.apache.pulsar.common.naming.TopicDomain.non_persistent;
 import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link PulsarSubscriber}. */
 class PulsarSubscriberTest extends PulsarTestSuiteBase {
 
-    private final String topic1 = topicName("pulsar-subscriber-topic-" + randomAlphanumeric(4));
+    private final String topic1 =
+            topicName("flink/regex/pulsar-subscriber-topic-" + randomAlphanumeric(4));
     private final String topic2 =
-            topicName("pulsar-subscriber-pattern-topic-" + randomAlphanumeric(4));
-    private final String topic3 = topicName("pulsar-subscriber-topic-2-" + randomAlphanumeric(4));
+            topicName("flink/regex/pulsar-subscriber-pattern-topic-" + randomAlphanumeric(4));
+    private final String topic3 =
+            topicName("flink/regex/pulsar-subscriber-topic-2-" + randomAlphanumeric(4));
     private final String topic4 =
-            topicName("pulsar-subscriber-non-partitioned-topic-" + randomAlphanumeric(4));
+            topicName(
+                    "flink/regex/pulsar-subscriber-non-partitioned-topic-" + randomAlphanumeric(4));
     private final String topic5 =
-            topicName("pulsar-subscriber-non-partitioned-topic-2-" + randomAlphanumeric(4));
+            topicName(
+                    "flink/regex/pulsar-subscriber-non-partitioned-topic-2-"
+                            + randomAlphanumeric(4));
+    private final String topic6 =
+            topicName("pulsar-subscriber-simple-topic-" + randomAlphanumeric(4));
+    private final String topic7 =
+            TopicName.get(
+                            non_persistent.value(),
+                            "public",
+                            "default",
+                            "pulsar-subscriber-simple-topic-2-" + randomAlphanumeric(4))
+                    .toString();
 
     private static final int NUM_PARTITIONS_PER_TOPIC = 5;
     private static final int NUM_PARALLELISM = 10;
 
     @BeforeAll
     void setUp() throws Exception {
+        operator().createNamespace("flink/regex");
+
         operator().createTopic(topic1, NUM_PARTITIONS_PER_TOPIC);
         operator().createTopic(topic2, NUM_PARTITIONS_PER_TOPIC);
         operator().createTopic(topic3, NUM_PARTITIONS_PER_TOPIC);
         operator().createTopic(topic4, NON_PARTITIONED);
         operator().createTopic(topic5, NON_PARTITIONED);
+        operator().createTopic(topic6, NUM_PARTITIONS_PER_TOPIC);
+        operator().createTopic(topic7, NUM_PARTITIONS_PER_TOPIC);
     }
 
     @AfterAll
@@ -72,6 +95,7 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
         operator().deleteTopic(topic3);
         operator().deleteTopic(topic4);
         operator().deleteTopic(topic5);
+        operator().deleteTopic(topic6);
     }
 
     @Test
@@ -121,8 +145,7 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
     void subscribeNonPartitionedTopicPattern() throws Exception {
         PulsarSubscriber subscriber =
                 getTopicPatternSubscriber(
-                        Pattern.compile(
-                                "persistent://public/default/pulsar-subscriber-non-partitioned-topic.*?"),
+                        Pattern.compile("flink/regex/pulsar-subscriber-non-partitioned-topic-.*"),
                         AllTopics);
         subscriber.open(operator().client(), operator().admin());
 
@@ -141,8 +164,7 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
     void topicPatternSubscriber() throws Exception {
         PulsarSubscriber subscriber =
                 getTopicPatternSubscriber(
-                        Pattern.compile("persistent://public/default/pulsar-subscriber-topic.*?"),
-                        AllTopics);
+                        Pattern.compile("flink/regex/pulsar-subscriber-topic-.*"), AllTopics);
         subscriber.open(operator().client(), operator().admin());
 
         Set<TopicPartition> topicPartitions =
@@ -153,6 +175,45 @@ class PulsarSubscriberTest extends PulsarTestSuiteBase {
         for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
             expectedPartitions.add(new TopicPartition(topic1, i));
             expectedPartitions.add(new TopicPartition(topic3, i));
+        }
+
+        assertThat(topicPartitions).isEqualTo(expectedPartitions);
+    }
+
+    @Test
+    void simpleTopicPatternSubscriber() throws Exception {
+        PulsarSubscriber subscriber =
+                getTopicPatternSubscriber(
+                        Pattern.compile("pulsar-subscriber-simple-topic-.*"), PersistentOnly);
+        subscriber.open(operator().client(), operator().admin());
+
+        Set<TopicPartition> topicPartitions =
+                subscriber.getSubscribedTopicPartitions(new FullRangeGenerator(), NUM_PARALLELISM);
+
+        Set<TopicPartition> expectedPartitions = new HashSet<>();
+
+        for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
+            expectedPartitions.add(new TopicPartition(topic6, i));
+        }
+
+        assertThat(topicPartitions).isEqualTo(expectedPartitions);
+    }
+
+    @Test
+    @Disabled("Disable for FLINK-31107")
+    void regexSubscriptionModeFilterForNonPersistentTopics() throws Exception {
+        PulsarSubscriber subscriber =
+                getTopicPatternSubscriber(
+                        Pattern.compile("pulsar-subscriber-simple-topic-.*"), NonPersistentOnly);
+        subscriber.open(operator().client(), operator().admin());
+
+        Set<TopicPartition> topicPartitions =
+                subscriber.getSubscribedTopicPartitions(new FullRangeGenerator(), NUM_PARALLELISM);
+
+        Set<TopicPartition> expectedPartitions = new HashSet<>();
+
+        for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
+            expectedPartitions.add(new TopicPartition(topic7, i));
         }
 
         assertThat(topicPartitions).isEqualTo(expectedPartitions);

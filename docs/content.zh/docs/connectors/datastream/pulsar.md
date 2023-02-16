@@ -124,14 +124,14 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
   {{< tab "Java" >}}
 
   ```java
-  PulsarSource.builder().setTopicPattern("topic-*");
+  PulsarSource.builder().setTopicPattern("topic-.*");
   ```
 
   {{< /tab >}}
   {{< tab "Python" >}}
 
   ```python
-  PulsarSource.builder().set_topic_pattern("topic-*")
+  PulsarSource.builder().set_topic_pattern("topic-.*")
   ```
 
   {{< /tab >}}
@@ -177,9 +177,17 @@ Pulsar Source 提供了两种订阅 Topic 或 Topic 分区的方式。
 
 #### 配置 Topic 正则表达式
 
-前面提到了 Pulsar Topic 有 `persistent`、`non-persistent` 两种类型，使用正则表达式消费数据的时候，Pulsar Source 会尝试从正则表达式里面解析出消息的类型。例如：`PulsarSource.builder().setTopicPattern("non-persistent://my-topic*")` 会解析出 `non-persistent` 这个 Topic 类型。如果用户使用 Topic 名称简写的方式，Pulsar Source 会使用默认的消息类型 `persistent`。
+Pulsar source 只支持使用正则表达式在某个 tenant 下的某个 namespace 内订阅一组 Topic。Topic 有 `persistent`、`non-persistent` 两种类型，但 Topic 类型并不从正则里面获取。即使你使用类似 `PulsarSource.builder().setTopicPattern("non-persistent://public/default/my-topic.*")` 的表达式去订阅消息，我们同样会基于 `persistent` 和 `non-persistent` 类型的 Topic 去过滤出名称满足正则 `public/default/my-topic.*` 的 Topic。
 
-如果想用正则去消费 `persistent` 和 `non-persistent` 类型的 Topic，需要使用 `RegexSubscriptionMode` 定义 Topic 类型，例如：`setTopicPattern("topic-*", RegexSubscriptionMode.AllTopics)`。
+如果只想订阅 `non-persistent` 类型的 Topic，你需要给定 `RegexSubscriptionMode` 为 `RegexSubscriptionMode.NonPersistentOnly`，例如：`setTopicPattern("topic-.*", RegexSubscriptionMode.NonPersistentOnly)`。如果表达式类似 `setTopicPattern("topic-.*", RegexSubscriptionMode.PersistentOnly)`，将只会基于 `persistent` 的 Topic 进行正则过滤。
+
+正则表达式需要遵循对应的[命名格式](#topic-名称简写)，只有 Topic 名称部分可以使用正则表达式。举例来说，如果你的正则表达式为 `some-topic-\d`，我们将会在 `public` 租户下的 `default` 命名空间去过滤 Topic。如果正则表达式为 `flink/sample/topic-.*`，我们将会在 `flink` 租户下的 `sample` 命名空间去过滤 Topic。
+
+{{< hint warning >}}
+当前刚刚发布的 2.11.0 版本的 Pulsar 无法正确地返回 `non-persistent` 类型的 Topic。在 2.11.0 的 Pulsar 上无法使用正则订阅 `non-persistent` 类型的 Topic。
+
+查阅此链接获取相关问题的上下文：https://github.com/apache/pulsar/issues/19316
+{{< /hint >}}
 
 ### 反序列化器
 

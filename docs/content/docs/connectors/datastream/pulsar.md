@@ -135,14 +135,14 @@ Pulsar source provide two ways of topic-partition subscription:
   {{< tab "Java" >}}
 
   ```java
-  PulsarSource.builder().setTopicPattern("topic-*");
+  PulsarSource.builder().setTopicPattern("topic-.*");
   ```
 
   {{< /tab >}}
   {{< tab "Python" >}}
 
   ```python
-  PulsarSource.builder().set_topic_pattern("topic-*")
+  PulsarSource.builder().set_topic_pattern("topic-.*")
   ```
 
   {{< /tab >}}
@@ -150,7 +150,7 @@ Pulsar source provide two ways of topic-partition subscription:
 
 #### Flexible Topic Naming
 
-Since Pulsar 2.0, all topic names internally are in  a form of  `{persistent|non-persistent}://tenant/namespace/topic`.
+Since Pulsar 2.0, all topic names internally are in a form of `{persistent|non-persistent}://tenant/namespace/topic`.
 Now, for partitioned topics, you can use short names in many cases (for the sake of simplicity).
 The flexible naming system stems from the fact that there is now a default topic type, tenant, and namespace in a Pulsar cluster.
 
@@ -193,13 +193,26 @@ would consume the partitions 1 and 2 of the `sample/flink/simple-string` topic.
 
 #### Setting Topic Patterns
 
-The Pulsar source extracts the topic type (`persistent` or `non-persistent`) from the provided topic pattern.
-For example, you can use the `PulsarSource.builder().setTopicPattern("non-persistent://my-topic*")` to specify a `non-persistent` topic.
-By default, a `persistent` topic is created if you do not specify the topic type in the regular expression.
+The Pulsar source can subscribe to a set of topics under only one tenant and one namespace by using regular expression.
+But the topic type (`persistent` or `non-persistent`) isn't determined by the regular expression.
+Even if you use `PulsarSource.builder().setTopicPattern("non-persistent://public/default/my-topic.*")`, we will subscribe both
+`persistent` and `non-persistent` topics which its name matches `public/default/my-topic.*`.
 
-You can use `setTopicPattern("topic-*", RegexSubscriptionMode.AllTopics)` to consume
-both `persistent` and `non-persistent` topics based on the topic pattern.
-The Pulsar source would filter the available topics by the `RegexSubscriptionMode`.
+In order to subscribe only `non-persistent` topics. You need to set the `RegexSubscriptionMode` to `RegexSubscriptionMode.NonPersistentOnly`.
+For example, `setTopicPattern("topic-.*", RegexSubscriptionMode.NonPersistentOnly)`.
+And use `setTopicPattern("topic-.*", RegexSubscriptionMode.PersistentOnly)` will only subscribe to the `persistent` topics.
+
+The regular expression should follow the [topic naming pattern](#flexible-topic-naming). Only the topic name part can be
+a regular expression. For example, if you provide a simple topic regular expression like `some-topic-\d`,
+we will filter all the topics under the `public` tenant with the `default` namespace.
+And if the topic regular expression is `flink/sample/topic-.*`, we will filter all the topics under the `flink` tenant with the `sample` namespace.
+
+{{< hint warning >}}
+Currently, the latest released Pulsar 2.11.0 didn't return the `non-persistent` topics correctly.
+You can't use regular expression for filtering `non-persistent` topics in Pulsar 2.11.0.
+
+See this issue: https://github.com/apache/pulsar/issues/19316 for the detailed context of this bug.
+{{< /hint >}}
 
 ### Deserializer
 
