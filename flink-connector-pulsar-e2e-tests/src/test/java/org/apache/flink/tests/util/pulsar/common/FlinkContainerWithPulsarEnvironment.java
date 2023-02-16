@@ -19,6 +19,7 @@
 package org.apache.flink.tests.util.pulsar.common;
 
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
@@ -46,6 +47,11 @@ public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvir
         configuration.set(TaskManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(512));
         configuration.set(JobManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2048));
         configuration.set(JobManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(512));
+
+        // Disable Pulsar direct buffer memory allocation.
+        configuration.set(
+                CoreOptions.FLINK_JVM_OPTIONS,
+                "-Dpulsar.allocator.pooled=false -Dpulsar.allocator.leak_detection=Simple");
 
         return configuration;
     }

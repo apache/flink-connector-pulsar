@@ -29,10 +29,14 @@ import org.apache.pulsar.client.api.ProxyProtocol;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
+import org.apache.pulsar.common.allocator.PulsarByteBufAllocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.ObjIntConsumer;
 
 import static java.util.Collections.singletonMap;
@@ -95,6 +99,8 @@ import static org.apache.pulsar.client.api.SizeUnit.BYTES;
 /** The factory for creating pulsar client classes from {@link PulsarConfiguration}. */
 @Internal
 public final class PulsarClientFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarClientFactory.class);
+    private static final AtomicBoolean INITIALIZE_ALLOCATOR = new AtomicBoolean(false);
 
     private PulsarClientFactory() {
         // No need to create instance.
@@ -103,6 +109,8 @@ public final class PulsarClientFactory {
     /** Create a PulsarClient by using the flink Configuration and the config customizer. */
     public static PulsarClient createClient(PulsarConfiguration configuration)
             throws PulsarClientException {
+        tryToAllocateMemoryInHeap();
+
         ClientBuilder builder = PulsarClient.builder();
 
         // requestTimeoutMs don't have a setter method on ClientBuilder. We have to use low level
@@ -192,6 +200,8 @@ public final class PulsarClientFactory {
      */
     public static PulsarAdmin createAdmin(PulsarConfiguration configuration)
             throws PulsarClientException {
+        tryToAllocateMemoryInHeap();
+
         PulsarAdminProxyBuilder builder = new PulsarAdminProxyBuilder(configuration);
 
         // Create the authentication instance for the Pulsar client.
@@ -284,6 +294,23 @@ public final class PulsarClientFactory {
         } else {
             throw new IllegalArgumentException(
                     "The address '" + address + "' should be in host:port format.");
+        }
+    }
+
+    /**
+     * Pulsar client will allocate the memory in direct buffer memory by default. We use this option
+     * to reset the memory in heap.
+     *
+     * <p>We will make this allocator configurable in the next Pulsar client release.
+     */
+    private static void tryToAllocateMemoryInHeap() {
+        if (INITIALIZE_ALLOCATOR.compareAndSet(false, true)) {
+            try {
+                System.setProperty("pulsar.allocator.pooled", "false");
+                PulsarByteBufAllocator.registerOOMListener(ex -> LOG.error("", ex));
+            } catch (Exception e) {
+                LOG.warn("Failed to set the pulsar.allocator.pooled config", e);
+            }
         }
     }
 }

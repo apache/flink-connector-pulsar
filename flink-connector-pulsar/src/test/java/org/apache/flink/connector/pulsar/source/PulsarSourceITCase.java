@@ -34,7 +34,6 @@ import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
 
 import org.apache.pulsar.client.api.SubscriptionType;
-import org.junit.jupiter.api.Tag;
 
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 
@@ -42,7 +41,6 @@ import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}
  * subscription.
  */
-@Tag("org.apache.flink.testutils.junit.FailsOnJava11")
 class PulsarSourceITCase extends SourceTestSuiteBase<String> {
 
     // Defines test environment on Flink MiniCluster
