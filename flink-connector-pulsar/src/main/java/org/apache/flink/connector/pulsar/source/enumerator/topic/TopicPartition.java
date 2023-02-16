@@ -27,13 +27,15 @@ import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
 
 import org.apache.pulsar.client.api.Range;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.common.naming.TopicName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
 import static java.util.stream.Collectors.toList;
-import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicName;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.topicNameWithPartition;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange.createFullRange;
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -46,6 +48,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @PublicEvolving
 public class TopicPartition implements Serializable {
     private static final long serialVersionUID = -1474354741550810953L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(TopicPartition.class);
 
     /**
      * If {@link TopicPartition#getPartitionId()} is equal to this. This topic partition wouldn't be
@@ -77,7 +81,11 @@ public class TopicPartition implements Serializable {
     /** Create a non-partition topic without partition information. */
     @PublicEvolving
     public TopicPartition(String topic) {
-        this(topic, NON_PARTITION_ID, FULL_RANGES);
+        TopicName topicName = TopicName.get(topic);
+        this.topic = topicName.getPartitionedTopicName();
+        this.partitionId =
+                topicName.isPartitioned() ? topicName.getPartitionIndex() : NON_PARTITION_ID;
+        this.ranges = FULL_RANGES;
     }
 
     /** Create a topic partition without key hash range. */
@@ -96,8 +104,14 @@ public class TopicPartition implements Serializable {
     public TopicPartition(String topic, int partitionId, List<TopicRange> ranges) {
         checkArgument(partitionId >= NON_PARTITION_ID, "Invalid partition id.");
 
-        this.topic = topicName(checkNotNull(topic));
-        this.partitionId = partitionId;
+        TopicName topicName = TopicName.get(topic);
+        this.topic = topicName.getPartitionedTopicName();
+        if (partitionId == NON_PARTITION_ID && topicName.isPartitioned()) {
+            LOG.warn("Invalid non partition id, this topic {} is a partitioned topic", topic);
+            this.partitionId = topicName.getPartitionIndex();
+        } else {
+            this.partitionId = partitionId;
+        }
         this.ranges = checkNotNull(ranges);
     }
 
