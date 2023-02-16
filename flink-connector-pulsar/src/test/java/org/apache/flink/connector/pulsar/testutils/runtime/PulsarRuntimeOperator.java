@@ -38,14 +38,17 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
+import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
+import org.apache.pulsar.common.policies.data.TenantInfo;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Supplier;
@@ -99,6 +102,29 @@ public class PulsarRuntimeOperator implements Closeable {
         this.adminUrl = containerAdminUrl;
         this.client = PulsarClient.builder().serviceUrl(serviceUrl).enableTransaction(true).build();
         this.admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+    }
+
+    /** Create a tenant if it's not existed in Pulsar. */
+    public void createTenant(String tenant) throws PulsarAdminException {
+        List<String> tenants = admin.tenants().getTenants();
+        if (!tenants.contains(tenant)) {
+            List<String> clusters = admin.clusters().getClusters();
+            TenantInfo tenantInfo =
+                    TenantInfo.builder().allowedClusters(new HashSet<>(clusters)).build();
+            admin.tenants().createTenant(tenant, tenantInfo);
+        }
+    }
+
+    /** Create a namespace if it's not existed in Pulsar. */
+    public void createNamespace(String namespace) throws PulsarAdminException {
+        NamespaceName namespaceName = NamespaceName.get(namespace);
+        String tenant = namespaceName.getTenant();
+
+        createTenant(tenant);
+        List<String> namespaces = admin.namespaces().getNamespaces(tenant);
+        if (!namespaces.contains(namespace)) {
+            admin.namespaces().createNamespace(namespace);
+        }
     }
 
     /**

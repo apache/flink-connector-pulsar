@@ -28,8 +28,12 @@ public class PulsarRemoteRuntime implements PulsarRuntime {
 
     @Override
     public PulsarRuntime withConfigs(Map<String, String> configs) {
-        throw new UnsupportedOperationException(
-                "We can't change the broker configs on a running instance.");
+        if (!configs.isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "We can't change the broker configs on a running instance.");
+        }
+
+        return this;
     }
 
     @Override

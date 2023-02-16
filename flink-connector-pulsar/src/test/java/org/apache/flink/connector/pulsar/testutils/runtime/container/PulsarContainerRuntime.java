@@ -75,6 +75,8 @@ public class PulsarContainerRuntime implements PulsarRuntime {
         brokerConfigs.put("allowAutoTopicCreationType", "partitioned");
         brokerConfigs.put("defaultNumPartitions", "4");
         brokerConfigs.put("enableBrokerSideSubscriptionPatternEvaluation", "true");
+        brokerConfigs.put("brokerDeleteInactiveTopicsEnabled", "false");
+        brokerConfigs.put("enableNonPersistentTopics", "true");
     }
 
     public PulsarContainerRuntime bindWithFlinkContainer(GenericContainer<?> flinkContainer) {

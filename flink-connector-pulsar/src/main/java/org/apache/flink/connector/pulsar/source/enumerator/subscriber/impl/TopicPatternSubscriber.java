@@ -49,15 +49,11 @@ public class TopicPatternSubscriber extends BasePulsarSubscriber {
     private final Mode subscriptionMode;
 
     public TopicPatternSubscriber(Pattern topicPattern, RegexSubscriptionMode subscriptionMode) {
-        String pattern = topicPattern.toString();
-        this.shortenedPattern =
-                pattern.contains("://") ? Pattern.compile(pattern.split("://")[1]) : topicPattern;
-
-        // Extract the namespace from topic pattern regex.
-        // If no namespace provided in the regex, we would directly use "default" as the namespace.
         TopicName destination = TopicName.get(topicPattern.pattern());
-        NamespaceName namespaceName = destination.getNamespaceObject();
-        this.namespace = namespaceName.toString();
+        String pattern = destination.toString();
+
+        this.shortenedPattern = Pattern.compile(pattern.split("://")[1]);
+        this.namespace = destination.getNamespaceObject().toString();
         this.subscriptionMode = convertRegexSubscriptionMode(subscriptionMode);
     }
 
