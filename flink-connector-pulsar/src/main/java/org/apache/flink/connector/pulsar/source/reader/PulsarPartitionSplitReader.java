@@ -95,8 +95,8 @@ public class PulsarPartitionSplitReader
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
 
     private final PulsarClient pulsarClient;
-    @VisibleForTesting final PulsarAdmin pulsarAdmin;
-    @VisibleForTesting final SourceConfiguration sourceConfiguration;
+    private final PulsarAdmin pulsarAdmin;
+    private final SourceConfiguration sourceConfiguration;
     private final Schema<byte[]> schema;
     private final PulsarCrypto pulsarCrypto;
     private final SourceReaderMetricGroup metricGroup;
@@ -353,5 +353,10 @@ public class PulsarPartitionSplitReader
             group.gauge(TOTAL_ACKS_FAILED, stats::getTotalAcksFailed);
             group.gauge(MSG_NUM_IN_RECEIVER_QUEUE, stats::getMsgNumInReceiverQueue);
         }
+    }
+
+    @VisibleForTesting
+    String getSubscriptionName() {
+        return sourceConfiguration.getSubscriptionName();
     }
 }
