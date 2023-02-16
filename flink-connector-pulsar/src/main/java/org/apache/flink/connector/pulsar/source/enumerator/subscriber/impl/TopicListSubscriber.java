@@ -64,7 +64,7 @@ public class TopicListSubscriber extends BasePulsarSubscriber {
             TopicName topicName = TopicName.get(partition);
             String name = topicName.getPartitionedTopicName();
             int index = topicName.getPartitionIndex();
-            TopicMetadata metadata = queryTopicMetadata(name);
+            TopicMetadata metadata = queryTopicMetadata(partition);
             if (metadata != null) {
                 List<TopicRange> ranges = generator.range(metadata, parallelism);
                 results.add(new TopicPartition(name, index, ranges));

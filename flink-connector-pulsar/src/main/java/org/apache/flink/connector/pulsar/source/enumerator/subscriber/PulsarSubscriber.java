@@ -25,6 +25,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 
 import java.io.Serializable;
@@ -61,9 +62,10 @@ public interface PulsarSubscriber extends Serializable {
     /**
      * Initialize the topic subscriber.
      *
+     * @param client The client interface for querying the topics by regex pattern.
      * @param admin The admin interface used to retrieve subscribed topic partitions.
      */
-    void open(PulsarAdmin admin);
+    void open(PulsarClient client, PulsarAdmin admin);
 
     // ----------------- factory methods --------------
 
