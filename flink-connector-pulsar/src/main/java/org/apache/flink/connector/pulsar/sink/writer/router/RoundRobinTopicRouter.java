@@ -27,7 +27,7 @@ import org.apache.flink.util.Preconditions;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.apache.flink.shaded.guava30.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
  * If you choose the {@link TopicRoutingMode#ROUND_ROBIN} policy, we would use this implementation.

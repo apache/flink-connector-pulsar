@@ -30,7 +30,7 @@ import org.apache.pulsar.client.impl.Hash;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.apache.flink.shaded.guava30.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.pulsar.client.util.MathUtils.signSafeMod;
 
 /**
