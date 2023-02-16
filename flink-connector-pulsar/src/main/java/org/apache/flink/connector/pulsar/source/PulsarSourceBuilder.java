@@ -210,6 +210,10 @@ public final class PulsarSourceBuilder<OUT> {
      * Set a topic pattern to consume from the java regex str. You can set topics once either with
      * {@link #setTopics} or {@link #setTopicPattern} in this builder.
      *
+     * <p>Remember that we will only subscribe to one tenant and one namespace by using regular
+     * expression. If you didn't provide the tenant and namespace in the given topic pattern. We
+     * will use default one instead.
+     *
      * @param topicsPattern the pattern of the topic name to consume from.
      * @return this PulsarSourceBuilder.
      */
@@ -221,6 +225,10 @@ public final class PulsarSourceBuilder<OUT> {
      * Set a topic pattern to consume from the java {@link Pattern}. You can set topics once either
      * with {@link #setTopics} or {@link #setTopicPattern} in this builder.
      *
+     * <p>Remember that we will only subscribe to one tenant and one namespace by using regular
+     * expression. If you didn't provide the tenant and namespace in the given topic pattern. We
+     * will use default one instead.
+     *
      * @param topicsPattern the pattern of the topic name to consume from.
      * @return this PulsarSourceBuilder.
      */
@@ -231,6 +239,10 @@ public final class PulsarSourceBuilder<OUT> {
     /**
      * Set a topic pattern to consume from the java regex str. You can set topics once either with
      * {@link #setTopics} or {@link #setTopicPattern} in this builder.
+     *
+     * <p>Remember that we will only subscribe to one tenant and one namespace by using regular
+     * expression. If you didn't provide the tenant and namespace in the given topic pattern. We
+     * will use default one instead.
      *
      * @param topicsPattern the pattern of the topic name to consume from.
      * @param regexSubscriptionMode The topic filter for regex subscription.
@@ -244,6 +256,10 @@ public final class PulsarSourceBuilder<OUT> {
     /**
      * Set a topic pattern to consume from the java {@link Pattern}. You can set topics once either
      * with {@link #setTopics} or {@link #setTopicPattern} in this builder.
+     *
+     * <p>Remember that we will only subscribe to one tenant and one namespace by using regular
+     * expression. If you didn't provide the tenant and namespace in the given topic pattern. We
+     * will use default one instead.
      *
      * @param topicsPattern the pattern of the topic name to consume from.
      * @param regexSubscriptionMode When subscribing to a topic using a regular expression, you can
