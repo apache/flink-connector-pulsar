@@ -29,7 +29,7 @@ import java.util.Properties;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link PulsarConfiguration}. */
 class PulsarConfigurationTest {
@@ -52,7 +52,8 @@ class PulsarConfigurationTest {
 
         TestConfiguration configuration1 = new TestConfiguration(configuration);
         Map<String, String> properties = configuration1.getProperties(PROP_OP);
-        assertEquals(properties, expectProp);
+
+        assertThat(properties).isEqualTo(expectProp);
     }
 
     private static final class TestConfiguration extends PulsarConfiguration {

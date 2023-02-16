@@ -29,9 +29,8 @@ import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_SE
 import static org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode.CUSTOM;
 import static org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode.MESSAGE_KEY_HASH;
 import static org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode.ROUND_ROBIN;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link PulsarSinkBuilder}. */
 class PulsarSinkBuilderTest {
@@ -41,16 +40,19 @@ class PulsarSinkBuilderTest {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
         builder.setTopics("a", "b");
 
-        assertThrows(IllegalStateException.class, () -> builder.setTopics("c"));
+        assertThatThrownBy(() -> builder.setTopics("c")).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void topicRoutingModeCouldNotBeCustom() {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
 
-        assertDoesNotThrow(() -> builder.setTopicRoutingMode(ROUND_ROBIN));
-        assertDoesNotThrow(() -> builder.setTopicRoutingMode(MESSAGE_KEY_HASH));
-        assertThrows(IllegalArgumentException.class, () -> builder.setTopicRoutingMode(CUSTOM));
+        assertThatCode(() -> builder.setTopicRoutingMode(ROUND_ROBIN)).doesNotThrowAnyException();
+        assertThatCode(() -> builder.setTopicRoutingMode(MESSAGE_KEY_HASH))
+                .doesNotThrowAnyException();
+
+        assertThatThrownBy(() -> builder.setTopicRoutingMode(CUSTOM))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -58,27 +60,30 @@ class PulsarSinkBuilderTest {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
         builder.setConfig(PULSAR_SEND_TIMEOUT_MS, 1L);
 
-        assertDoesNotThrow(() -> builder.setConfig(PULSAR_SEND_TIMEOUT_MS, 1L));
+        assertThatCode(() -> builder.setConfig(PULSAR_SEND_TIMEOUT_MS, 1L))
+                .doesNotThrowAnyException();
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> builder.setConfig(PULSAR_SEND_TIMEOUT_MS, 2L));
+        assertThatThrownBy(() -> builder.setConfig(PULSAR_SEND_TIMEOUT_MS, 2L))
+                .isInstanceOf(IllegalArgumentException.class);
 
         Configuration configuration = new Configuration();
         configuration.set(PULSAR_SEND_TIMEOUT_MS, 3L);
-        assertThrows(IllegalArgumentException.class, () -> builder.setConfig(configuration));
+        assertThatThrownBy(() -> builder.setConfig(configuration))
+                .isInstanceOf(IllegalArgumentException.class);
 
         Properties properties = new Properties();
         properties.put(PULSAR_SEND_TIMEOUT_MS.key(), 4L);
-        assertThrows(IllegalArgumentException.class, () -> builder.setProperties(properties));
+        assertThatThrownBy(() -> builder.setProperties(properties))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void serializationSchemaIsRequired() {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
-        NullPointerException exception = assertThrows(NullPointerException.class, builder::build);
 
-        assertThat(exception).hasMessage("serializationSchema must be set.");
+        assertThatThrownBy(builder::build)
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("serializationSchema must be set.");
     }
 
     @Test
@@ -86,8 +91,9 @@ class PulsarSinkBuilderTest {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
         builder.setSerializationSchema(new SimpleStringSchema());
 
-        NullPointerException exception = assertThrows(NullPointerException.class, builder::build);
-        assertThat(exception).hasMessage("No topic names or custom topic router are provided.");
+        assertThatThrownBy(builder::build)
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("No topic names or custom topic router are provided.");
     }
 
     @Test
@@ -95,12 +101,12 @@ class PulsarSinkBuilderTest {
         PulsarSinkBuilder<String> builder = PulsarSink.builder();
         builder.setSerializationSchema(new SimpleStringSchema());
         builder.setTopics("a", "b");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
 
         builder.setServiceUrl("pulsar://127.0.0.1:8888");
-        assertThrows(IllegalArgumentException.class, builder::build);
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
 
         builder.setAdminUrl("http://127.0.0.1:9999");
-        assertDoesNotThrow(builder::build);
+        assertThatCode(builder::build).doesNotThrowAnyException();
     }
 }

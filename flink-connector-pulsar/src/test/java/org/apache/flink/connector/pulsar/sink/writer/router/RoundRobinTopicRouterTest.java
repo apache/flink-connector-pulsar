@@ -20,7 +20,6 @@ package org.apache.flink.connector.pulsar.sink.writer.router;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
-import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
 import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
@@ -33,9 +32,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import static java.util.Collections.emptyList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link RoundRobinTopicRouter}. */
 class RoundRobinTopicRouterTest {
@@ -47,11 +45,9 @@ class RoundRobinTopicRouterTest {
 
         String message = randomAlphabetic(10);
         List<TopicPartition> partitions = emptyList();
-        PulsarSinkContext context = mock(PulsarSinkContext.class);
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> router.route(message, null, partitions, context));
+        assertThatThrownBy(() -> router.route(message, null, partitions, null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -62,23 +58,22 @@ class RoundRobinTopicRouterTest {
 
         List<TopicPartition> topics =
                 ImmutableList.of(new TopicPartition("topic1"), new TopicPartition("topic2"));
-        PulsarSinkContext context = mock(PulsarSinkContext.class);
 
         for (int i = 0; i < batchSize; i++) {
             String message = randomAlphabetic(10);
-            TopicPartition partition = router.route(message, null, topics, context);
-            assertEquals(partition, topics.get(0));
+            TopicPartition partition = router.route(message, null, topics, null);
+            assertThat(partition).isEqualTo(topics.get(0));
         }
 
         for (int i = 0; i < batchSize; i++) {
             String message = randomAlphabetic(10);
-            TopicPartition partition = router.route(message, null, topics, context);
-            assertEquals(partition, topics.get(1));
+            TopicPartition partition = router.route(message, null, topics, null);
+            assertThat(partition).isEqualTo(topics.get(1));
         }
 
         String message = randomAlphabetic(10);
-        TopicPartition partition = router.route(message, null, topics, context);
-        assertEquals(partition, topics.get(0));
+        TopicPartition partition = router.route(message, null, topics, null);
+        assertThat(partition).isEqualTo(topics.get(0));
     }
 
     private SinkConfiguration sinkConfiguration(int switchSize) {

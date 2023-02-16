@@ -37,8 +37,7 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.commons.lang3.RandomStringUtils.randomNumeric;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumStateSerializer.INSTANCE;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange.createFullRange;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link PulsarSourceEnumStateSerializer}. */
 class PulsarSourceEnumStateSerializerTest {
@@ -57,8 +56,8 @@ class PulsarSourceEnumStateSerializerTest {
         byte[] bytes = INSTANCE.serialize(state);
         PulsarSourceEnumState state1 = INSTANCE.deserialize(3, bytes);
 
-        assertEquals(state.getAppendedPartitions(), state1.getAppendedPartitions());
-        assertNotSame(state, state1);
+        assertThat(state1.getAppendedPartitions()).isEqualTo(state.getAppendedPartitions());
+        assertThat(state1).isNotSameAs(state);
     }
 
     @Test
@@ -88,7 +87,7 @@ class PulsarSourceEnumStateSerializerTest {
                         new TopicPartition(
                                 "topic33", 2, singletonList(new TopicRange(1222, 22233))));
 
-        assertEquals(partitions, expectedPartitions);
+        assertThat(partitions).isEqualTo(expectedPartitions);
     }
 
     @Test
@@ -113,7 +112,7 @@ class PulsarSourceEnumStateSerializerTest {
                         new TopicPartition("topic1", 0, singletonList(new TopicRange(300, 4000))),
                         new TopicPartition("topic2", 4, singletonList(new TopicRange(600, 8000))));
 
-        assertEquals(partitions, expectedPartitions);
+        assertThat(partitions).isEqualTo(expectedPartitions);
     }
 
     @Test
@@ -147,7 +146,7 @@ class PulsarSourceEnumStateSerializerTest {
                         new TopicPartition("topic3", 5, singletonList(new TopicRange(600, 2000))),
                         new TopicPartition("topic4", 8, singletonList(new TopicRange(300, 1000))));
 
-        assertEquals(partitions, expectedPartitions);
+        assertThat(partitions).isEqualTo(expectedPartitions);
     }
 
     private void serializeVersion0SplitSet(DataOutputSerializer serializer) throws IOException {

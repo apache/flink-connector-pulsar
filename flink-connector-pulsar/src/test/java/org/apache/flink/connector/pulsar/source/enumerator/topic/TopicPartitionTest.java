@@ -20,7 +20,7 @@ package org.apache.flink.connector.pulsar.source.enumerator.topic;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link TopicPartition}. */
 class TopicPartitionTest {
@@ -29,11 +29,12 @@ class TopicPartitionTest {
     void topicNameForPartitionedAndNonPartitionedTopic() {
         // For partitioned topic
         TopicPartition partition = new TopicPartition("test-name", 12);
-        assertEquals(
-                partition.getFullTopicName(), "persistent://public/default/test-name-partition-12");
+        assertThat(partition.getFullTopicName())
+                .isEqualTo("persistent://public/default/test-name-partition-12");
 
         // For non-partitioned topic
         TopicPartition partition1 = new TopicPartition("test-topic", -1);
-        assertEquals(partition1.getFullTopicName(), "persistent://public/default/test-topic");
+        assertThat(partition1.getFullTopicName())
+                .isEqualTo("persistent://public/default/test-topic");
     }
 }

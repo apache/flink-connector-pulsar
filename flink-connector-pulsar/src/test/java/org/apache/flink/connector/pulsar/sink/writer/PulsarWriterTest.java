@@ -63,7 +63,6 @@ import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Unit tests for {@link PulsarWriter}. */
 class PulsarWriterTest extends PulsarTestSuiteBase {
@@ -127,7 +126,7 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         }
 
         String consumedMessage = operator().receiveMessage(topic, STRING).getValue();
-        assertEquals(consumedMessage, message);
+        assertThat(consumedMessage).isEqualTo(message);
     }
 
     private SinkConfiguration sinkConfiguration(DeliveryGuarantee deliveryGuarantee) {

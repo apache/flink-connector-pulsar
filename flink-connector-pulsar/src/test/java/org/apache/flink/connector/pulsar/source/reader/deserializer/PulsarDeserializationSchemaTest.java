@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.source.reader.deserializer;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.SampleMessage.TestMessage;
 import org.apache.flink.connector.pulsar.source.PulsarSource;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
@@ -56,29 +57,26 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.util.Preconditions.checkState;
 import static org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Unit tests for {@link PulsarDeserializationSchema}. */
 class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
+
+    private final SourceConfiguration sourceConfig = new SourceConfiguration(new Configuration());
 
     @Test
     void createFromFlinkDeserializationSchema() throws Exception {
         PulsarDeserializationSchema<String> schema =
                 new PulsarDeserializationSchemaWrapper<>(new SimpleStringSchema());
-        schema.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
-        assertDoesNotThrow(() -> InstantiationUtil.clone(schema));
+        schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
+        assertThatCode(() -> InstantiationUtil.clone(schema)).doesNotThrowAnyException();
 
         String content = "some-sample-message-" + randomAlphabetic(10);
         Message<byte[]> message = getMessage(content, String::getBytes);
         SingleMessageCollector<String> collector = new SingleMessageCollector<>();
         schema.deserialize(message, collector);
 
-        assertNotNull(collector.result);
-        assertEquals(content, collector.result);
+        assertThat(collector.result).isNotNull().isEqualTo(content);
     }
 
     @Test
@@ -86,8 +84,8 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         Schema<TestMessage> schema1 = PROTOBUF_NATIVE(TestMessage.class);
         PulsarDeserializationSchema<TestMessage> schema2 =
                 new PulsarSchemaWrapper<>(schema1, TestMessage.class);
-        schema2.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
-        assertDoesNotThrow(() -> InstantiationUtil.clone(schema2));
+        schema2.open(new PulsarTestingDeserializationContext(), sourceConfig);
+        assertThatCode(() -> InstantiationUtil.clone(schema2)).doesNotThrowAnyException();
 
         TestMessage message1 =
                 TestMessage.newBuilder()
@@ -99,16 +97,15 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         SingleMessageCollector<TestMessage> collector = new SingleMessageCollector<>();
         schema2.deserialize(message2, collector);
 
-        assertNotNull(collector.result);
-        assertEquals(collector.result, message1);
+        assertThat(collector.result).isNotNull().isEqualTo(message1);
     }
 
     @Test
     void createFromFlinkTypeInformation() throws Exception {
         PulsarDeserializationSchema<String> schema =
                 new PulsarTypeInformationWrapper<>(Types.STRING, null);
-        schema.open(new PulsarTestingDeserializationContext(), mock(SourceConfiguration.class));
-        assertDoesNotThrow(() -> InstantiationUtil.clone(schema));
+        schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
+        assertThatCode(() -> InstantiationUtil.clone(schema)).doesNotThrowAnyException();
 
         String content = "test-content-" + randomAlphanumeric(10);
         Message<byte[]> message =
@@ -122,8 +119,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         SingleMessageCollector<String> collector = new SingleMessageCollector<>();
         schema.deserialize(message, collector);
 
-        assertNotNull(collector.result);
-        assertEquals(content, collector.result);
+        assertThat(collector.result).isNotNull().isEqualTo(content);
     }
 
     @Test

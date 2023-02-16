@@ -31,7 +31,7 @@ import org.apache.pulsar.client.impl.schema.JSONSchema;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Unit tests for {@link JSONSchemaFactory}. */
 class JSONSchemaFactoryTest {
@@ -66,6 +66,6 @@ class JSONSchemaFactoryTest {
                 .hasFieldOrPropertyWithValue("typeClass", FL.class);
 
         // TypeInformation serialization.
-        assertDoesNotThrow(() -> InstantiationUtil.clone(typeInfo));
+        assertThatCode(() -> InstantiationUtil.clone(typeInfo)).doesNotThrowAnyException();
     }
 }

@@ -22,8 +22,6 @@ import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Unit tests for {@link PulsarSourceBuilder}. */
 class PulsarSourceBuilderTest {
@@ -32,19 +30,15 @@ class PulsarSourceBuilderTest {
     void someSetterMethodCouldOnlyBeCalledOnce() {
         PulsarSourceBuilder<String> builder = new PulsarSourceBuilder<>();
         fillRequiredFields(builder);
-        assertAll(
-                () ->
-                        assertThrows(
-                                IllegalArgumentException.class,
-                                () -> builder.setAdminUrl("admin-url2")),
-                () ->
-                        assertThrows(
-                                IllegalArgumentException.class,
-                                () -> builder.setServiceUrl("service-url2")),
-                () ->
-                        assertThrows(
-                                IllegalArgumentException.class,
-                                () -> builder.setSubscriptionName("set_subscription_name2")));
+
+        assertThatThrownBy(() -> builder.setAdminUrl("admin-url2"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> builder.setServiceUrl("service-url2"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> builder.setSubscriptionName("set_subscription_name2"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -35,8 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /** Unit tests for {@link ProtobufNativeSchemaFactory}. */
 class ProtobufNativeSchemaFactoryTest {
@@ -69,7 +68,7 @@ class ProtobufNativeSchemaFactoryTest {
         byte[] bytes = schema1.encode(message);
         TestMessage message1 = schema2.decode(bytes);
 
-        assertEquals(message, message1);
+        assertThat(message1).isEqualTo(message);
     }
 
     @Test
@@ -80,7 +79,7 @@ class ProtobufNativeSchemaFactoryTest {
 
         TypeInformation<NestedMessage> typeInfo =
                 factory.createTypeInfo(pulsarSchema.getSchemaInfo());
-        assertDoesNotThrow(() -> InstantiationUtil.clone(typeInfo));
+        assertThatCode(() -> InstantiationUtil.clone(typeInfo)).doesNotThrowAnyException();
 
         assertThat(typeInfo)
                 .isInstanceOf(PulsarSchemaTypeInformation.class)

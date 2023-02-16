@@ -28,10 +28,9 @@ import java.util.List;
 
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.isFullTopicRanges;
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.range.TopicRangeUtils.validateTopicRanges;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Test class for {@link TopicRangeUtils}. */
 class TopicRangeUtilsTest {
@@ -39,16 +38,19 @@ class TopicRangeUtilsTest {
     @Test
     void testValidateTopicRanges() {
         List<TopicRange> ranges1 = Arrays.asList(new TopicRange(1, 2), new TopicRange(2, 3));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges1));
+        assertThatThrownBy(() -> validateTopicRanges(ranges1))
+                .isInstanceOf(IllegalArgumentException.class);
 
         List<TopicRange> ranges2 = Arrays.asList(new TopicRange(1, 14), new TopicRange(2, 5));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges2));
+        assertThatThrownBy(() -> validateTopicRanges(ranges2))
+                .isInstanceOf(IllegalArgumentException.class);
 
         List<TopicRange> ranges3 = Arrays.asList(new TopicRange(1, 14), new TopicRange(5, 30));
-        assertThrows(IllegalArgumentException.class, () -> validateTopicRanges(ranges3));
+        assertThatThrownBy(() -> validateTopicRanges(ranges3))
+                .isInstanceOf(IllegalArgumentException.class);
 
         List<TopicRange> ranges4 = Arrays.asList(new TopicRange(1, 14), new TopicRange(15, 30));
-        assertDoesNotThrow(() -> validateTopicRanges(ranges4));
+        assertThatCode(() -> validateTopicRanges(ranges4)).doesNotThrowAnyException();
     }
 
     @Test
@@ -59,7 +61,7 @@ class TopicRangeUtilsTest {
                         new TopicRange(0, 16383),
                         new TopicRange(32768, 49151),
                         new TopicRange(49152, 65535));
-        assertTrue(isFullTopicRanges(ranges1));
+        assertThat(isFullTopicRanges(ranges1)).isTrue();
 
         List<TopicRange> ranges2 =
                 Arrays.asList(
@@ -67,7 +69,7 @@ class TopicRangeUtilsTest {
                         new TopicRange(0, 16383),
                         new TopicRange(16384, 32767),
                         new TopicRange(49152, 65531));
-        assertFalse(isFullTopicRanges(ranges2));
+        assertThat(isFullTopicRanges(ranges2)).isFalse();
 
         List<TopicRange> ranges3 =
                 Arrays.asList(
@@ -75,9 +77,9 @@ class TopicRangeUtilsTest {
                         new TopicRange(32768, 49151),
                         new TopicRange(16384, 32767),
                         new TopicRange(49152, 65535));
-        assertFalse(isFullTopicRanges(ranges3));
+        assertThat(isFullTopicRanges(ranges3)).isFalse();
 
         List<TopicRange> ranges4 = Collections.singletonList(TopicRange.createFullRange());
-        assertTrue(isFullTopicRanges(ranges4));
+        assertThat(isFullTopicRanges(ranges4)).isTrue();
     }
 }

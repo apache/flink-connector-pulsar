@@ -24,9 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link TopicNameUtils}. */
 class TopicNameUtilsTest {
@@ -40,38 +38,37 @@ class TopicNameUtilsTest {
     @Test
     void topicNameWouldReturnACleanTopicNameWithTenant() {
         String name1 = TopicNameUtils.topicName(fullTopicName + "-partition-1");
-        assertEquals(name1, fullTopicName);
+        assertThat(name1).isEqualTo(fullTopicName);
 
         String name2 = TopicNameUtils.topicName(topicNameWithLocal);
-        assertEquals(name2, topicNameWithLocal);
+        assertThat(name2).isEqualTo(topicNameWithLocal);
 
         String name3 = TopicNameUtils.topicName(shortTopicName + "-partition-1");
-        assertEquals(name3, "persistent://public/default/short-topic");
+        assertThat(name3).isEqualTo("persistent://public/default/short-topic");
 
         String name4 = TopicNameUtils.topicName(shortTopicName);
-        assertEquals(name4, "persistent://public/default/short-topic");
+        assertThat(name4).isEqualTo("persistent://public/default/short-topic");
 
         String name5 = TopicNameUtils.topicName(topicNameWithoutCluster + "-partition-1");
-        assertEquals(name5, topicNameWithoutCluster);
+        assertThat(name5).isEqualTo(topicNameWithoutCluster);
     }
 
     @Test
     void topicNameWithPartitionInfo() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> TopicNameUtils.topicNameWithPartition(shortTopicName, -3));
+        assertThatThrownBy(() -> TopicNameUtils.topicNameWithPartition(shortTopicName, -3))
+                .isInstanceOf(IllegalArgumentException.class);
 
         String name1 = TopicNameUtils.topicNameWithPartition(fullTopicName, 4);
-        assertEquals(name1, fullTopicName + "-partition-4");
+        assertThat(name1).isEqualTo(fullTopicName + "-partition-4");
 
         String name2 = TopicNameUtils.topicNameWithPartition(topicNameWithLocal, 3);
-        assertEquals(name2, topicNameWithLocal + "-partition-3");
+        assertThat(name2).isEqualTo(topicNameWithLocal + "-partition-3");
 
         String name3 = TopicNameUtils.topicNameWithPartition(shortTopicName, 5);
-        assertEquals(name3, "persistent://public/default/short-topic-partition-5");
+        assertThat(name3).isEqualTo("persistent://public/default/short-topic-partition-5");
 
         String name4 = TopicNameUtils.topicNameWithPartition(topicNameWithoutCluster, 8);
-        assertEquals(name4, topicNameWithoutCluster + "-partition-8");
+        assertThat(name4).isEqualTo(topicNameWithoutCluster + "-partition-8");
     }
 
     @Test
@@ -91,6 +88,6 @@ class TopicNameUtilsTest {
         boolean internal =
                 TopicNameUtils.isInternal(
                         "persistent://public/default/topic__transaction_pending_ack");
-        assertTrue(internal);
+        assertThat(internal).isTrue();
     }
 }

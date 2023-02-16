@@ -49,7 +49,6 @@ import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.api.common.eventtime.WatermarkStrategy.noWatermarks;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Unit test of {@link GenericRecordDeserializationSchema}. */
 class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
@@ -125,7 +124,7 @@ class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
 
         @Override
         public String deserialize(GenericRecord message) {
-            assertEquals(SchemaType.AVRO, message.getSchemaType());
+            assertThat(message.getSchemaType()).isEqualTo(SchemaType.AVRO);
             Object object = message.getNativeObject();
             assertThat(object)
                     .isInstanceOf(

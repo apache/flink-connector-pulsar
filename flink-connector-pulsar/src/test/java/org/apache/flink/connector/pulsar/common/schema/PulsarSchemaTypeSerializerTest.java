@@ -32,8 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static java.util.Collections.nCopies;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link PulsarSchemaTypeSerializer}. */
 class PulsarSchemaTypeSerializerTest {
@@ -54,7 +53,7 @@ class PulsarSchemaTypeSerializerTest {
     @Test
     void createDeserializeRecordInstance() {
         // Protobuf class creation
-        assertNotNull(serializer.createInstance());
+        assertThat(serializer.createInstance()).isNotNull();
     }
 
     @Test
@@ -65,7 +64,7 @@ class PulsarSchemaTypeSerializerTest {
         TestInputView input = output.getInputView();
         TestMessage message1 = serializer.deserialize(input);
 
-        assertEquals(message, message1);
+        assertThat(message1).isEqualTo(message);
     }
 
     @Test
@@ -80,7 +79,7 @@ class PulsarSchemaTypeSerializerTest {
 
         TestInputView input2 = output2.getInputView();
         TestMessage message1 = serializer.deserialize(input2);
-        assertEquals(message, message1);
+        assertThat(message1).isEqualTo(message);
     }
 
     @Test
@@ -98,6 +97,6 @@ class PulsarSchemaTypeSerializerTest {
                 PulsarSchemaTypeSerializerTest.class.getClassLoader());
 
         TypeSerializer<TestMessage> serializer1 = snapshot.restoreSerializer();
-        assertEquals(serializer, serializer1);
+        assertThat(serializer1).isEqualTo(serializer);
     }
 }
