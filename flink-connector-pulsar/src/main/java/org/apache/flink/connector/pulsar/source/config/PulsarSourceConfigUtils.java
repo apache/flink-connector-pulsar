@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
@@ -94,21 +95,31 @@ public final class PulsarSourceConfigUtils {
         ConsumerBuilder<T> builder = new PulsarConsumerBuilder<>(client, schema);
 
         configuration.useOption(PULSAR_SUBSCRIPTION_NAME, builder::subscriptionName);
-        configuration.useOption(
-                PULSAR_ACK_TIMEOUT_MILLIS, v -> builder.ackTimeout(v, MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_ACK_TIMEOUT_MILLIS,
+                MILLISECONDS,
+                v -> builder.ackTimeout(v.toMillis(), MILLISECONDS));
         configuration.useOption(PULSAR_ACK_RECEIPT_ENABLED, builder::isAckReceiptEnabled);
-        configuration.useOption(
-                PULSAR_TICK_DURATION_MILLIS, v -> builder.ackTimeoutTickTime(v, MILLISECONDS));
-        configuration.useOption(
+        configuration.useDuration(
+                PULSAR_TICK_DURATION_MILLIS,
+                MILLISECONDS,
+                v -> builder.ackTimeoutTickTime(v.toMillis(), MILLISECONDS));
+        configuration.useDuration(
                 PULSAR_NEGATIVE_ACK_REDELIVERY_DELAY_MICROS,
-                v -> builder.negativeAckRedeliveryDelay(v, MICROSECONDS));
+                MICROSECONDS,
+                v ->
+                        builder.negativeAckRedeliveryDelay(
+                                NANOSECONDS.toMicros(v.toNanos()), MICROSECONDS));
         configuration.useOption(PULSAR_SUBSCRIPTION_MODE, builder::subscriptionMode);
         configuration.useOption(PULSAR_SUBSCRIPTION_PROPERTIES, builder::subscriptionProperties);
         configuration.useOption(PULSAR_CRYPTO_FAILURE_ACTION, builder::cryptoFailureAction);
         configuration.useOption(PULSAR_RECEIVER_QUEUE_SIZE, builder::receiverQueueSize);
-        configuration.useOption(
+        configuration.useDuration(
                 PULSAR_ACKNOWLEDGEMENTS_GROUP_TIME_MICROS,
-                v -> builder.acknowledgmentGroupTime(v, MICROSECONDS));
+                MICROSECONDS,
+                v ->
+                        builder.acknowledgmentGroupTime(
+                                NANOSECONDS.toMicros(v.toNanos()), MICROSECONDS));
         configuration.useOption(
                 PULSAR_REPLICATE_SUBSCRIPTION_STATE, builder::replicateSubscriptionState);
         configuration.useOption(
@@ -127,16 +138,17 @@ public final class PulsarSourceConfigUtils {
         configuration.useOption(
                 PULSAR_AUTO_ACK_OLDEST_CHUNKED_MESSAGE_ON_QUEUE_FULL,
                 builder::autoAckOldestChunkedMessageOnQueueFull);
-        configuration.useOption(
+        configuration.useDuration(
                 PULSAR_EXPIRE_TIME_OF_INCOMPLETE_CHUNKED_MESSAGE_MILLIS,
-                v -> builder.expireTimeOfIncompleteChunkedMessage(v, MILLISECONDS));
+                MILLISECONDS,
+                v -> builder.expireTimeOfIncompleteChunkedMessage(v.toMillis(), MILLISECONDS));
         configuration.useOption(PULSAR_POOL_MESSAGES, builder::poolMessages);
         configuration.useOption(
                 PULSAR_AUTO_SCALED_RECEIVER_QUEUE_SIZE_ENABLED,
                 builder::autoScaledReceiverQueueSizeEnabled);
 
-        Map<String, String> properties = configuration.getProperties(PULSAR_CONSUMER_PROPERTIES);
-        if (!properties.isEmpty()) {
+        Map<String, String> properties = configuration.get(PULSAR_CONSUMER_PROPERTIES);
+        if (properties != null && !properties.isEmpty()) {
             builder.properties(properties);
         }
 

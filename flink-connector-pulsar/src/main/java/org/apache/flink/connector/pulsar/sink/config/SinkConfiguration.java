@@ -29,8 +29,12 @@ import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSchemaWrap
 
 import org.apache.pulsar.client.api.Schema;
 
+import java.time.Duration;
 import java.util.Objects;
 
+import static java.lang.Boolean.FALSE;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_ENABLE_SINK_METRICS;
@@ -44,7 +48,7 @@ import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WR
 
 /** The configured class for pulsar sink. */
 @PublicEvolving
-public class SinkConfiguration extends PulsarConfiguration {
+public final class SinkConfiguration extends PulsarConfiguration {
     private static final long serialVersionUID = 4941360605051251153L;
 
     private final DeliveryGuarantee deliveryGuarantee;
@@ -61,15 +65,30 @@ public class SinkConfiguration extends PulsarConfiguration {
         super(configuration);
 
         this.deliveryGuarantee = get(PULSAR_WRITE_DELIVERY_GUARANTEE);
-        this.transactionTimeoutMillis = getLong(PULSAR_WRITE_TRANSACTION_TIMEOUT);
-        this.topicMetadataRefreshInterval = getLong(PULSAR_TOPIC_METADATA_REFRESH_INTERVAL);
+        this.transactionTimeoutMillis =
+                getDuration(PULSAR_WRITE_TRANSACTION_TIMEOUT, MILLISECONDS, Duration::toMillis);
+        this.topicMetadataRefreshInterval =
+                getDuration(
+                        PULSAR_TOPIC_METADATA_REFRESH_INTERVAL, MILLISECONDS, Duration::toMillis);
         this.partitionSwitchSize = getInteger(PULSAR_BATCHING_MAX_MESSAGES);
         this.messageKeyHash = get(PULSAR_MESSAGE_KEY_HASH);
         this.enableSchemaEvolution = get(PULSAR_WRITE_SCHEMA_EVOLUTION);
         this.maxRecommitTimes = get(PULSAR_MAX_RECOMMIT_TIMES);
-        this.enableMetrics =
-                get(PULSAR_ENABLE_SINK_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
+        this.enableMetrics = whetherToEnableMetrics();
         this.validateSinkMessageBytes = get(PULSAR_VALIDATE_SINK_MESSAGE_BYTES);
+    }
+
+    private boolean whetherToEnableMetrics() {
+        if (FALSE.equals(get(PULSAR_ENABLE_SINK_METRICS))) {
+            return false;
+        }
+
+        Duration interval = getDuration(PULSAR_STATS_INTERVAL_SECONDS, SECONDS);
+        if (interval != null) {
+            return !interval.isZero() && !interval.isNegative();
+        }
+
+        return false;
     }
 
     /** The delivery guarantee changes the behavior of {@link PulsarWriter}. */

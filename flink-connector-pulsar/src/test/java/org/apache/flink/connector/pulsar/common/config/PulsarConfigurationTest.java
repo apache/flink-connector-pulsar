@@ -24,8 +24,10 @@ import org.apache.flink.configuration.Configuration;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
@@ -36,6 +38,14 @@ class PulsarConfigurationTest {
 
     private static final ConfigOption<Map<String, String>> PROP_OP =
             ConfigOptions.key("some.config").mapType().defaultValue(emptyMap());
+    private static final ConfigOption<Long> LONG_OP =
+            ConfigOptions.key("some.long").longType().defaultValue(40000L);
+    private static final ConfigOption<Long> NULL_LONG_OP =
+            ConfigOptions.key("some.long").longType().noDefaultValue();
+    private static final ConfigOption<Duration> DURATION_OP =
+            ConfigOptions.key("some.duration")
+                    .durationType()
+                    .defaultValue(Duration.ofMillis(50000));
 
     @Test
     void pulsarConfigurationCanGetMapWithPrefix() {
@@ -51,9 +61,48 @@ class PulsarConfigurationTest {
         }
 
         TestConfiguration configuration1 = new TestConfiguration(configuration);
-        Map<String, String> properties = configuration1.getProperties(PROP_OP);
+        Map<String, String> properties = configuration1.get(PROP_OP);
 
         assertThat(properties).isEqualTo(expectProp);
+    }
+
+    @Test
+    void pulsarConfigurationCanGetDuration() {
+        // Test default value format.
+        Configuration configuration = new Configuration();
+        configuration.set(LONG_OP, 300000L);
+        configuration.set(DURATION_OP, Duration.ofMillis(100000));
+        TestConfiguration configuration1 = new TestConfiguration(configuration);
+
+        Duration duration1 = configuration1.getDuration(LONG_OP, TimeUnit.MILLISECONDS);
+        assertThat(duration1).hasMillis(300000);
+        Duration duration2 = configuration1.getDuration(DURATION_OP, TimeUnit.MILLISECONDS);
+        assertThat(duration2).hasMillis(100000);
+
+        // Test default value.
+        TestConfiguration configuration2 = new TestConfiguration(new Configuration());
+
+        Duration duration3 = configuration2.getDuration(LONG_OP, TimeUnit.MILLISECONDS);
+        assertThat(duration3).hasMillis(40000);
+        Duration duration4 = configuration2.getDuration(DURATION_OP, TimeUnit.MILLISECONDS);
+        assertThat(duration4).hasMillis(50000);
+
+        // Test null value.
+        TestConfiguration configuration3 = new TestConfiguration(new Configuration());
+
+        Duration duration5 = configuration3.getDuration(NULL_LONG_OP, TimeUnit.MILLISECONDS);
+        assertThat(duration5).isNull();
+
+        // Test different value format.
+        Configuration configuration4 = new Configuration();
+        configuration4.setString(LONG_OP.key(), "10min");
+        configuration4.setString(DURATION_OP.key(), "1000");
+        TestConfiguration configuration5 = new TestConfiguration(configuration4);
+
+        Duration duration6 = configuration5.getDuration(LONG_OP, TimeUnit.MINUTES);
+        assertThat(duration6).hasMinutes(10);
+        Duration duration7 = configuration5.getDuration(DURATION_OP, TimeUnit.MINUTES);
+        assertThat(duration7).hasMinutes(1000);
     }
 
     private static final class TestConfiguration extends PulsarConfiguration {

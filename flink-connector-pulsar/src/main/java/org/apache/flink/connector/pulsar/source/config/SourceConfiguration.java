@@ -32,7 +32,11 @@ import org.apache.pulsar.client.api.SubscriptionType;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
+import static java.lang.Boolean.FALSE;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.flink.connector.base.source.reader.SourceReaderOptions.ELEMENT_QUEUE_CAPACITY;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ALLOW_KEY_SHARED_OUT_OF_ORDER_DELIVERY;
@@ -51,7 +55,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 
 /** The configuration class for pulsar source. */
 @PublicEvolving
-public class SourceConfiguration extends PulsarConfiguration {
+public final class SourceConfiguration extends PulsarConfiguration {
     private static final long serialVersionUID = 8488507275800787580L;
 
     private final int messageQueueCapacity;
@@ -73,20 +77,39 @@ public class SourceConfiguration extends PulsarConfiguration {
         super(configuration);
 
         this.messageQueueCapacity = getInteger(ELEMENT_QUEUE_CAPACITY);
-        this.partitionDiscoveryIntervalMs = get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
+        this.partitionDiscoveryIntervalMs =
+                getDuration(
+                        PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, MILLISECONDS, Duration::toMillis);
         this.enableAutoAcknowledgeMessage = get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
-        this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
-        this.fetchOneMessageTime = getOptional(PULSAR_FETCH_ONE_MESSAGE_TIME).orElse(0);
-        this.maxFetchTime = get(PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
+        this.autoCommitCursorInterval =
+                getDuration(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL, MILLISECONDS, Duration::toMillis);
+        this.fetchOneMessageTime =
+                Optional.ofNullable(getDuration(PULSAR_FETCH_ONE_MESSAGE_TIME, MILLISECONDS))
+                        .map(Duration::toMillis)
+                        .map(Math::toIntExact)
+                        .orElse(0);
+        this.maxFetchTime = getDuration(PULSAR_MAX_FETCH_TIME, MILLISECONDS);
         this.maxFetchRecords = get(PULSAR_MAX_FETCH_RECORDS);
         this.verifyInitialOffsets = get(PULSAR_VERIFY_INITIAL_OFFSETS);
         this.subscriptionName = get(PULSAR_SUBSCRIPTION_NAME);
         this.subscriptionMode = get(PULSAR_SUBSCRIPTION_MODE);
         this.allowKeySharedOutOfOrderDelivery = get(PULSAR_ALLOW_KEY_SHARED_OUT_OF_ORDER_DELIVERY);
         this.enableSchemaEvolution = get(PULSAR_READ_SCHEMA_EVOLUTION);
-        this.enableMetrics =
-                get(PULSAR_ENABLE_SOURCE_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
+        this.enableMetrics = whetherToEnableMetrics();
         this.resetSubscriptionCursor = get(PULSAR_RESET_SUBSCRIPTION_CURSOR);
+    }
+
+    private boolean whetherToEnableMetrics() {
+        if (FALSE.equals(get(PULSAR_ENABLE_SOURCE_METRICS))) {
+            return false;
+        }
+
+        Duration interval = getDuration(PULSAR_STATS_INTERVAL_SECONDS, SECONDS);
+        if (interval != null) {
+            return !interval.isZero() && !interval.isNegative();
+        }
+
+        return false;
     }
 
     /** The capacity of the element queue in the source reader. */

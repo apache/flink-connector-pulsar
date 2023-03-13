@@ -124,8 +124,8 @@ public final class TopicNameUtils {
      * @see <a
      *     href="https://github.com/apache/pulsar/blob/b969fe5e56cc768632e52e9534a1e94b75c29be1/pulsar-broker/src/main/java/org/apache/pulsar/broker/namespace/NamespaceService.java#L1481">NamespaceService#isSystemServiceNamespace</a>
      */
-    private static boolean isSystemServiceNamespace(String namespace) {
-        return namespace.equals(SYSTEM_NAMESPACE.toString())
+    public static boolean isSystemServiceNamespace(String namespace) {
+        return SYSTEM_NAMESPACE.toString().equals(namespace)
                 || SLA_NAMESPACE_PATTERN.matcher(namespace).matches()
                 || HEARTBEAT_NAMESPACE_PATTERN.matcher(namespace).matches()
                 || HEARTBEAT_NAMESPACE_PATTERN_V2.matcher(namespace).matches();

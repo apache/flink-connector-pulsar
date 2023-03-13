@@ -23,7 +23,11 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,14 +39,27 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * A builder for building the unmodifiable {@link Configuration} instance. Providing the common
- * validate logic for Pulsar source & sink.
+ * validate logic for the Pulsar source & sink.
  */
 @Internal
 public final class PulsarConfigBuilder {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarConfigBuilder.class);
 
-    private final Configuration configuration = new Configuration();
+    private final Configuration configuration;
 
-    /** Validate if the config has a existed option. */
+    public PulsarConfigBuilder() {
+        this(Collections.emptyMap());
+    }
+
+    public PulsarConfigBuilder(Configuration configuration) {
+        this(configuration.toMap());
+    }
+
+    public PulsarConfigBuilder(Map<String, String> options) {
+        this.configuration = Configuration.fromMap(options);
+    }
+
+    /** Validate if the config has an existed option. */
     public <T> boolean contains(ConfigOption<T> option) {
         return configuration.contains(option);
     }
@@ -55,6 +72,18 @@ public final class PulsarConfigBuilder {
      */
     public <T> T get(ConfigOption<T> key) {
         return configuration.get(key);
+    }
+
+    public <T> void setIfMissing(ConfigOption<T> option, T value) {
+        if (contains(option)) {
+            return;
+        }
+
+        if (LOG.isWarnEnabled()) {
+            LOG.warn("{} wasn't set, we will set it with value: {}", option.key(), value);
+        }
+
+        set(option, value);
     }
 
     /**

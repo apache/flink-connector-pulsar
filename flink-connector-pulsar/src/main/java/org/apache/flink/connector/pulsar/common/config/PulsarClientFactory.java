@@ -31,10 +31,12 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.function.ObjIntConsumer;
 
+import static java.lang.Math.toIntExact;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -97,7 +99,7 @@ import static org.apache.pulsar.client.api.SizeUnit.BYTES;
 public final class PulsarClientFactory {
 
     private PulsarClientFactory() {
-        // No need to create instance.
+        // No need to create the instance.
     }
 
     /** Create a PulsarClient by using the flink Configuration and the config customizer. */
@@ -105,9 +107,11 @@ public final class PulsarClientFactory {
             throws PulsarClientException {
         ClientBuilder builder = PulsarClient.builder();
 
-        // requestTimeoutMs don't have a setter method on ClientBuilder. We have to use low level
-        // setter method instead. So we put this at the beginning of the builder.
-        Integer requestTimeoutMs = configuration.get(PULSAR_REQUEST_TIMEOUT_MS);
+        // requestTimeoutMs don't have a setter method on ClientBuilder. We have to use this
+        // low-level setter method instead. So we put this at the beginning of the builder.
+        long requestTimeoutMs =
+                configuration.getDuration(
+                        PULSAR_REQUEST_TIMEOUT_MS, MILLISECONDS, Duration::toMillis);
         builder.loadConf(singletonMap("requestTimeoutMs", requestTimeoutMs));
 
         // Create the authentication instance for the Pulsar client.
@@ -115,16 +119,21 @@ public final class PulsarClientFactory {
 
         configuration.useOption(PULSAR_SERVICE_URL, builder::serviceUrl);
         configuration.useOption(PULSAR_LISTENER_NAME, builder::listenerName);
-        configuration.useOption(
+        configuration.useDuration(
                 PULSAR_OPERATION_TIMEOUT_MS,
-                timeout -> builder.operationTimeout(timeout, MILLISECONDS));
-        configuration.useOption(
-                PULSAR_LOOKUP_TIMEOUT_MS, timeout -> builder.lookupTimeout(timeout, MILLISECONDS));
+                MILLISECONDS,
+                timeout -> builder.operationTimeout(toIntExact(timeout.toMillis()), MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_LOOKUP_TIMEOUT_MS,
+                MILLISECONDS,
+                timeout -> builder.lookupTimeout(toIntExact(timeout.toMillis()), MILLISECONDS));
         configuration.useOption(PULSAR_NUM_IO_THREADS, builder::ioThreads);
         configuration.useOption(PULSAR_NUM_LISTENER_THREADS, builder::listenerThreads);
         configuration.useOption(PULSAR_CONNECTIONS_PER_BROKER, builder::connectionsPerBroker);
-        configuration.useOption(
-                PULSAR_CONNECTION_MAX_IDLE_SECONDS, builder::connectionMaxIdleSeconds);
+        configuration.useDuration(
+                PULSAR_CONNECTION_MAX_IDLE_SECONDS,
+                SECONDS,
+                v -> builder.connectionMaxIdleSeconds(toIntExact(v.getSeconds())));
         configuration.useOption(PULSAR_USE_TCP_NO_DELAY, builder::enableTcpNoDelay);
         configuration.useOption(PULSAR_TLS_KEY_FILE_PATH, builder::tlsKeyFilePath);
         configuration.useOption(PULSAR_TLS_CERTIFICATE_FILE_PATH, builder::tlsCertificateFilePath);
@@ -145,8 +154,10 @@ public final class PulsarClientFactory {
         configuration.useOption(PULSAR_TLS_PROTOCOLS, TreeSet::new, builder::tlsProtocols);
         configuration.useOption(
                 PULSAR_MEMORY_LIMIT_BYTES, bytes -> builder.memoryLimit(bytes, BYTES));
-        configuration.useOption(
-                PULSAR_STATS_INTERVAL_SECONDS, v -> builder.statsInterval(v, SECONDS));
+        configuration.useDuration(
+                PULSAR_STATS_INTERVAL_SECONDS,
+                SECONDS,
+                v -> builder.statsInterval(v.getSeconds(), SECONDS));
         configuration.useOption(
                 PULSAR_CONCURRENT_LOOKUP_REQUEST, builder::maxConcurrentLookupRequests);
         configuration.useOption(PULSAR_MAX_LOOKUP_REQUEST, builder::maxLookupRequests);
@@ -154,15 +165,22 @@ public final class PulsarClientFactory {
         configuration.useOption(
                 PULSAR_MAX_NUMBER_OF_REJECTED_REQUEST_PER_CONNECTION,
                 builder::maxNumberOfRejectedRequestPerConnection);
-        configuration.useOption(
-                PULSAR_KEEP_ALIVE_INTERVAL_SECONDS, v -> builder.keepAliveInterval(v, SECONDS));
-        configuration.useOption(
-                PULSAR_CONNECTION_TIMEOUT_MS, v -> builder.connectionTimeout(v, MILLISECONDS));
-        configuration.useOption(
+        configuration.useDuration(
+                PULSAR_KEEP_ALIVE_INTERVAL_SECONDS,
+                SECONDS,
+                v -> builder.keepAliveInterval(toIntExact(v.getSeconds()), SECONDS));
+        configuration.useDuration(
+                PULSAR_CONNECTION_TIMEOUT_MS,
+                MILLISECONDS,
+                v -> builder.connectionTimeout(toIntExact(v.toMillis()), MILLISECONDS));
+        configuration.useDuration(
                 PULSAR_INITIAL_BACKOFF_INTERVAL_NANOS,
-                v -> builder.startingBackoffInterval(v, NANOSECONDS));
-        configuration.useOption(
-                PULSAR_MAX_BACKOFF_INTERVAL_NANOS, v -> builder.maxBackoffInterval(v, NANOSECONDS));
+                NANOSECONDS,
+                v -> builder.startingBackoffInterval(v.toNanos(), NANOSECONDS));
+        configuration.useDuration(
+                PULSAR_MAX_BACKOFF_INTERVAL_NANOS,
+                NANOSECONDS,
+                v -> builder.maxBackoffInterval(v.toNanos(), NANOSECONDS));
         configuration.useOption(PULSAR_ENABLE_BUSY_WAIT, builder::enableBusyWait);
         if (configuration.contains(PULSAR_PROXY_SERVICE_URL)) {
             String proxyServiceUrl = configuration.get(PULSAR_PROXY_SERVICE_URL);
@@ -215,13 +233,22 @@ public final class PulsarClientFactory {
         configuration.useOption(PULSAR_TLS_TRUST_STORE_PASSWORD, builder::tlsTrustStorePassword);
         configuration.useOption(PULSAR_TLS_CIPHERS, TreeSet::new, builder::tlsCiphers);
         configuration.useOption(PULSAR_TLS_PROTOCOLS, TreeSet::new, builder::tlsProtocols);
-        configuration.useOption(
-                PULSAR_CONNECT_TIMEOUT, v -> builder.connectionTimeout(v, MILLISECONDS));
-        configuration.useOption(PULSAR_READ_TIMEOUT, v -> builder.readTimeout(v, MILLISECONDS));
-        configuration.useOption(
-                PULSAR_REQUEST_TIMEOUT, v -> builder.requestTimeout(v, MILLISECONDS));
-        configuration.useOption(
-                PULSAR_AUTO_CERT_REFRESH_TIME, v -> builder.autoCertRefreshTime(v, MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_CONNECT_TIMEOUT,
+                MILLISECONDS,
+                v -> builder.connectionTimeout(toIntExact(v.toMillis()), MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_READ_TIMEOUT,
+                MILLISECONDS,
+                v -> builder.readTimeout(toIntExact(v.toMillis()), MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_REQUEST_TIMEOUT,
+                MILLISECONDS,
+                v -> builder.requestTimeout(toIntExact(v.toMillis()), MILLISECONDS));
+        configuration.useDuration(
+                PULSAR_AUTO_CERT_REFRESH_TIME,
+                MILLISECONDS,
+                v -> builder.autoCertRefreshTime(toIntExact(v.toMillis()), MILLISECONDS));
         configuration.useOption(PULSAR_NUM_IO_THREADS, builder::numIoThreads);
 
         return builder.build();
@@ -243,7 +270,7 @@ public final class PulsarClientFactory {
                 String authParamsString = configuration.get(PULSAR_AUTH_PARAMS);
                 return AuthenticationFactory.create(authPluginClassName, authParamsString);
             } else {
-                Map<String, String> paramsMap = configuration.getProperties(PULSAR_AUTH_PARAM_MAP);
+                Map<String, String> paramsMap = configuration.get(PULSAR_AUTH_PARAM_MAP);
                 if (paramsMap.isEmpty()) {
                     throw new IllegalArgumentException(
                             String.format(

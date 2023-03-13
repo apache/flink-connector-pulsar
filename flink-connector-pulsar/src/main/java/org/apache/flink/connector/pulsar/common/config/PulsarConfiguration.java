@@ -19,18 +19,20 @@
 package org.apache.flink.connector.pulsar.common.config;
 
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.ConfigurationUtils;
 import org.apache.flink.configuration.UnmodifiableConfiguration;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toList;
 
 /**
  * An unmodifiable {@link Configuration} for Pulsar. We provide extra methods for building the
@@ -47,33 +49,6 @@ public abstract class PulsarConfiguration extends UnmodifiableConfiguration {
      */
     protected PulsarConfiguration(Configuration config) {
         super(config);
-    }
-
-    /**
-     * Get the option value by a prefix. We would return an empty map if the option doesn't exist.
-     */
-    public Map<String, String> getProperties(ConfigOption<Map<String, String>> option) {
-        Map<String, String> properties = new HashMap<>();
-        if (contains(option)) {
-            Map<String, String> map = get(option);
-            properties.putAll(map);
-        }
-
-        // Filter the sub config option. These options could be provided by SQL.
-        String prefix = option.key() + ".";
-        List<String> keys =
-                keySet().stream()
-                        .filter(key -> key.startsWith(prefix) && key.length() > prefix.length())
-                        .collect(toList());
-
-        // Put these config options' value into return result.
-        for (String key : keys) {
-            ConfigOption<String> o = ConfigOptions.key(key).stringType().noDefaultValue();
-            String value = get(o);
-            properties.put(key.substring(prefix.length()), value);
-        }
-
-        return properties;
     }
 
     /** Get an option value from the given config, convert it into a new value instance. */
@@ -100,5 +75,83 @@ public abstract class PulsarConfiguration extends UnmodifiableConfiguration {
             V value = get(option, convertor);
             setter.accept(value);
         }
+    }
+
+    /**
+     * Use {@link #getDuration(ConfigOption, TimeUnit)} for supporting two types of config value for
+     * a same config option key. We will convert the value into a duration and try to set it.
+     */
+    public void useDuration(ConfigOption<?> option, TimeUnit timeUnit, Consumer<Duration> setter) {
+        Duration duration = getDuration(option, timeUnit);
+        if (duration != null) {
+            setter.accept(duration);
+        }
+    }
+
+    /**
+     * A lot of time-related configs in Pulsar are defined in long or int format as the millie
+     * seconds or other time units. But it would be better to use {@link Duration} format because it
+     * would be easily configured in SQL {@code with} clause.
+     *
+     * <p>So we create this method for supporting {@link Duration} for all the time related options.
+     * And we don't need to change the existing config option formats.
+     *
+     * @return We will return null if the config doesn't contain the given option and the option
+     *     doesn't contain any default value.
+     */
+    @Nullable
+    public Duration getDuration(ConfigOption<?> option, TimeUnit timeUnit) {
+        if (!contains(option)) {
+            if (option.hasDefaultValue()) {
+                return convertToDuration(option.defaultValue(), timeUnit);
+            }
+
+            return null;
+        }
+
+        return convertToDuration(getValue(option), timeUnit);
+    }
+
+    /** Convert the configured duration into a numeric value. The duration mustn't be null. */
+    public <T> T getDuration(
+            ConfigOption<?> option, TimeUnit timeUnit, Function<Duration, T> convertor) {
+        Duration duration = getDuration(option, timeUnit);
+        return convertor.apply(requireNonNull(duration, option.key() + " is null"));
+    }
+
+    private Duration convertToDuration(Object value, TimeUnit timeUnit) {
+        try {
+            Long time = ConfigurationUtils.convertValue(value, Long.class);
+            return createDuration(time, timeUnit);
+        } catch (Exception e) {
+            // Fallback to a duration converting.
+            try {
+                return ConfigurationUtils.convertValue(value, Duration.class);
+            } catch (Exception ex) {
+                // This could ba a normal duration instance.
+                return Duration.parse(value.toString());
+            }
+        }
+    }
+
+    private Duration createDuration(long amount, TimeUnit timeUnit) {
+        switch (timeUnit) {
+            case NANOSECONDS:
+                return Duration.ofNanos(amount);
+            case MICROSECONDS:
+                return Duration.of(amount, ChronoUnit.MICROS);
+            case MILLISECONDS:
+                return Duration.ofMillis(amount);
+            case SECONDS:
+                return Duration.ofSeconds(amount);
+            case MINUTES:
+                return Duration.ofMinutes(amount);
+            case HOURS:
+                return Duration.ofHours(amount);
+            case DAYS:
+                return Duration.ofDays(amount);
+        }
+
+        throw new IllegalArgumentException("Unsupported time unit: " + timeUnit);
     }
 }

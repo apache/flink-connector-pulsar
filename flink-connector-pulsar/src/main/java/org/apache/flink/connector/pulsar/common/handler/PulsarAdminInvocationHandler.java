@@ -32,6 +32,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,7 +58,9 @@ public class PulsarAdminInvocationHandler implements InvocationHandler {
     public PulsarAdminInvocationHandler(PulsarAdmin admin, PulsarConfiguration configuration) {
         this.admin = admin;
         this.retryTimes = configuration.get(PULSAR_ADMIN_REQUEST_RETRIES);
-        this.waitMillis = configuration.get(PULSAR_ADMIN_REQUEST_WAIT_MILLIS);
+        this.waitMillis =
+                configuration.getDuration(
+                        PULSAR_ADMIN_REQUEST_WAIT_MILLIS, MILLISECONDS, Duration::toMillis);
         this.requestRates = configuration.get(PULSAR_ADMIN_REQUEST_RATES);
         this.handlers = new ConcurrentHashMap<>();
     }

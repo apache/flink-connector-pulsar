@@ -21,8 +21,6 @@ package org.apache.flink.connector.pulsar.common.schema.factories;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaFactory;
 
-import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableSet;
-
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -36,27 +34,6 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  */
 public class PrimitiveSchemaFactory<T> implements PulsarSchemaFactory<T> {
 
-    private static final ImmutableSet<SchemaType> PRIMITIVE_SCHEMA_TYPES =
-            ImmutableSet.<SchemaType>builder()
-                    .add(SchemaType.NONE)
-                    .add(SchemaType.BOOLEAN)
-                    .add(SchemaType.INT8)
-                    .add(SchemaType.INT16)
-                    .add(SchemaType.INT32)
-                    .add(SchemaType.INT64)
-                    .add(SchemaType.FLOAT)
-                    .add(SchemaType.DOUBLE)
-                    .add(SchemaType.BYTES)
-                    .add(SchemaType.STRING)
-                    .add(SchemaType.TIMESTAMP)
-                    .add(SchemaType.TIME)
-                    .add(SchemaType.DATE)
-                    .add(SchemaType.INSTANT)
-                    .add(SchemaType.LOCAL_DATE)
-                    .add(SchemaType.LOCAL_TIME)
-                    .add(SchemaType.LOCAL_DATE_TIME)
-                    .build();
-
     private final SchemaType type;
     private final Schema<T> schema;
     private final TypeInformation<T> typeInformation;
@@ -67,7 +44,7 @@ public class PrimitiveSchemaFactory<T> implements PulsarSchemaFactory<T> {
 
     public PrimitiveSchemaFactory(
             SchemaType type, Schema<T> schema, TypeInformation<T> typeInformation) {
-        checkArgument(PRIMITIVE_SCHEMA_TYPES.contains(type));
+        checkArgument(type.isPrimitive());
 
         this.type = type;
         this.schema = schema;

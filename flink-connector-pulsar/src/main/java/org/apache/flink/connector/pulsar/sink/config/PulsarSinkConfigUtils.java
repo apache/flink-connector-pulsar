@@ -29,8 +29,10 @@ import org.apache.pulsar.client.api.Schema;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.lang.Math.toIntExact;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
@@ -75,13 +77,16 @@ public final class PulsarSinkConfigUtils {
                 PULSAR_PRODUCER_NAME,
                 producerName -> String.format(producerName, UUID.randomUUID()),
                 builder::producerName);
-        configuration.useOption(
+        configuration.useDuration(
                 PULSAR_SEND_TIMEOUT_MS,
-                Math::toIntExact,
-                ms -> builder.sendTimeout(ms, MILLISECONDS));
-        configuration.useOption(
+                MILLISECONDS,
+                v -> builder.sendTimeout(toIntExact(v.toMillis()), MILLISECONDS));
+        configuration.useDuration(
                 PULSAR_BATCHING_MAX_PUBLISH_DELAY_MICROS,
-                s -> builder.batchingMaxPublishDelay(s, MICROSECONDS));
+                MICROSECONDS,
+                v ->
+                        builder.batchingMaxPublishDelay(
+                                NANOSECONDS.toMicros(v.toNanos()), MICROSECONDS));
         configuration.useOption(
                 PULSAR_BATCHING_PARTITION_SWITCH_FREQUENCY_BY_PUBLISH_DELAY,
                 builder::roundRobinRouterBatchingPartitionSwitchFrequency);
@@ -96,8 +101,8 @@ public final class PulsarSinkConfigUtils {
                 PULSAR_PRODUCER_CRYPTO_FAILURE_ACTION, builder::cryptoFailureAction);
 
         // Set producer properties
-        Map<String, String> properties = configuration.getProperties(PULSAR_PRODUCER_PROPERTIES);
-        if (!properties.isEmpty()) {
+        Map<String, String> properties = configuration.get(PULSAR_PRODUCER_PROPERTIES);
+        if (properties != null && !properties.isEmpty()) {
             builder.properties(properties);
         }
 
