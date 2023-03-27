@@ -254,10 +254,10 @@ public final class PulsarSinkOptions {
                                     .text("Message data compression type used by a producer.")
                                     .text("Available options:")
                                     .list(
-                                            link("LZ4", "https://github.com/lz4/lz4"),
-                                            link("ZLIB", "https://zlib.net/"),
-                                            link("ZSTD", "https://facebook.github.io/zstd/"),
-                                            link("SNAPPY", "https://google.github.io/snappy/"))
+                                            link("https://github.com/lz4/lz4", "LZ4"),
+                                            link("https://zlib.net/", "ZLIB"),
+                                            link("https://facebook.github.io/zstd/", "ZSTD"),
+                                            link("https://google.github.io/snappy/", "SNAPPY"))
                                     .build());
 
     public static final ConfigOption<Long> PULSAR_INITIAL_SEQUENCE_ID =
