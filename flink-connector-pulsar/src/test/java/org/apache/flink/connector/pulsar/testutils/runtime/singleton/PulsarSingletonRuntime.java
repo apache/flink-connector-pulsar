@@ -23,7 +23,7 @@ import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator
 import org.apache.flink.connector.pulsar.testutils.runtime.container.PulsarContainerRuntime;
 import org.apache.flink.util.FlinkRuntimeException;
 
-import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles;
+import org.apache.pulsar.shade.com.google.common.util.concurrent.Uninterruptibles;
 
 import java.time.Duration;
 import java.util.Map;

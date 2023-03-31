@@ -28,17 +28,16 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkRuntimeException;
 
-import org.apache.flink.shaded.guava30.com.google.common.cache.CacheBuilder;
-import org.apache.flink.shaded.guava30.com.google.common.cache.CacheLoader;
-import org.apache.flink.shaded.guava30.com.google.common.cache.LoadingCache;
-import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
-
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
+import org.apache.pulsar.shade.com.google.common.cache.CacheBuilder;
+import org.apache.pulsar.shade.com.google.common.cache.CacheLoader;
+import org.apache.pulsar.shade.com.google.common.cache.LoadingCache;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

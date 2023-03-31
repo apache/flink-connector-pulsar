@@ -20,9 +20,8 @@ package org.apache.flink.connector.pulsar.source.enumerator.topic;
 
 import org.apache.flink.annotation.Internal;
 
-import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
-
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import java.util.HashMap;
 import java.util.HashSet;

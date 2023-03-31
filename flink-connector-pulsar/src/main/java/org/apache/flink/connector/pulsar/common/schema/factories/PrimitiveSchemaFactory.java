@@ -21,11 +21,10 @@ package org.apache.flink.connector.pulsar.common.schema.factories;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaFactory;
 
-import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableSet;
-
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableSet;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 

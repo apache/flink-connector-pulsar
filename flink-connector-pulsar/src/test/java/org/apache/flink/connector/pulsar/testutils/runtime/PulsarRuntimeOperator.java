@@ -23,8 +23,6 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
-import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
-
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.admin.PulsarAdminException.ConflictException;
@@ -42,6 +40,7 @@ import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 import org.apache.pulsar.common.policies.data.TenantInfo;
+import org.apache.pulsar.shade.com.google.common.base.Strings;
 
 import java.io.Closeable;
 import java.io.IOException;
