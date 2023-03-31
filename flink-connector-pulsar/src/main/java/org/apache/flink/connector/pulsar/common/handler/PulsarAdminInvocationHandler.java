@@ -20,11 +20,10 @@ package org.apache.flink.connector.pulsar.common.handler;
 
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;
 
-import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.RateLimiter;
-
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException;
+import org.apache.pulsar.shade.com.google.common.util.concurrent.RateLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_RATES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_RETRIES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_REQUEST_WAIT_MILLIS;
-import static org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.pulsar.shade.com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 /** A wrapper which wraps the {@link PulsarAdmin} with request retry and rate limit support. */
 public class PulsarAdminInvocationHandler implements InvocationHandler {
