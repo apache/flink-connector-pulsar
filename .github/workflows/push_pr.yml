@@ -22,4 +22,4 @@ jobs:
   compile_and_test:
     uses: ./.github/workflows/ci.yml
     with:
-      flink_version: 1.16.0
+      flink_version: 1.16.1
