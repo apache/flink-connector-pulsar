@@ -32,7 +32,7 @@ You can use the connector with the Pulsar 2.8.1 or higher. Because the Pulsar co
 Pulsar [transactions](https://pulsar.apache.org/docs/en/txn-what/), it is recommended to use the Pulsar 2.9.2 or higher.
 Details on Pulsar compatibility can be found in [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification).
 
-{{< artifact flink-connector-pulsar >}}
+{{< connector_artifact flink-connector-pulsar 3.0.0 >}}
 
 {{< py_download_link "pulsar" >}}
 

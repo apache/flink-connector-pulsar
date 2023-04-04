@@ -32,7 +32,7 @@ Pulsar Source 当前支持 Pulsar 2.8.1 之后的版本，但是 Pulsar Source �
 
 如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
-{{< artifact flink-connector-pulsar >}}
+{{< connector_artifact flink-connector-pulsar 3.0.0 >}}
 
 {{< py_download_link "pulsar" >}}
 
