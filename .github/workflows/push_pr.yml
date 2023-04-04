@@ -25,6 +25,6 @@ jobs:
   compile_and_test:
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
-      flink_version: 1.17-SNAPSHOT
+      flink_version: 1.17.0
       timeout_global: 80
       timeout_test: 60
