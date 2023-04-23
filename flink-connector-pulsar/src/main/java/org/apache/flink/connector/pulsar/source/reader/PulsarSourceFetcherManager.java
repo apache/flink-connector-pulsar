@@ -88,7 +88,7 @@ public class PulsarSourceFetcherManager
 
     // @Override // to keep compatible with Flink 1.17
     public void removeSplits(List<PulsarPartitionSplit> splitsToRemove) {
-        // empty - wait for FLINK-31748 to implement it.
+        // TODO empty - wait for FLINK-31748 to implement it.
     }
 
     @Override
