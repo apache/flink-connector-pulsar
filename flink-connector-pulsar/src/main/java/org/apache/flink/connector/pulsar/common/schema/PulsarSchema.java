@@ -177,12 +177,13 @@ public final class PulsarSchema<T> implements Serializable {
             properties.put(ois.readUTF(), ois.readUTF());
         }
 
-        this.schemaInfo = SchemaInfoImpl.builder()
-                .name(name)
-                .schema(schemaBytes)
-                .type(type)
-                .properties(properties)
-                .build();
+        this.schemaInfo =
+                SchemaInfoImpl.builder()
+                        .name(name)
+                        .schema(schemaBytes)
+                        .type(type)
+                        .properties(properties)
+                        .build();
         this.schema = createSchema(schemaInfo);
     }
 

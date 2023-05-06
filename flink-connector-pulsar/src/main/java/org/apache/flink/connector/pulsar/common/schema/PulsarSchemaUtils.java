@@ -131,9 +131,7 @@ public final class PulsarSchemaUtils {
         // No need to create instance.
     }
 
-    /**
-     * A boolean value for determine if user have protobuf-java in his class path.
-     */
+    /** A boolean value for determine if user have protobuf-java in his class path. */
     public static boolean haveProtobuf() {
         return PROTOBUF_MESSAGE_CLASS != null;
     }
