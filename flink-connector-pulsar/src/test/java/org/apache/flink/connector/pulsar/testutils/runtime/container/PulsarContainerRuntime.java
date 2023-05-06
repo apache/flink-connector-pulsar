@@ -54,8 +54,8 @@ public class PulsarContainerRuntime implements PulsarRuntime {
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);
 
     /**
-     * Create a pulsar container provider by a predefined version, this constant
-     * should be bumped after the new pulsar release.
+     * Create a pulsar container provider by a predefined version, this constant should be bumped
+     * after the new pulsar release.
      */
     public static final String PULSAR = "apachepulsar/pulsar:2.10.2";
 
