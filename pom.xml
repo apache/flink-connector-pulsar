@@ -50,7 +50,7 @@ under the License.
 
     <properties>
         <flink.version>1.16.0</flink.version>
-        <pulsar.version>2.10.1</pulsar.version>
+        <pulsar.version>2.10.2</pulsar.version>
 
         <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
         <grpc-bom.version>1.45.1</grpc-bom.version>
