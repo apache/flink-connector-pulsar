@@ -131,7 +131,9 @@ public final class PulsarSchemaUtils {
         // No need to create instance.
     }
 
-    /** A boolean value for determine if user have protobuf-java in his class path. */
+    /**
+     * A boolean value for determine if user have protobuf-java in his class path.
+     */
     public static boolean haveProtobuf() {
         return PROTOBUF_MESSAGE_CLASS != null;
     }
@@ -181,8 +183,12 @@ public final class PulsarSchemaUtils {
         Map<String, String> properties = new HashMap<>(schemaInfo.getProperties());
         properties.put(CLASS_INFO_PLACEHOLDER, typeClass.getName());
 
-        return new SchemaInfoImpl(
-                schemaInfo.getName(), schemaInfo.getSchema(), schemaInfo.getType(), properties);
+        return SchemaInfoImpl.builder()
+                .name(schemaInfo.getName())
+                .schema(schemaInfo.getSchema())
+                .type(schemaInfo.getType())
+                .properties(properties)
+                .build();
     }
 
     @SuppressWarnings("unchecked")
