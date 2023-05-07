@@ -32,7 +32,7 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 {{< connector_artifact flink-connector-pulsar 4.0.0 >}}
 
-{{< py_download_link "pulsar" >}}
+{{< py_connector_download_link "pulsar" 4.0.0 >}}
 
 Flink 的流连接器并不会放到发行文件里面一同发布，阅读[此文档]({{< ref "docs/dev/configuration/overview" >}})，了解如何将连接器添加到集群实例内。
 
