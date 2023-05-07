@@ -21,7 +21,6 @@ on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
-  pull_request: ## !!! TODO DELETED BEFORE MERGED
 
 jobs:
   compile_and_test:
