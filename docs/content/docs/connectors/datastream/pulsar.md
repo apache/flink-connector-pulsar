@@ -33,7 +33,7 @@ The details on Pulsar compatibility can be found in [PIP-72](https://github.com/
 
 {{< connector_artifact flink-connector-pulsar 4.0.0-SNAPSHOT >}}
 
-{{< py_download_link "pulsar" >}}
+{{< py_connector_download_link "pulsar" 4.0.0-SNAPSHOT >}}
 
 Flink's streaming connectors are not part of the binary distribution.
 See how to link with them for cluster execution [here]({{< ref "docs/dev/configuration/overview" >}}).
