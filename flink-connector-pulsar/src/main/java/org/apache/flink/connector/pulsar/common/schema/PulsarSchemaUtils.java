@@ -181,8 +181,12 @@ public final class PulsarSchemaUtils {
         Map<String, String> properties = new HashMap<>(schemaInfo.getProperties());
         properties.put(CLASS_INFO_PLACEHOLDER, typeClass.getName());
 
-        return new SchemaInfoImpl(
-                schemaInfo.getName(), schemaInfo.getSchema(), schemaInfo.getType(), properties);
+        return SchemaInfoImpl.builder()
+                .name(schemaInfo.getName())
+                .schema(schemaInfo.getSchema())
+                .type(schemaInfo.getType())
+                .properties(properties)
+                .build();
     }
 
     @SuppressWarnings("unchecked")
