@@ -30,9 +30,9 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 当前支持 Pulsar 2.10.0 及其之后的版本，建议在总是将 Pulsar 升级至最新版。如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
-{{< connector_artifact flink-connector-pulsar 4.0.0-SNAPSHOT >}}
+{{< connector_artifact flink-connector-pulsar pulsar >}}
 
-{{< py_connector_download_link "pulsar" 4.0.0-SNAPSHOT >}}
+{{< py_connector_download_link "pulsar" >}}
 
 Flink 的流连接器并不会放到发行文件里面一同发布，阅读[此文档]({{< ref "docs/dev/configuration/overview" >}})，了解如何将连接器添加到集群实例内。
 
