@@ -31,9 +31,9 @@ Flink provides an [Apache Pulsar](https://pulsar.apache.org) connector for readi
 You can use the connector with the Pulsar 2.10.0 or higher. It is recommended to always use the latest Pulsar version.
 The details on Pulsar compatibility can be found in [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification).
 
-{{< connector_artifact flink-connector-pulsar 4.0.0 >}}
+{{< connector_artifact flink-connector-pulsar pulsar >}}
 
-{{< py_connector_download_link "pulsar" 4.0.0 >}}
+{{< py_connector_download_link "pulsar" >}}
 
 Flink's streaming connectors are not part of the binary distribution.
 See how to link with them for cluster execution [here]({{< ref "docs/dev/configuration/overview" >}}).
