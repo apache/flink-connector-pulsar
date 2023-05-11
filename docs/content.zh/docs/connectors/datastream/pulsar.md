@@ -32,9 +32,9 @@ Pulsar Source 当前支持 Pulsar 2.8.1 之后的版本，但是 Pulsar Source �
 
 如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
-{{< connector_artifact flink-connector-pulsar 3.0.0 >}}
+{{< connector_artifact flink-connector-pulsar pulsar >}}
 
-{{< py_connector_download_link "pulsar" 3.0.0 >}}
+{{< py_connector_download_link "pulsar" >}}
 
 Flink 的流连接器并不会放到发行文件里面一同发布，阅读[此文档]({{< ref "docs/dev/configuration/overview" >}})，了解如何将连接器添加到集群实例内。
 
