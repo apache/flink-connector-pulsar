@@ -81,6 +81,13 @@ under the License.
 		<dependency>
 			<groupId>org.apache.pulsar</groupId>
 			<artifactId>pulsar-client-all</artifactId>
+			<exclusions>
+<!--				SnakeYAML is prone to CVE-2022-1471, excluding snakeyaml doesn't effect the client usage in flink-connector-pulsar -->
+				<exclusion>
+					<groupId>org.yaml</groupId>
+					<artifactId>snakeyaml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- Tests -->

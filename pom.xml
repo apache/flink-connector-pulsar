@@ -182,6 +182,10 @@ under the License.
                 <version>${pulsar.version}</version>
                 <exclusions>
                     <exclusion>
+                        <groupId>org.yaml</groupId>
+                        <artifactId>snakeyaml</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>com.sun.activation</groupId>
                         <artifactId>javax.activation</artifactId>
                     </exclusion>
