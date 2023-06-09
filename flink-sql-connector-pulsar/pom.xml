@@ -79,7 +79,7 @@ under the License.
 										<exclude>META-INF/versions/**/*</exclude>
 										<exclude>io/swagger/**/*</exclude>
 <!--										https://issues.apache.org/jira/browse/FLINK-32176-->
-										<exclude>org/yaml/snakeyaml/**/*</exclude>
+										<exclude>org/apache/pulsar/shade/org/yaml/snakeyaml/**/*</exclude>
 									</excludes>
 								</filter>
 								<filter>
