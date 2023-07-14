@@ -52,6 +52,7 @@ under the License.
 
     <properties>
         <flink.version>1.17.0</flink.version>
+        <flink-ci-tools.version>1.18-SNAPSHOT</flink-ci-tools.version>
         <pulsar.version>3.0.0</pulsar.version>
         <bouncycastle.version>1.69</bouncycastle.version>
 
@@ -457,7 +458,7 @@ under the License.
                     <dependency>
                         <groupId>org.apache.flink</groupId>
                         <artifactId>flink-ci-tools</artifactId>
-                        <version>${flink.version}</version>
+                        <version>${flink-ci-tools.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
