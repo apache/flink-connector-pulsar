@@ -18,6 +18,8 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator.cursor.stop;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 
 import org.apache.pulsar.client.api.Message;
@@ -42,8 +44,12 @@ public class MessageIdStopCursor implements StopCursor {
         checkArgument(!earliest.equals(messageId), "MessageId.earliest is not supported.");
         checkArgument(!latest.equals(messageId), "Use LatestMessageStopCursor instead.");
 
-        this.messageId = MessageId.fromByteArray(messageId.toByteArray());
         this.inclusive = inclusive;
+        try {
+            this.messageId = MessageId.fromByteArray(messageId.toByteArray());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
