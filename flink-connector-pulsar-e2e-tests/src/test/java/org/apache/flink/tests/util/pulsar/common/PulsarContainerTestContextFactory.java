@@ -28,9 +28,11 @@ import java.util.function.Function;
  * This class is used for creating the Pulsar test context which will running in the Flink
  * containers.
  */
-public class PulsarContainerTestContextFactory<F, T extends PulsarTestContext<F>> extends PulsarTestContextFactory<F, T> {
+public class PulsarContainerTestContextFactory<F, T extends PulsarTestContext<F>>
+        extends PulsarTestContextFactory<F, T> {
 
-    public PulsarContainerTestContextFactory(PulsarTestEnvironment environment, Function<PulsarTestEnvironment, T> contextFactory) {
+    public PulsarContainerTestContextFactory(
+            PulsarTestEnvironment environment, Function<PulsarTestEnvironment, T> contextFactory) {
         super(environment, contextFactory);
     }
 
