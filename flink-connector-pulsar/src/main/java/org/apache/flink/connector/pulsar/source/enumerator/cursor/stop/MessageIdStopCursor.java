@@ -18,12 +18,13 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator.cursor.stop;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.pulsar.client.api.MessageId.earliest;
