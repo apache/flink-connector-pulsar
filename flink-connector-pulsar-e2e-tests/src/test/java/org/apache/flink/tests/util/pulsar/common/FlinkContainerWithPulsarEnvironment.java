@@ -24,18 +24,11 @@ import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
 
-import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.resourcePath;
-
 /** A Flink Container which would bundles pulsar connector in its classpath. */
 public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvironment {
 
     public FlinkContainerWithPulsarEnvironment(int numTaskManagers, int numSlotsPerTaskManager) {
-        super(
-                flinkConfiguration(),
-                numTaskManagers,
-                numSlotsPerTaskManager,
-                resourcePath("pulsar-connector.jar"),
-                resourcePath("flink-connector-testing.jar"));
+        super(flinkConfiguration(), numTaskManagers, numSlotsPerTaskManager);
     }
 
     private static Configuration flinkConfiguration() {

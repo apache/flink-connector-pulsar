@@ -27,6 +27,7 @@ import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SinkTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerWithPulsarEnvironment;
+import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestContextFactory;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
 import org.junit.jupiter.api.Tag;
@@ -51,7 +52,8 @@ public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
     @TestExternalSystem
     PulsarContainerTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);
 
+    // Defines a set of external context Factories for different test cases.
     @TestContext
     PulsarTestContextFactory<String, SingleTopicProducingContext> sinkContext =
-            new PulsarTestContextFactory<>(pulsar, SingleTopicProducingContext::new);
+            new PulsarContainerTestContextFactory<>(pulsar, SingleTopicProducingContext::new);
 }
