@@ -31,7 +31,6 @@ import java.util.List;
 
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.resourcePath;
 
-
 /**
  * The implementation for Flink connector test tools. Providing the common test case writing
  * constraint for both source, sink and table API.
