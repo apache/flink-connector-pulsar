@@ -42,7 +42,7 @@ public class MessageIdStopCursor implements StopCursor {
         checkArgument(!earliest.equals(messageId), "MessageId.earliest is not supported.");
         checkArgument(!latest.equals(messageId), "Use LatestMessageStopCursor instead.");
 
-        this.messageId = messageId;
+        this.messageId = MessageId.fromByteArray(messageId.toByteArray());
         this.inclusive = inclusive;
     }
 
