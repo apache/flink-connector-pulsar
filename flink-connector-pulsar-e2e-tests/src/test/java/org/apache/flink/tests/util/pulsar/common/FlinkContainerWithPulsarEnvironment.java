@@ -37,8 +37,8 @@ public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvir
         // Increase the jvm metaspace memory to avoid java.lang.OutOfMemoryError: Metaspace
         configuration.set(TaskManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2048));
         configuration.set(TaskManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(512));
-        configuration.set(JobManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2048));
-        configuration.set(JobManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(512));
+        configuration.set(JobManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2560));
+        configuration.set(JobManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(1024));
 
         return configuration;
     }
