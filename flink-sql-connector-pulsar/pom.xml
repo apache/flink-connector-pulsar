@@ -95,11 +95,15 @@ under the License.
 							<relocations>
 								<relocation>
 									<pattern>org.bouncycastle</pattern>
-									<shadedPattern>org.apache.pulsar.shade.org.bouncycastle</shadedPattern>
+									<shadedPattern>org.apache.flink.connector.pulsar.shade.org.bouncycastle</shadedPattern>
 								</relocation>
 								<relocation>
 									<pattern>com.scurrilous</pattern>
-									<shadedPattern>org.apache.pulsar.shade.com.scurrilous</shadedPattern>
+									<shadedPattern>org.apache.flink.connector.pulsar.shade.com.scurrilous</shadedPattern>
+								</relocation>
+								<relocation>
+									<pattern>org.apache.pulsar.shade.io.netty</pattern>
+									<shadedPattern>org.apache.flink.connector.pulsar.shade.io.netty</shadedPattern>
 								</relocation>
 							</relocations>
 						</configuration>
