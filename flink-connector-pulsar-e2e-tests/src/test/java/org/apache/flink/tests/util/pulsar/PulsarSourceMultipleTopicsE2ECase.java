@@ -19,31 +19,29 @@
 package org.apache.flink.tests.util.pulsar;
 
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
-import org.apache.flink.connector.pulsar.testutils.sink.cases.SingleTopicProducingContext;
+import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
-import org.apache.flink.connector.testframe.testsuites.SinkTestSuiteBase;
+import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerWithPulsarEnvironment;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
 import org.junit.jupiter.api.Tag;
 
-import static org.apache.flink.streaming.api.CheckpointingMode.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 
-/** Pulsar sink E2E test based on the connector testing framework. */
+/** Pulsar source E2E test based on the connector testing framework. */
 @SuppressWarnings("unused")
 @Tag("org.apache.flink.testutils.junit.FailsOnJava11")
-public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
+public class PulsarSourceMultipleTopicsE2ECase extends SourceTestSuiteBase<String> {
 
     // Defines the Semantic.
-    @TestSemantics
-    CheckpointingMode[] semantics = new CheckpointingMode[] {AT_LEAST_ONCE, EXACTLY_ONCE};
+    @TestSemantics CheckpointingMode[] semantics = new CheckpointingMode[] {EXACTLY_ONCE};
 
-    // Defines TestEnvironment
+    // Defines TestEnvironment.
     @TestEnv
     FlinkContainerWithPulsarEnvironment flink = new FlinkContainerWithPulsarEnvironment(1, 6);
 
@@ -52,6 +50,6 @@ public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
     PulsarContainerTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);
 
     @TestContext
-    PulsarTestContextFactory<String, SingleTopicProducingContext> sinkContext =
-            new PulsarTestContextFactory<>(pulsar, SingleTopicProducingContext::new);
+    PulsarTestContextFactory<String, PartialKeysConsumingContext> context =
+            new PulsarTestContextFactory<>(pulsar, PartialKeysConsumingContext::new);
 }
