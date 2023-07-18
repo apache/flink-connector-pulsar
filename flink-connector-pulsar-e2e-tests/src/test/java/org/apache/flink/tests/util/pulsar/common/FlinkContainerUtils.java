@@ -22,6 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.runtime.taskexecutor.TaskExecutorResourceUtils;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class FlinkContainerUtils {
 
     public static Configuration flinkConfiguration() {
         Configuration configuration = new Configuration();
+        TaskExecutorResourceUtils.adjustForLocalExecution(configuration);
 
         // Increase the jvm metaspace memory to avoid java.lang.OutOfMemoryError: Metaspace
         configuration.set(TaskManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2048));
