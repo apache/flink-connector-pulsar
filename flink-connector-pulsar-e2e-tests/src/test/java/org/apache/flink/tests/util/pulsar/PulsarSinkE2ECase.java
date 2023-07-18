@@ -18,16 +18,17 @@
 
 package org.apache.flink.tests.util.pulsar;
 
-import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
+import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.sink.cases.SingleTopicProducingContext;
+import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
+import org.apache.flink.connector.testframe.external.ExternalContextFactory;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SinkTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
-import org.apache.flink.tests.util.pulsar.common.FlinkContainerWithPulsarEnvironment;
-import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestContextFactory;
+import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
 import org.junit.jupiter.api.Tag;
@@ -46,14 +47,18 @@ public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
 
     // Defines TestEnvironment
     @TestEnv
-    FlinkContainerWithPulsarEnvironment flink = new FlinkContainerWithPulsarEnvironment(1, 6);
+    FlinkContainerTestEnvironment flink =
+            new FlinkContainerTestEnvironment(FlinkContainerUtils.flinkConfiguration(), 1, 6);
 
     // Defines ConnectorExternalSystem.
-    @TestExternalSystem
-    PulsarContainerTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);
+    @TestExternalSystem PulsarTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);
 
     // Defines a set of external context Factories for different test cases.
     @TestContext
-    PulsarTestContextFactory<String, SingleTopicProducingContext> sinkContext =
-            new PulsarContainerTestContextFactory<>(pulsar, SingleTopicProducingContext::new);
+    ExternalContextFactory<SingleTopicProducingContext> sinkContext =
+            ignore -> {
+                final SingleTopicProducingContext context = new SingleTopicProducingContext(pulsar);
+                context.addConnectorJarPaths(FlinkContainerUtils.connectorJarPaths());
+                return context;
+            };
 }

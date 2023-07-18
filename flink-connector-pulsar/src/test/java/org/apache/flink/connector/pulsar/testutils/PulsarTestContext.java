@@ -21,15 +21,11 @@ package org.apache.flink.connector.pulsar.testutils;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 import org.apache.flink.connector.testframe.external.ExternalContext;
 
-import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableList;
-
 import org.apache.pulsar.client.api.Schema;
 
 import java.net.URL;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.resourcePath;
 
 /**
  * The implementation for Flink connector test tools. Providing the common test case writing
@@ -40,8 +36,8 @@ public abstract class PulsarTestContext<T> implements ExternalContext {
     protected final PulsarRuntimeOperator operator;
     // The schema used for consuming and producing messages between Pulsar and tests.
     protected final Schema<T> schema;
-    // If this test case was running in a Flink container.
-    protected boolean container = false;
+
+    private final List<URL> connectorJarPaths = new ArrayList<>();
 
     protected PulsarTestContext(PulsarTestEnvironment environment, Schema<T> schema) {
         this.operator = environment.operator();
@@ -56,20 +52,13 @@ public abstract class PulsarTestContext<T> implements ExternalContext {
         return displayName();
     }
 
-    public void inContainer() {
-        this.container = true;
-    }
-
     @Override
     public List<URL> getConnectorJarPaths() {
-        if (container) {
-            return ImmutableList.of(
-                    resourcePath("pulsar-connector.jar"),
-                    resourcePath("flink-connector-testing.jar"));
-        } else {
-            // We don't need any definition of test jars by default.
-            return Collections.emptyList();
-        }
+        return connectorJarPaths;
+    }
+
+    public void addConnectorJarPaths(List<URL> urls) {
+        this.connectorJarPaths.addAll(urls);
     }
 
     /**

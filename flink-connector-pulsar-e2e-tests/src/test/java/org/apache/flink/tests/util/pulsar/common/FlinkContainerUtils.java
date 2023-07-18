@@ -22,16 +22,17 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
-import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
 
-/** A Flink Container which would bundles pulsar connector in its classpath. */
-public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvironment {
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
-    public FlinkContainerWithPulsarEnvironment(int numTaskManagers, int numSlotsPerTaskManager) {
-        super(flinkConfiguration(), numTaskManagers, numSlotsPerTaskManager);
-    }
+import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.resourcePath;
 
-    private static Configuration flinkConfiguration() {
+/** Shared utilities for building Flink containers. */
+public class FlinkContainerUtils {
+
+    public static Configuration flinkConfiguration() {
         Configuration configuration = new Configuration();
 
         // Increase the jvm metaspace memory to avoid java.lang.OutOfMemoryError: Metaspace
@@ -41,5 +42,12 @@ public class FlinkContainerWithPulsarEnvironment extends FlinkContainerTestEnvir
         configuration.set(JobManagerOptions.JVM_METASPACE, MemorySize.ofMebiBytes(1024));
 
         return configuration;
+    }
+
+    public static List<URL> connectorJarPaths() {
+        List<URL> urls = new ArrayList<>();
+        urls.add(resourcePath("pulsar-connector.jar"));
+        urls.add(resourcePath("flink-connector-testing.jar"));
+        return urls;
     }
 }
