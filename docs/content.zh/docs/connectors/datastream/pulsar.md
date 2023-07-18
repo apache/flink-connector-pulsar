@@ -28,7 +28,7 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 ## 添加依赖
 
-当前支持 Pulsar 2.10.0 及其之后的版本，建议总是将 Pulsar 升级至最新版。如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
+当前支持 Pulsar 2.10.0 及其之后的版本，建议在总是将 Pulsar 升级至最新版。如果想要了解更多关于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
 {{< connector_artifact flink-connector-pulsar pulsar >}}
 
@@ -1088,9 +1088,21 @@ PulsarSink<String> sink = PulsarSink.builder()
 
 用户遇到的问题可能与 Flink 无关，请先升级 Pulsar 的版本、Pulsar 客户端的版本，或者修改 Pulsar 的配置、Pulsar 连接器的配置来尝试解决问题。
 
-## 使用 Java 11 或者之后的版本运行连接器
+## 已知问题
 
-Pulsar 自身已经基于 Java 17 开发，但是 Pulsar 的 client 还能在 Java 8 上运行。之前使用 Java 11 之后的版本运行连接器会遇到 direct buffer 内存泄漏的问题。为了解决此问题，在 source 和 sink 端都增加了内存限制。同时请确保 `-Dpulsar.allocator.pooled=false` 配置加在了 JobManager 和 TaskManager 的 `env.java.opts` 配置中。
+本节介绍有关 Pulsar 连接器的一些已知问题。
+
+### 在 Java 11 上使用不稳定
+
+Pulsar connector 在 Java 11 中有一些尚未修复的问题。我们当前推荐在 Java 8 环境中运行Pulsar connector.
+
+### 不自动重连，而是抛出TransactionCoordinatorNotFound异常
+
+Pulsar 事务机制仍在积极发展中，当前版本并不稳定。 Pulsar 2.9.2
+引入了这个问题 [a break change](https://github.com/apache/pulsar/pull/13135)。
+如果您使用 Pulsar 2.9.2或更高版本与较旧的 Pulsar 客户端一起使用，您可能会收到一个“TransactionCoordinatorNotFound”异常。
+
+您可以使用最新的`pulsar-client-all`分支来解决这个问题。
 
 {{< top >}}
 

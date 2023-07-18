@@ -39,7 +39,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ACKNOWLEDGEMENTS_GROUP_TIME_MICROS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ACK_RECEIPT_ENABLED;
@@ -132,15 +131,9 @@ public final class PulsarSourceConfigUtils {
                 PULSAR_EXPIRE_TIME_OF_INCOMPLETE_CHUNKED_MESSAGE_MILLIS,
                 v -> builder.expireTimeOfIncompleteChunkedMessage(v, MILLISECONDS));
         configuration.useOption(PULSAR_POOL_MESSAGES, builder::poolMessages);
-
-        if (configuration.contains(PULSAR_MEMORY_LIMIT_BYTES)) {
-            // Force to scale the receiver queue size if the memory limit has been configured.
-            builder.autoScaledReceiverQueueSizeEnabled(true);
-        } else {
-            configuration.useOption(
-                    PULSAR_AUTO_SCALED_RECEIVER_QUEUE_SIZE_ENABLED,
-                    builder::autoScaledReceiverQueueSizeEnabled);
-        }
+        configuration.useOption(
+                PULSAR_AUTO_SCALED_RECEIVER_QUEUE_SIZE_ENABLED,
+                builder::autoScaledReceiverQueueSizeEnabled);
 
         Map<String, String> properties = configuration.getProperties(PULSAR_CONSUMER_PROPERTIES);
         if (!properties.isEmpty()) {

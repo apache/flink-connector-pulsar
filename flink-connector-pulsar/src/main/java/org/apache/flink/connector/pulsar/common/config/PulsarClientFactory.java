@@ -89,7 +89,6 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_PATH;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_TLS_TRUST_STORE_TYPE;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_KEY_STORE_TLS;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_POOL_BUFFER;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_TCP_NO_DELAY;
 import static org.apache.pulsar.client.api.SizeUnit.BYTES;
 
@@ -183,11 +182,6 @@ public final class PulsarClientFactory {
                     configuration.useOption(
                             PULSAR_SOCKS5_PROXY_PASSWORD, builder::socks5ProxyPassword);
                 });
-
-        if (!configuration.get(PULSAR_USE_POOL_BUFFER)) {
-            System.setProperty("pulsar.allocator.pooled", "false");
-            System.setProperty("pulsar.allocator.leak_detection", "Simple");
-        }
 
         return builder.build();
     }

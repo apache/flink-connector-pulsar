@@ -97,9 +97,6 @@ public class PulsarRuntimeOperator implements Closeable {
             String adminUrl,
             String containerAdminUrl)
             throws Exception {
-        System.setProperty("pulsar.allocator.pooled", "false");
-        System.setProperty("pulsar.allocator.leak_detection", "Simple");
-
         this.serviceUrl = containerServiceUrl;
         this.adminUrl = containerAdminUrl;
         this.client = PulsarClient.builder().serviceUrl(serviceUrl).enableTransaction(true).build();

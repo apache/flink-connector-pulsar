@@ -43,6 +43,7 @@ import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.testutils.junit.SharedObjectsExtension;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -52,13 +53,13 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_POOL_BUFFER;
 import static org.apache.flink.streaming.api.CheckpointingMode.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for using PulsarSink writing to a Pulsar cluster. */
+@Tag("org.apache.flink.testutils.junit.FailsOnJava11")
 class PulsarSinkITCase {
 
     /** Integration test based on the connector testing framework. */
@@ -136,7 +137,6 @@ class PulsarSinkITCase {
                             .setDeliveryGuarantee(guarantee)
                             .setTopics(topic)
                             .setSerializationSchema(new SimpleStringSchema())
-                            .setConfig(PULSAR_USE_POOL_BUFFER, false)
                             .build();
 
             StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
