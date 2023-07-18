@@ -18,16 +18,17 @@
 
 package org.apache.flink.tests.util.pulsar;
 
-import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
 import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicsConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
+import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
+import org.apache.flink.connector.testframe.external.ExternalContextFactory;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
-import org.apache.flink.tests.util.pulsar.common.FlinkContainerWithPulsarEnvironment;
+import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
 import org.junit.jupiter.api.Tag;
@@ -44,7 +45,8 @@ public class PulsarSourceE2ECase extends SourceTestSuiteBase<String> {
 
     // Defines TestEnvironment.
     @TestEnv
-    FlinkContainerWithPulsarEnvironment flink = new FlinkContainerWithPulsarEnvironment(1, 6);
+    FlinkContainerTestEnvironment flink =
+            new FlinkContainerTestEnvironment(FlinkContainerUtils.flinkConfiguration(), 1, 6);
 
     // Defines ConnectorExternalSystem.
     @TestExternalSystem
@@ -52,10 +54,19 @@ public class PulsarSourceE2ECase extends SourceTestSuiteBase<String> {
 
     // Defines a set of external context Factories for different test cases.
     @TestContext
-    PulsarTestContextFactory<String, MultipleTopicsConsumingContext> multipleTopic =
-            new PulsarTestContextFactory<>(pulsar, MultipleTopicsConsumingContext::new);
+    ExternalContextFactory<MultipleTopicsConsumingContext> multipleTopic =
+            ignore -> {
+                final MultipleTopicsConsumingContext context =
+                        new MultipleTopicsConsumingContext(pulsar);
+                context.addConnectorJarPaths(FlinkContainerUtils.connectorJarPaths());
+                return context;
+            };
 
     @TestContext
-    PulsarTestContextFactory<String, PartialKeysConsumingContext> partialKeys =
-            new PulsarTestContextFactory<>(pulsar, PartialKeysConsumingContext::new);
+    ExternalContextFactory<PartialKeysConsumingContext> partialKeys =
+            ignore -> {
+                final PartialKeysConsumingContext context = new PartialKeysConsumingContext(pulsar);
+                context.addConnectorJarPaths(FlinkContainerUtils.connectorJarPaths());
+                return context;
+            };
 }

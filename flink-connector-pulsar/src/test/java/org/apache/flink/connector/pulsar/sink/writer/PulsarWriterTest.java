@@ -18,9 +18,11 @@
 
 package org.apache.flink.connector.pulsar.sink.writer;
 
+import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.connector.sink2.Sink.InitContext;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.configuration.Configuration;
@@ -203,6 +205,25 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         @Override
         public int getAttemptNumber() {
             return 0;
+        }
+
+        // The following three methods are for compatibility with
+        // https://github.com/apache/flink/commit/4f5b2fb5736f5a1c098a7dc1d448a879f36f801b
+        // . Removed the commented out `@Override` when we move to 1.18.
+
+        // @Override
+        public boolean isObjectReuseEnabled() {
+            return false;
+        }
+
+        // @Override
+        public <IN> TypeSerializer<IN> createInputSerializer() {
+            return null;
+        }
+
+        // @Override
+        public JobID getJobId() {
+            return null;
         }
 
         @Override

@@ -44,6 +44,10 @@ under the License.
 			<artifactId>flink-connector-pulsar</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -61,6 +65,7 @@ under the License.
 						<configuration>
 							<artifactSet>
 								<includes>
+									<include>com.fasterxml.jackson.core:jackson-annotations</include>
 									<include>org.apache.flink:flink-connector-base</include>
 									<include>org.apache.flink:flink-connector-pulsar</include>
 									<include>org.apache.pulsar:pulsar-client-admin-api</include>
