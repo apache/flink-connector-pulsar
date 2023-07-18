@@ -31,13 +31,10 @@ import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
-import org.junit.jupiter.api.Tag;
-
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 
 /** Pulsar source E2E test based on the connector testing framework. */
 @SuppressWarnings("unused")
-@Tag("org.apache.flink.testutils.junit.FailsOnJava11")
 public class PulsarSourceE2ECase extends SourceTestSuiteBase<String> {
 
     // Defines the Semantic.

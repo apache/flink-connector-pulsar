@@ -86,15 +86,6 @@ under the License.
 				</plugins>
 			</build>
 		</profile>
-		<profile>
-			<id>java11</id>
-			<activation>
-				<jdk>[11,)</jdk>
-			</activation>
-			<properties>
-				<excludeE2E>org.apache.flink.testutils.junit.FailsOnJava11</excludeE2E>
-			</properties>
-		</profile>
 	</profiles>
 
 	<build>

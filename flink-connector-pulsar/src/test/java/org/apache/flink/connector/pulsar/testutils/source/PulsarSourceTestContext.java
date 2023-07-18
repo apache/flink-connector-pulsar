@@ -40,8 +40,11 @@ import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_POOL_BUFFER;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
+import static org.apache.pulsar.client.api.SizeUnit.MEGA_BYTES;
 
 /**
  * Common source test context for the pulsar based tests. We use the string text as the basic send
@@ -66,7 +69,9 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
                         .setAdminUrl(operator.adminUrl())
                         .setTopicPattern(topicPattern(), AllTopics)
                         .setSubscriptionName(subscriptionName())
-                        .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL);
+                        .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL)
+                        .setConfig(PULSAR_USE_POOL_BUFFER, false)
+                        .setConfig(PULSAR_MEMORY_LIMIT_BYTES, MEGA_BYTES.toBytes(64));
 
         // Set extra configuration for source builder.
         setSourceBuilder(builder);

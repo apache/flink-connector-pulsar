@@ -583,6 +583,12 @@ public final class PulsarOptions {
                     .noDefaultValue()
                     .withDescription("Password of SOCKS5 proxy.");
 
+    public static final ConfigOption<Boolean> PULSAR_USE_POOL_BUFFER =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "usePoolBuffer")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("Change the behavior of PulsarByteBufAllocator.");
+
     ///////////////////////////////////////////////////////////////////////////////
     //
     // The configuration for PulsarAdmin part.

@@ -27,9 +27,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_USE_POOL_BUFFER;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_MAX_MESSAGES;
 import static org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode.ROUND_ROBIN;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.toDeliveryGuarantee;
+import static org.apache.pulsar.client.api.SizeUnit.MEGA_BYTES;
 
 /**
  * Common sink test context for the pulsar based tests. We use the string text as the basic send
@@ -73,7 +76,9 @@ public abstract class PulsarSinkTestContext extends PulsarTestContext<String>
                         .setDeliveryGuarantee(guarantee)
                         .setSerializationSchema(schema)
                         .enableSchemaEvolution()
-                        .setConfig(PULSAR_BATCHING_MAX_MESSAGES, 4);
+                        .setConfig(PULSAR_BATCHING_MAX_MESSAGES, 4)
+                        .setConfig(PULSAR_USE_POOL_BUFFER, false)
+                        .setConfig(PULSAR_MEMORY_LIMIT_BYTES, MEGA_BYTES.toBytes(64));
         if (creatTopic()) {
             builder.setTopics(topics).setTopicRoutingMode(ROUND_ROBIN);
         } else {

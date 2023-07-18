@@ -27,13 +27,14 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.embeddedFlinkConfigs;
 import static org.apache.flink.connector.pulsar.testutils.PulsarTestCommonUtils.resourcePath;
 
 /** Shared utilities for building Flink containers. */
 public class FlinkContainerUtils {
 
     public static Configuration flinkConfiguration() {
-        Configuration configuration = new Configuration();
+        Configuration configuration = embeddedFlinkConfigs();
 
         // Increase the jvm metaspace memory to avoid java.lang.OutOfMemoryError: Metaspace
         configuration.set(TaskManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(2048));

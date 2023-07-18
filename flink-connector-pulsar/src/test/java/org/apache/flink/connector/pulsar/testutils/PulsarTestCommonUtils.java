@@ -19,6 +19,8 @@
 package org.apache.flink.connector.pulsar.testutils;
 
 import org.apache.flink.api.connector.source.Boundedness;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
@@ -32,6 +34,7 @@ import org.apache.pulsar.client.api.MessageId;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Put static methods that can be used by multiple test classes. */
@@ -82,5 +85,20 @@ public class PulsarTestCommonUtils {
             splits.add(createPartitionSplit(topicName, i, boundedness));
         }
         return splits;
+    }
+
+    public static Configuration embeddedFlinkConfigs() {
+        Configuration configuration = new Configuration();
+
+        // Disable Pulsar direct buffer memory allocation.
+        configuration.set(
+                CoreOptions.FLINK_JVM_OPTIONS,
+                " -Dpulsar.allocator.pooled=false -Dpulsar.allocator.leak_detection=Simple");
+        // Jar loading optimization.
+        configuration.set(
+                CoreOptions.ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL,
+                Collections.singletonList("org.apache.pulsar."));
+
+        return configuration;
     }
 }
