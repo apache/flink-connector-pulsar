@@ -1276,23 +1276,6 @@ If you have a problem with Pulsar when using Flink, keep in mind that Flink only
 and your problem might be independent of Flink and sometimes can be solved by upgrading Pulsar brokers,
 reconfiguring Pulsar brokers or reconfiguring Pulsar connector in Flink.
 
-## Known Issues
-
-This section describes some known issues about the Pulsar connectors.
-
-### Unstable on Java 11
-
-Pulsar connector has some known issues on Java 11. It is recommended to run Pulsar connector
-on Java 8.
-
-### No TransactionCoordinatorNotFound, but automatic reconnect
-
-Pulsar transactions are still in active development and are not stable. Pulsar 2.9.2
-introduces [a break change](https://github.com/apache/pulsar/pull/13135) in transactions.
-If you use Pulsar 2.9.2 or higher with an older Pulsar client, you might get a `TransactionCoordinatorNotFound` exception.
-
-You can use the latest `pulsar-client-all` release to resolve this issue.
-
 {{< top >}}
 
 [schema-evolution]: https://pulsar.apache.org/docs/2.11.x/schema-evolution-compatibility/#schema-evolution

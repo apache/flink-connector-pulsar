@@ -18,6 +18,7 @@
 
 package org.apache.flink.connector.pulsar.source;
 
+import org.apache.flink.connector.pulsar.common.MiniClusterTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
@@ -25,7 +26,6 @@ import org.apache.flink.connector.pulsar.testutils.source.cases.EncryptedMessage
 import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicsConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.SingleTopicConsumingContext;
-import org.apache.flink.connector.testframe.environment.MiniClusterTestEnvironment;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
@@ -34,7 +34,6 @@ import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.streaming.api.CheckpointingMode;
 
 import org.apache.pulsar.client.api.SubscriptionType;
-import org.junit.jupiter.api.Tag;
 
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
 
@@ -42,7 +41,6 @@ import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}
  * subscription.
  */
-@Tag("org.apache.flink.testutils.junit.FailsOnJava11")
 class PulsarSourceITCase extends SourceTestSuiteBase<String> {
 
     // Defines test environment on Flink MiniCluster
