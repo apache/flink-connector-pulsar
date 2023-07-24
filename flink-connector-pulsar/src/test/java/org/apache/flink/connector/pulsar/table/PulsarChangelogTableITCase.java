@@ -18,12 +18,6 @@
 
 package org.apache.flink.connector.pulsar.table;
 
-import static org.apache.flink.connector.pulsar.table.testutils.PulsarTableTestUtils.readLines;
-import static org.apache.flink.connector.pulsar.table.testutils.PulsarTableTestUtils.waitingExpectedResults;
-import java.time.Duration;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.List;
 import org.apache.flink.formats.json.canal.CanalJsonFormatFactory;
 import org.apache.flink.formats.json.debezium.DebeziumJsonFormatFactory;
 import org.apache.flink.formats.json.maxwell.MaxwellJsonFormatFactory;
@@ -32,9 +26,18 @@ import org.apache.flink.table.api.TableResult;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.api.config.OptimizerConfigOptions;
 import org.apache.flink.test.junit5.MiniClusterExtension;
+
 import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.apache.flink.connector.pulsar.table.testutils.PulsarTableTestUtils.readLines;
+import static org.apache.flink.connector.pulsar.table.testutils.PulsarTableTestUtils.waitingExpectedResults;
 
 /** IT cases for Pulsar with changelog format for Table API & SQL. */
 @ExtendWith(MiniClusterExtension.class)
