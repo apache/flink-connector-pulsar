@@ -29,7 +29,6 @@ import org.apache.pulsar.client.api.Schema;
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
-import java.util.Base64;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -110,7 +109,7 @@ public class PulsarTableSerializationSchema implements PulsarSerializationSchema
         if (keySerialization != null) {
             final RowData keyRow = createProjectedRow(consumedRow, RowKind.INSERT, keyFieldGetters);
             final byte[] keyBytes = keySerialization.serialize(keyRow);
-            messageBuilder.key(Base64.getEncoder().encodeToString(keyBytes));
+            messageBuilder.key(new String(keyBytes));
         }
         return messageBuilder.build();
     }

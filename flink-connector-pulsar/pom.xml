@@ -155,6 +155,14 @@ under the License.
 			<artifactId>pulsar</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Pulsar SQL IT test with formats -->
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-csv</artifactId>
+			<version>${flink.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
