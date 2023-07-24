@@ -54,6 +54,7 @@ under the License.
         <flink.version>1.17.0</flink.version>
         <flink-ci-tools.version>1.18-SNAPSHOT</flink-ci-tools.version>
         <pulsar.version>3.0.0</pulsar.version>
+        <scala.binary.version>2.12</scala.binary.version>
         <bouncycastle.version>1.69</bouncycastle.version>
 
         <jsr305.version>1.3.9</jsr305.version>
