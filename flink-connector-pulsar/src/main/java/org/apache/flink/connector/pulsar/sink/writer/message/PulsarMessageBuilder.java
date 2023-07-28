@@ -26,6 +26,7 @@ import org.apache.pulsar.client.api.TypedMessageBuilder;
 
 import javax.annotation.Nullable;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class PulsarMessageBuilder<T> {
 
     private byte[] orderingKey;
     private String key;
+    private boolean isBase64EncodedKey;
     private long eventTime;
     @Nullable private final Schema<T> schema;
     @Nullable private final T value;
@@ -68,6 +70,17 @@ public class PulsarMessageBuilder<T> {
      */
     public PulsarMessageBuilder<T> key(String key) {
         this.key = checkNotNull(key);
+        this.isBase64EncodedKey = false;
+        return this;
+    }
+
+    /**
+     * Method wrapper of {@link TypedMessageBuilder#keyBytes(byte[])}. This key would also be used
+     * in {@link KeyHashTopicRouter}.
+     */
+    public PulsarMessageBuilder<T> keyBytes(byte[] keyBytes) {
+        this.key = Base64.getEncoder().encodeToString(keyBytes);
+        this.isBase64EncodedKey = true;
         return this;
     }
 
@@ -115,6 +128,7 @@ public class PulsarMessageBuilder<T> {
         return new PulsarMessage<>(
                 orderingKey,
                 key,
+                isBase64EncodedKey,
                 eventTime,
                 schema,
                 value,

@@ -106,12 +106,12 @@ public class PulsarTableSerializationSchema implements PulsarSerializationSchema
         writableMetadata.applyWritableMetadataInMessage(consumedRow, messageBuilder);
 
         // get key row data
-        //        if (keySerialization != null) {
-        //            final RowData keyRow = createProjectedRow(consumedRow, RowKind.INSERT,
-        // keyFieldGetters);
-        //            final byte[] keyBytes = keySerialization.serialize(keyRow);
-        //            messageBuilder.key(new String(keyBytes));
-        //        }
+        if (keySerialization != null) {
+            final RowData keyRow = createProjectedRow(consumedRow, RowKind.INSERT, keyFieldGetters);
+            final byte[] keyBytes = keySerialization.serialize(keyRow);
+            messageBuilder.keyBytes(keyBytes);
+        }
+
         return messageBuilder.build();
     }
 
