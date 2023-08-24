@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.flink.connector.pulsar.table.PulsarTableFactory
+org.apache.flink.connector.pulsar.table.UpsertPulsarTableFactory
