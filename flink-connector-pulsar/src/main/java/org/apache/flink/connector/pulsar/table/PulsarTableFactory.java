@@ -279,11 +279,7 @@ public class PulsarTableFactory implements DynamicTableSourceFactory, DynamicTab
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Format and Delivery guarantee related options are not forward options.
-     *
-     * @return
-     */
+    /** Format and Delivery guarantee related options are not forward options. */
     @Override
     public Set<ConfigOption<?>> forwardOptions() {
         return Stream.of(

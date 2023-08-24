@@ -110,7 +110,6 @@ under the License.
             <scope>provided</scope>
         </dependency>
 
-
         <!-- Test dependencies -->
 
         <dependency>

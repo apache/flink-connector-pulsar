@@ -48,7 +48,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * PulsarRowDataConverter} instance.
  */
 public class PulsarTableDeserializationSchema implements PulsarDeserializationSchema<RowData> {
-    private static final long serialVersionUID = -3298784447432136216L;
+    private static final long serialVersionUID = 1L;
 
     private final TypeInformation<RowData> producedTypeInfo;
 
@@ -66,6 +66,9 @@ public class PulsarTableDeserializationSchema implements PulsarDeserializationSc
             TypeInformation<RowData> producedTypeInfo,
             PulsarRowDataConverter rowDataConverter,
             boolean upsertMode) {
+        if (upsertMode) {
+            checkNotNull(keyDeserialization, "upsert mode must specify a key format");
+        }
         this.keyDeserialization = keyDeserialization;
         this.valueDeserialization = checkNotNull(valueDeserialization);
         this.rowDataConverter = checkNotNull(rowDataConverter);
@@ -96,7 +99,6 @@ public class PulsarTableDeserializationSchema implements PulsarDeserializationSc
         List<RowData> valueRowData = new ArrayList<>();
 
         if (upsertMode && message.getData().length == 0) {
-            checkNotNull(keyDeserialization, "upsert mode must specify a key format");
             rowDataConverter.projectToRowWithNullValueRow(message, keyRowData, collector);
             return;
         }

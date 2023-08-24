@@ -39,7 +39,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class PulsarTableSerializationSchema implements PulsarSerializationSchema<RowData> {
 
-    private static final long serialVersionUID = 7314442107082067836L;
+    private static final long serialVersionUID = 1L;
 
     @Nullable private final SerializationSchema<RowData> keySerialization;
 

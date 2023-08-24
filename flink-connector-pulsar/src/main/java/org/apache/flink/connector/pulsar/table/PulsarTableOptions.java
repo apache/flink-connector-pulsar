@@ -53,7 +53,8 @@ public final class PulsarTableOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "Topic name(s) the table reads data from. It can be a single topic name or a list of topic names separated by a semicolon symbol (%s) like %s.",
+                                            "Topic name(s) the table reads data from. It can be a single topic name or a list of topic names separated by a semicolon symbol (%s) like %s. "
+                                                    + "When a list of topics configured, please ensure that all the topics are in the same schema as Flink Table need a fixed schema.",
                                             code(";"), code("topic-1;topic-2"))
                                     .build());
 
@@ -94,10 +95,11 @@ public final class PulsarTableOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "Optional message id used to specify a consuming starting point for "
-                                                    + "source. Use %s, %s or pass in a message id "
+                                            "(Optional) Message id that is used to specify a consuming starting "
+                                                    + "point for source. Use %s, %s or pass in a message id "
                                                     + "representation in %s, "
-                                                    + "such as %s",
+                                                    + "such as %s. This option takes precedence over "
+                                                    + "source.start.publish-time.",
                                             code("earliest"),
                                             code("latest"),
                                             code("ledgerId:entryId:partitionId"),
@@ -111,7 +113,8 @@ public final class PulsarTableOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "(Optional) the publish timestamp that is used to specify a starting point for the [Pulsar DataStream source connector](https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/datastream/pulsar/#pulsar-source) to consume data.")
+                                            "(Optional) Publish timestamp that is used to specify a starting point for the [Pulsar DataStream source connector](https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/datastream/pulsar/#pulsar-source) to consume data. "
+                                                    + "Option source.start.message-id takes precedence over this one.")
                                     .build());
 
     public static final ConfigOption<String> SOURCE_STOP_AT_MESSAGE_ID =

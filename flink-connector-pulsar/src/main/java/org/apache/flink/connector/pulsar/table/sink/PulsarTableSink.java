@@ -18,6 +18,7 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.sink.PulsarSink;
 import org.apache.flink.connector.pulsar.sink.PulsarSinkBuilder;
 import org.apache.flink.connector.pulsar.sink.writer.delayer.FixedMessageDelayer;
+import org.apache.flink.connector.pulsar.sink.writer.delayer.MessageDelayer;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializationSchema;
@@ -89,6 +90,10 @@ public class PulsarTableSink implements DynamicTableSink, SupportsWritingMetadat
         final PulsarSerializationSchema<RowData> pulsarSerializationSchema =
                 serializationSchemaFactory.createPulsarSerializationSchema(context);
 
+        final MessageDelayer<RowData> delayer =
+                messageDelayMillis > 0
+                        ? new FixedMessageDelayer<>(messageDelayMillis)
+                        : MessageDelayer.never();
         final PulsarSinkBuilder<RowData> pulsarSinkBuilder =
                 PulsarSink.builder()
                         .setSerializationSchema(pulsarSerializationSchema)
@@ -96,7 +101,7 @@ public class PulsarTableSink implements DynamicTableSink, SupportsWritingMetadat
                         .setDeliveryGuarantee(deliveryGuarantee)
                         .setTopics(topics)
                         .setTopicRoutingMode(topicRoutingMode)
-                        .delaySendingMessage(new FixedMessageDelayer<>(messageDelayMillis));
+                        .delaySendingMessage(delayer);
 
         if (topicRouter != null) {
             pulsarSinkBuilder.setTopicRouter(topicRouter);

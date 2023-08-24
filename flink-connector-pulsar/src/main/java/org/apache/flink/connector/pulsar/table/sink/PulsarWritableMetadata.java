@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 /** A class used to manage WritableMetadata for Pulsar SQL sink connector. */
 public class PulsarWritableMetadata implements Serializable {
 
-    private static final long serialVersionUID = 8117156158379846715L;
+    private static final long serialVersionUID = 1L;
 
     private final List<String> writableMetadataKeys;
 

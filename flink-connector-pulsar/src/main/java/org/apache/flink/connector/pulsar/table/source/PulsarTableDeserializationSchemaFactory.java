@@ -64,7 +64,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class PulsarTableDeserializationSchemaFactory implements Serializable {
 
-    private static final long serialVersionUID = 6091562041940740434L;
+    private static final long serialVersionUID = 1L;
 
     private final DataType physicalDataType;
 

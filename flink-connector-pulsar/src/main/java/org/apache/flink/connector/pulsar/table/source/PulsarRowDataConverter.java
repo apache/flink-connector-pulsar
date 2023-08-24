@@ -36,7 +36,7 @@ import java.util.List;
  * fields and metadata fields.
  */
 public class PulsarRowDataConverter implements Serializable {
-    private static final long serialVersionUID = -3399264407634977459L;
+    private static final long serialVersionUID = 1L;
 
     private final int physicalArity;
 
