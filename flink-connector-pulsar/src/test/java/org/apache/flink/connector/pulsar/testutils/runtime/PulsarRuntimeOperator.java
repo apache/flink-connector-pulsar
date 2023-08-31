@@ -59,7 +59,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ENABLE_TRANSACTION;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.common.utils.PulsarTransactionUtils.getTcClient;
@@ -426,7 +425,6 @@ public class PulsarRuntimeOperator implements Closeable {
     public Configuration config() {
         Configuration configuration = new Configuration();
         configuration.set(PULSAR_SERVICE_URL, serviceUrl());
-        configuration.set(PULSAR_ADMIN_URL, adminUrl());
         return configuration;
     }
 

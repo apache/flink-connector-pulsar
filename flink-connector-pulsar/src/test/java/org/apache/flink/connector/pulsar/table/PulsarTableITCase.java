@@ -96,14 +96,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         randomTableName,
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createTable);
@@ -181,7 +179,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s',\n"
                                 + "  'key.format' = '%s',\n"
                                 + "  'key.fields' = 'user_id; event_id'\n"
@@ -190,7 +187,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format,
                         format);
 
@@ -238,7 +234,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'pulsar.producer.producerName' = 'pulsar-table-test',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
@@ -246,7 +241,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
         tableEnv.executeSql(createTable);
 
@@ -312,14 +306,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sourceTableName,
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         RAW_FORMAT);
 
         tableEnv.executeSql(createSourceTable);
@@ -349,7 +341,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sourceTableName,
@@ -357,7 +348,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSourceTable);
@@ -382,7 +372,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sinkTableName,
@@ -390,7 +379,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         sinkTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSinkTable);
@@ -418,14 +406,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sourceTableName,
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSourceTable);
@@ -452,14 +438,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sourceTableName,
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSourceTable);
@@ -493,14 +477,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sourceTableName,
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSourceTable);
@@ -517,14 +499,12 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
                         sinkTableName,
                         PulsarTableFactory.IDENTIFIER,
                         sinkTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         format);
 
         tableEnv.executeSql(createSinkTable);
@@ -549,7 +529,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'pulsar.source.partitionDiscoveryIntervalMs' = '-1',\n"
                                 + "  'source.stop.at-message-id' = 'latest',\n"
                                 + "  'format' = '%s'\n"
@@ -558,7 +537,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         RAW_FORMAT);
 
         tableEnv.executeSql(createSourceTable);
@@ -591,7 +569,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                                 + "  'connector' = '%s',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
-                                + "  'admin-url' = '%s',\n"
                                 + "  'source.stop.at-message-id' = 'latest',\n"
                                 + "  'format' = '%s'\n"
                                 + ")",
@@ -599,7 +576,6 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         PulsarTableFactory.IDENTIFIER,
                         sourceTopic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         RAW_FORMAT);
 
         tableEnv.executeSql(createSourceTable);

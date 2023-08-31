@@ -63,7 +63,6 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
                 PulsarSource.builder()
                         .setDeserializationSchema(schema)
                         .setServiceUrl(operator.serviceUrl())
-                        .setAdminUrl(operator.adminUrl())
                         .setTopicPattern(topicPattern(), AllTopics)
                         .setSubscriptionName(subscriptionName())
                         .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL);

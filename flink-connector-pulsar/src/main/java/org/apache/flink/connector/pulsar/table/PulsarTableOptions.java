@@ -216,27 +216,6 @@ public final class PulsarTableOptions {
 
     /**
      * Exactly same as {@link
-     * org.apache.flink.connector.pulsar.common.config.PulsarOptions#PULSAR_ADMIN_URL}. Copied here
-     * because it is a required config option and should not be included in the {@link
-     * org.apache.flink.table.factories.FactoryUtil.FactoryHelper#validateExcept(String...)} method.
-     *
-     * <p>By default all {@link org.apache.flink.connector.pulsar.common.config.PulsarOptions} are
-     * included in the validateExcept() method./p>
-     */
-    public static final ConfigOption<String> ADMIN_URL =
-            ConfigOptions.key("admin-url")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text(
-                                            "The Pulsar service HTTP URL for the admin endpoint. For example, %s, or %s for TLS.",
-                                            code("http://my-broker.example.com:8080"),
-                                            code("https://my-broker.example.com:8443"))
-                                    .build());
-
-    /**
-     * Exactly same as {@link
      * org.apache.flink.connector.pulsar.common.config.PulsarOptions#PULSAR_SERVICE_URL}. Copied
      * here because it is a required config option and should not be included in the {@link
      * org.apache.flink.table.factories.FactoryUtil.FactoryHelper#validateExcept(String...)} method.

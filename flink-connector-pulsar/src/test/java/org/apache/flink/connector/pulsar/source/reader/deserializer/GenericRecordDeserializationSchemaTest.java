@@ -82,7 +82,6 @@ class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
                 PulsarSource.builder()
                         .setDeserializationSchema(new AvroGenericRecordDeserializer())
                         .setServiceUrl(operator().serviceUrl())
-                        .setAdminUrl(operator().adminUrl())
                         .setTopics(topic)
                         .setStartCursor(StartCursor.earliest())
                         .setBoundedStopCursor(StopCursor.latest())

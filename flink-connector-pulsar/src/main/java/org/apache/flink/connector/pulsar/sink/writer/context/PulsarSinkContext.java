@@ -22,8 +22,6 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.pulsar.sink.PulsarSinkOptions;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
 
-import org.apache.pulsar.client.admin.PulsarAdminException;
-
 import java.util.Optional;
 
 /** This context provides information on the pulsar record target location. */
@@ -56,5 +54,5 @@ public interface PulsarSinkContext {
      *
      * @return Return {@link Optional#empty()} if the topic doesn't exist.
      */
-    Optional<TopicMetadata> topicMetadata(String topic) throws PulsarAdminException;
+    Optional<TopicMetadata> topicMetadata(String topic);
 }

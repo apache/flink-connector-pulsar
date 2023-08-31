@@ -24,19 +24,19 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 
-/** PulsarSubscriber abstract class to simplify Pulsar admin related operations. */
+/** PulsarSubscriber abstract class to simplify Pulsar metadata related operations. */
 public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     private static final long serialVersionUID = 2053021503331058888L;
 
@@ -45,33 +45,24 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     private static final Set<String> NON_PARTITIONED_TOPICS = ConcurrentHashMap.newKeySet();
 
     protected transient PulsarClient client;
-    protected transient PulsarAdmin admin;
 
-    protected TopicMetadata queryTopicMetadata(String topic) throws PulsarAdminException {
+    protected TopicMetadata queryTopicMetadata(String topic)
+            throws ExecutionException, InterruptedException {
         if (NON_PARTITIONED_TOPICS.contains(topic)) {
             return new TopicMetadata(topic, NON_PARTITIONED);
         }
 
-        try {
-            PartitionedTopicMetadata metadata = admin.topics().getPartitionedTopicMetadata(topic);
-            if (metadata.partitions == NON_PARTITIONED) {
-                NON_PARTITIONED_TOPICS.add(topic);
-            }
-            return new TopicMetadata(topic, metadata.partitions);
-        } catch (PulsarAdminException e) {
-            if (e.getStatusCode() == 404) {
-                // Return null for skipping the topic metadata query.
-                return null;
-            } else {
-                // This method would cause failure for subscribers.
-                throw e;
-            }
+        PulsarClientImpl clientImpl = (PulsarClientImpl) client;
+        PartitionedTopicMetadata metadata = clientImpl.getPartitionedTopicMetadata(topic).get();
+        if (metadata.partitions == NON_PARTITIONED) {
+            NON_PARTITIONED_TOPICS.add(topic);
         }
+        return new TopicMetadata(topic, metadata.partitions);
     }
 
     protected Set<TopicPartition> createTopicPartitions(
             Set<String> topics, RangeGenerator generator, int parallelism)
-            throws PulsarAdminException {
+            throws ExecutionException, InterruptedException {
         Set<TopicPartition> results = new HashSet<>();
 
         for (String topic : topics) {
@@ -94,8 +85,7 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
     }
 
     @Override
-    public void open(PulsarClient client, PulsarAdmin admin) {
+    public void open(PulsarClient client) {
         this.client = client;
-        this.admin = admin;
     }
 }

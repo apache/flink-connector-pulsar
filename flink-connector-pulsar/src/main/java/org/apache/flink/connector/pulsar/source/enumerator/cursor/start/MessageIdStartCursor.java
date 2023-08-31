@@ -36,7 +36,7 @@ public class MessageIdStartCursor implements StartCursor {
     /**
      * The default {@code inclusive} behavior should be controlled in {@link
      * ConsumerBuilder#startMessageIdInclusive}. But pulsar has a bug and doesn't support this
-     * feature currently. We have to use admin API to reset the cursor instead.
+     * feature currently. So we have to implement this feature by ourselves.
      *
      * @param messageId The message id for start position.
      * @param inclusive Whether we include the start message id in the consuming result. This works

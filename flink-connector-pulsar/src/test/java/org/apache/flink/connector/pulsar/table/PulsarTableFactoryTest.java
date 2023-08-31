@@ -59,11 +59,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
 import static org.apache.flink.connector.pulsar.table.PulsarTableFactory.UPSERT_DISABLED;
-import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.ADMIN_URL;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.KEY_FIELDS;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.KEY_FORMAT;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.SERVICE_URL;
@@ -82,7 +80,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class PulsarTableFactoryTest {
     private static final String TEST_TOPIC = "test-topic";
-    private static final String TEST_ADMIN_URL = "http://my-broker.example.com:8080";
     private static final String TEST_SERVICE_URL = "pulsar://localhost:6650";
     private static final String TEST_SUBSCRIPTION_NAME = "default-subscription";
 
@@ -107,12 +104,10 @@ public class PulsarTableFactoryTest {
                     "%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key());
 
     static {
-        EXPECTED_PULSAR_SOURCE_PROPERTIES.setProperty(PULSAR_ADMIN_URL.key(), TEST_ADMIN_URL);
         EXPECTED_PULSAR_SOURCE_PROPERTIES.setProperty(PULSAR_SERVICE_URL.key(), TEST_SERVICE_URL);
         EXPECTED_PULSAR_SOURCE_PROPERTIES.setProperty(
                 PULSAR_SUBSCRIPTION_NAME.key(), TEST_SUBSCRIPTION_NAME);
 
-        EXPECTED_PULSAR_SINK_PROPERTIES.setProperty(PULSAR_ADMIN_URL.key(), TEST_ADMIN_URL);
         EXPECTED_PULSAR_SINK_PROPERTIES.setProperty(PULSAR_SERVICE_URL.key(), TEST_SERVICE_URL);
     }
 
@@ -371,7 +366,6 @@ public class PulsarTableFactoryTest {
         Map<String, String> tableOptions = new HashMap<>();
         tableOptions.put(CONNECTOR.key(), PulsarTableFactory.IDENTIFIER);
         tableOptions.put(TOPICS.key(), TEST_TOPIC);
-        tableOptions.put(ADMIN_URL.key(), TEST_ADMIN_URL);
         tableOptions.put(SERVICE_URL.key(), TEST_SERVICE_URL);
         tableOptions.put(SOURCE_SUBSCRIPTION_NAME.key(), TEST_SUBSCRIPTION_NAME);
         // Format options.
@@ -385,7 +379,6 @@ public class PulsarTableFactoryTest {
         Map<String, String> tableOptions = new HashMap<>();
         tableOptions.put(CONNECTOR.key(), PulsarTableFactory.IDENTIFIER);
         tableOptions.put(TOPICS.key(), TEST_TOPIC);
-        tableOptions.put(ADMIN_URL.key(), TEST_ADMIN_URL);
         tableOptions.put(SERVICE_URL.key(), TEST_SERVICE_URL);
         tableOptions.put(SOURCE_SUBSCRIPTION_NAME.key(), TEST_SUBSCRIPTION_NAME);
         // Format options.
@@ -404,7 +397,6 @@ public class PulsarTableFactoryTest {
         Map<String, String> tableOptions = new HashMap<>();
         tableOptions.put(CONNECTOR.key(), PulsarTableFactory.IDENTIFIER);
         tableOptions.put(TOPICS.key(), TEST_TOPIC);
-        tableOptions.put(ADMIN_URL.key(), TEST_ADMIN_URL);
         tableOptions.put(SERVICE_URL.key(), TEST_SERVICE_URL);
         // Format options.
         tableOptions.put(FORMAT.key(), TestFormatFactory.IDENTIFIER);
@@ -417,7 +409,6 @@ public class PulsarTableFactoryTest {
         Map<String, String> tableOptions = new HashMap<>();
         tableOptions.put(CONNECTOR.key(), PulsarTableFactory.IDENTIFIER);
         tableOptions.put(TOPICS.key(), TEST_TOPIC);
-        tableOptions.put(ADMIN_URL.key(), TEST_ADMIN_URL);
         tableOptions.put(SERVICE_URL.key(), TEST_SERVICE_URL);
         // Format options.
         tableOptions.put(FORMAT.key(), TestFormatFactory.IDENTIFIER);

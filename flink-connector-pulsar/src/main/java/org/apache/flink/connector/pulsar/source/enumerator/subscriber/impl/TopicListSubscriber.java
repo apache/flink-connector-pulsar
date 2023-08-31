@@ -23,12 +23,12 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
-import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.naming.TopicName;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.isPartition;
 
@@ -54,7 +54,8 @@ public class TopicListSubscriber extends BasePulsarSubscriber {
 
     @Override
     public Set<TopicPartition> getSubscribedTopicPartitions(
-            RangeGenerator generator, int parallelism) throws PulsarAdminException {
+            RangeGenerator generator, int parallelism)
+            throws ExecutionException, InterruptedException {
 
         // Query topics from Pulsar.
         Set<TopicPartition> results = createTopicPartitions(fullTopicNames, generator, parallelism);
