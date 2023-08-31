@@ -481,7 +481,7 @@ public class PulsarRuntimeOperator implements Closeable {
         }
     }
 
-    private <T> Producer<T> createProducer(String topic, Schema<T> schema) throws Exception {
+    public <T> Producer<T> createProducer(String topic, Schema<T> schema) throws Exception {
         return client().newProducer(schema)
                 .topic(topic)
                 .enableBatching(false)
@@ -490,7 +490,7 @@ public class PulsarRuntimeOperator implements Closeable {
                 .create();
     }
 
-    private <T> Consumer<T> createConsumer(String topic, Schema<T> schema) throws Exception {
+    public <T> Consumer<T> createConsumer(String topic, Schema<T> schema) throws Exception {
         // Create the earliest subscription if it's not existed.
         List<String> subscriptions = admin().topics().getSubscriptions(topic);
         if (!subscriptions.contains(SUBSCRIPTION_NAME)) {
