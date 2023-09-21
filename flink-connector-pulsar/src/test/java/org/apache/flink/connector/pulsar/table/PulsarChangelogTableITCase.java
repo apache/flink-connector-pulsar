@@ -80,14 +80,12 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
                                 + " 'connector' = '%s',"
                                 + " 'topics' = '%s',"
                                 + " 'service-url' = '%s',\n"
-                                + " 'admin-url' = '%s',\n"
                                 + " 'value.format' = '%s',"
                                 + " 'pulsar.source.fetchOneMessageTime' = '100'"
                                 + ")",
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         DebeziumJsonFormatFactory.IDENTIFIER);
         String sinkDDL =
                 "CREATE TABLE debezium_sink ("
@@ -216,14 +214,12 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
                                 + " 'connector' = '%s',"
                                 + " 'topics' = '%s',"
                                 + " 'service-url' = '%s',\n"
-                                + " 'admin-url' = '%s',\n"
                                 + " 'value.format' = 'canal-json',"
                                 + " 'pulsar.source.fetchOneMessageTime' = '100'"
                                 + ")",
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         CanalJsonFormatFactory.IDENTIFIER);
         String sinkDDL =
                 "CREATE TABLE canal_sink ("
@@ -356,14 +352,12 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
                                 + " 'connector' = '%s',"
                                 + " 'topics' = '%s',"
                                 + " 'service-url' = '%s',\n"
-                                + " 'admin-url' = '%s',\n"
                                 + " 'value.format' = '%s',"
                                 + " 'pulsar.source.fetchOneMessageTime' = '100'"
                                 + ")",
                         PulsarTableFactory.IDENTIFIER,
                         topic,
                         pulsar.operator().serviceUrl(),
-                        pulsar.operator().adminUrl(),
                         MaxwellJsonFormatFactory.IDENTIFIER);
         String sinkDDL =
                 "CREATE TABLE maxwell_sink ("

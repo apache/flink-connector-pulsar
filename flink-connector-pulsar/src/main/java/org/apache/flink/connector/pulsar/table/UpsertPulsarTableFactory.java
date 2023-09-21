@@ -55,7 +55,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.createKeyFormatProjection;
@@ -71,7 +70,6 @@ import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.get
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.getTopicRouter;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.getValueDecodingFormat;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.getValueEncodingFormat;
-import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.ADMIN_URL;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.EXPLICIT;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.KEY_FIELDS;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptions.KEY_FORMAT;
@@ -120,7 +118,6 @@ public class UpsertPulsarTableFactory
         // PulsarOptions, PulsarSourceOptions and PulsarSinkOptions is not part of the validation.
         helper.validateExcept(
                 PulsarOptions.CLIENT_CONFIG_PREFIX,
-                PulsarOptions.ADMIN_CONFIG_PREFIX,
                 PulsarSourceOptions.SOURCE_CONFIG_PREFIX,
                 PulsarSourceOptions.CONSUMER_CONFIG_PREFIX,
                 PulsarSinkOptions.PRODUCER_CONFIG_PREFIX,
@@ -134,7 +131,6 @@ public class UpsertPulsarTableFactory
 
         // Forward source configs
         final Properties properties = getPulsarProperties(tableOptions);
-        properties.setProperty(PULSAR_ADMIN_URL.key(), tableOptions.get(ADMIN_URL));
         properties.setProperty(PULSAR_SERVICE_URL.key(), tableOptions.get(SERVICE_URL));
         // Set random subscriptionName if not provided
         properties.setProperty(
@@ -196,7 +192,6 @@ public class UpsertPulsarTableFactory
         // PulsarOptions, PulsarSourceOptions and PulsarSinkOptions is not part of the validation.
         helper.validateExcept(
                 PulsarOptions.CLIENT_CONFIG_PREFIX,
-                PulsarOptions.ADMIN_CONFIG_PREFIX,
                 PulsarSourceOptions.SOURCE_CONFIG_PREFIX,
                 PulsarSourceOptions.CONSUMER_CONFIG_PREFIX,
                 PulsarSinkOptions.PRODUCER_CONFIG_PREFIX,
@@ -211,7 +206,6 @@ public class UpsertPulsarTableFactory
 
         // Forward sink configs
         final Properties properties = getPulsarProperties(tableOptions);
-        properties.setProperty(PULSAR_ADMIN_URL.key(), tableOptions.get(ADMIN_URL));
         properties.setProperty(PULSAR_SERVICE_URL.key(), tableOptions.get(SERVICE_URL));
 
         // Retrieve physical DataType (not including computed or metadata fields)
@@ -263,7 +257,7 @@ public class UpsertPulsarTableFactory
 
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
-        return Stream.of(TOPICS, ADMIN_URL, SERVICE_URL).collect(Collectors.toSet());
+        return Stream.of(TOPICS, SERVICE_URL).collect(Collectors.toSet());
     }
 
     @Override
@@ -293,7 +287,6 @@ public class UpsertPulsarTableFactory
     public Set<ConfigOption<?>> forwardOptions() {
         return Stream.of(
                         TOPICS,
-                        ADMIN_URL,
                         SERVICE_URL,
                         SOURCE_SUBSCRIPTION_NAME,
                         SOURCE_START_FROM_MESSAGE_ID,

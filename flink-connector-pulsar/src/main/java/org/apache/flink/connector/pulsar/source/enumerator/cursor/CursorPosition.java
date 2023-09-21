@@ -21,15 +21,18 @@ package org.apache.flink.connector.pulsar.source.enumerator.cursor;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumerator;
-import org.apache.flink.connector.pulsar.source.reader.PulsarPartitionSplitReader;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageIdAdv;
+import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.impl.ChunkMessageIdImpl;
+import org.apache.pulsar.client.impl.MessageIdImpl;
+import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 
 import java.io.Serializable;
-import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -78,51 +81,43 @@ public final class CursorPosition implements Serializable {
 
     /** This method is used to create the initial position in {@link PulsarSourceEnumerator}. */
     @Internal
-    public boolean createInitialPosition(
-            PulsarAdmin pulsarAdmin, String topicName, String subscriptionName)
-            throws PulsarAdminException {
-        List<String> subscriptions = pulsarAdmin.topics().getSubscriptions(topicName);
-
-        if (!subscriptions.contains(subscriptionName)) {
-            pulsarAdmin
-                    .topics()
-                    .createSubscription(topicName, subscriptionName, MessageId.earliest);
-
+    public void setupSubPosition(PulsarClient client, String topicName, String subscriptionName)
+            throws PulsarClientException {
+        try (Consumer<GenericRecord> consumer =
+                client.newConsumer(new AutoConsumeSchema())
+                        .topic(topicName)
+                        .subscriptionName(subscriptionName)
+                        .subscribe()) {
             // Reset cursor to desired position.
-            MessageId initialPosition = getMessageId(pulsarAdmin, topicName);
-            pulsarAdmin
-                    .topics()
-                    .resetCursor(topicName, subscriptionName, initialPosition, !include);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * This method is used to reset the consuming position in {@link PulsarPartitionSplitReader}.
-     */
-    @Internal
-    public void seekPosition(PulsarAdmin pulsarAdmin, String topicName, String subscriptionName)
-            throws PulsarAdminException {
-        if (!createInitialPosition(pulsarAdmin, topicName, subscriptionName)) {
-            // Reset cursor to desired position.
-            MessageId initialPosition = getMessageId(pulsarAdmin, topicName);
-            pulsarAdmin
-                    .topics()
-                    .resetCursor(topicName, subscriptionName, initialPosition, !include);
+            if (type == Type.TIMESTAMP) {
+                consumer.seek(getActualTimestamp(this.timestamp));
+            } else if (messageId instanceof ChunkMessageIdImpl) {
+                MessageIdAdv msgId = ((ChunkMessageIdImpl) messageId).getFirstChunkMessageId();
+                consumer.seek(getActualMessageId(msgId));
+            } else {
+                consumer.seek(getActualMessageId((MessageIdAdv) messageId));
+            }
         }
     }
 
-    private MessageId getMessageId(PulsarAdmin pulsarAdmin, String topicName)
-            throws PulsarAdminException {
-        if (type == Type.TIMESTAMP) {
-            return pulsarAdmin.topics().getMessageIdByTimestamp(topicName, timestamp);
-        } else if (messageId instanceof ChunkMessageIdImpl) {
-            return ((ChunkMessageIdImpl) messageId).getFirstChunkMessageId();
+    private MessageId getActualMessageId(MessageIdAdv messageIdImpl) {
+        if (include) {
+            return messageIdImpl;
         } else {
-            return messageId;
+            // if the (ledgerId, entryId + 1) is not valid
+            // pulsar broker will automatically set the cursor to the next valid message
+            return new MessageIdImpl(
+                    messageIdImpl.getLedgerId(),
+                    messageIdImpl.getEntryId() + 1,
+                    messageIdImpl.getPartitionIndex());
+        }
+    }
+
+    private long getActualTimestamp(long timestamp) {
+        if (include) {
+            return timestamp;
+        } else {
+            return timestamp + 1;
         }
     }
 

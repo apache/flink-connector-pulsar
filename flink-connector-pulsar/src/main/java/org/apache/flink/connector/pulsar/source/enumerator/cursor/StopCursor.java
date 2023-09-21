@@ -26,9 +26,9 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.stop.NeverStop
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.stop.PublishTimestampStopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClient;
 
 import java.io.Serializable;
 
@@ -42,7 +42,7 @@ import java.io.Serializable;
 public interface StopCursor extends Serializable {
 
     /** The open method for the cursor initializer. This method could be executed multiple times. */
-    default void open(PulsarAdmin admin, TopicPartition partition) throws Exception {}
+    default void open(PulsarClient client, TopicPartition partition) throws Exception {}
 
     /** Determine whether to pause consumption on the current message by the returned enum. */
     StopCondition shouldStop(Message<?> message);

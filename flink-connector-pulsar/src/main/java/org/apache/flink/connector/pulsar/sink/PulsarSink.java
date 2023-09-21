@@ -52,7 +52,6 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
  *      .setServiceUrl(operator().serviceUrl())
- *      .setAdminUrl(operator().adminUrl())
  *      .setTopic(topic)
  *      .setSerializationSchema(Schema.STRING)
  *      .build();

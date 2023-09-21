@@ -24,8 +24,8 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.reader.PulsarSourceReader;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
 
 import javax.annotation.Nullable;
@@ -94,8 +94,8 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable {
     }
 
     /** Open stop cursor. */
-    public void open(PulsarAdmin admin) throws Exception {
-        stopCursor.open(admin, partition);
+    public void open(PulsarClient client) throws Exception {
+        stopCursor.open(client, partition);
     }
 
     @Override

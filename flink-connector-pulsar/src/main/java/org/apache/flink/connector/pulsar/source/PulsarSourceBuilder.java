@@ -59,7 +59,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
-import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
@@ -86,15 +85,14 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PulsarSource<String> source = PulsarSource
  *     .builder()
  *     .setServiceUrl(PULSAR_BROKER_URL)
- *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
  *     .setDeserializationSchema(new SimpleStringSchema())
  *     .build();
  * }</pre>
  *
- * <p>The service url, admin url, subscription name, topics to consume, and the record deserializer
- * are required fields that must be set.
+ * <p>The service url, subscription name, topics to consume, and the record deserializer are
+ * required fields that must be set.
  *
  * <p>To specify the starting position of PulsarSource, one can call {@link
  * #setStartCursor(StartCursor)}.
@@ -115,7 +113,6 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PulsarSource<String> source = PulsarSource
  *     .builder()
  *     .setServiceUrl(PULSAR_BROKER_URL)
- *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
  *     .setDeserializationSchema(new SimpleStringSchema())
@@ -152,9 +149,11 @@ public final class PulsarSourceBuilder<OUT> {
      *
      * @param adminUrl the url for the PulsarAdmin.
      * @return this PulsarSourceBuilder.
+     * @deprecated this method will return builder directly
      */
+    @Deprecated
     public PulsarSourceBuilder<OUT> setAdminUrl(String adminUrl) {
-        return setConfig(PULSAR_ADMIN_URL, adminUrl);
+        return this;
     }
 
     /**
