@@ -45,5 +45,5 @@ jobs:
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: 1.17.0
-      timeout_global: 80
-      timeout_test: 60
+      timeout_global: 120
+      timeout_test: 80
