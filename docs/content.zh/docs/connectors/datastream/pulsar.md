@@ -28,7 +28,7 @@ Flink 当前提供 [Apache Pulsar](https://pulsar.apache.org) Source 和 Sink �
 
 ## 添加依赖
 
-当前支持 Pulsar 2.10.0 及其之后的版本，建议总是将 Pulsar 升级至最新版。如果想要了解更多对于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
+当前支持 Pulsar 3.0.0 及其之后的版本，建议总是将 Pulsar 升级至最新版。如果想要了解更多对于 Pulsar API 兼容性设计，可以阅读文档 [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification)。
 
 {{< connector_artifact flink-connector-pulsar pulsar >}}
 
@@ -52,7 +52,6 @@ Pulsar Source 提供了 builder 类来构造 `PulsarSource` 实例。下面的�
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())

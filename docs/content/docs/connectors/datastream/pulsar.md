@@ -28,7 +28,7 @@ Flink provides an [Apache Pulsar](https://pulsar.apache.org) connector for readi
 
 ## Dependency
 
-You can use the connector with the Pulsar 2.10.0 or higher. It is recommended to always use the latest Pulsar version.
+You can use the connector with the Pulsar 3.0.0 or higher. It is recommended to always use the latest Pulsar version.
 The details on Pulsar compatibility can be found in [PIP-72](https://github.com/apache/pulsar/wiki/PIP-72%3A-Introduce-Pulsar-Interface-Taxonomy%3A-Audience-and-Stability-Classification).
 
 {{< connector_artifact flink-connector-pulsar pulsar >}}
@@ -57,7 +57,6 @@ and deserializes the raw payload of the messages as strings.
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())
