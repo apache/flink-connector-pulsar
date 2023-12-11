@@ -16,7 +16,7 @@
 # limitations under the License.
 ################################################################################
 
-version: 4.1.0
+version: 4.1-SNAPSHOT
 flink_compatibility: [1.16, 1.17]
 variants:
   - maven: flink-connector-pulsar
