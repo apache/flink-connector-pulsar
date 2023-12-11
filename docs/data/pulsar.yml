@@ -16,7 +16,8 @@
 # limitations under the License.
 ################################################################################
 
-version: 4.0.0-SNAPSHOT
+version: 4.1.0
+flink_compatibility: [1.16, 1.17]
 variants:
   - maven: flink-connector-pulsar
     sql_url: https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-pulsar/$full_version/flink-sql-connector-pulsar-$full_version.jar
