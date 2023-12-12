@@ -202,14 +202,15 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
             return 1;
         }
 
-        @Override
+        // TODO remove the commented out `@Override` when we move to 1.17.
+        // @Override
         public int getAttemptNumber() {
             return 0;
         }
 
         // The following three methods are for compatibility with
         // https://github.com/apache/flink/commit/4f5b2fb5736f5a1c098a7dc1d448a879f36f801b
-        // . Removed the commented out `@Override` when we move to 1.18.
+        // TODO remove the commented out `@Override` when we move to 1.18.
 
         // @Override
         public boolean isObjectReuseEnabled() {

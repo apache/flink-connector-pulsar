@@ -236,7 +236,8 @@ public class PulsarPartitionSplitReader
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
     }
 
-    @Override
+    // TODO remove the commented out `@Override` when we move to 1.17.
+    // @Override
     public void pauseOrResumeSplits(
             Collection<PulsarPartitionSplit> splitsToPause,
             Collection<PulsarPartitionSplit> splitsToResume) {

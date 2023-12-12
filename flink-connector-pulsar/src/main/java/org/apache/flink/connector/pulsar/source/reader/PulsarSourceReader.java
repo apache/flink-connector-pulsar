@@ -162,10 +162,11 @@ public class PulsarSourceReader<OUT>
         return splitState.toPulsarPartitionSplit();
     }
 
-    @Override
+    // TODO remove the commented out `@Override` when we move to 1.17.
+    // @Override
     public void pauseOrResumeSplits(
             Collection<String> splitsToPause, Collection<String> splitsToResume) {
-        splitFetcherManager.pauseOrResumeSplits(splitsToPause, splitsToResume);
+//         splitFetcherManager.pauseOrResumeSplits(splitsToPause, splitsToResume);
     }
 
     @Override
