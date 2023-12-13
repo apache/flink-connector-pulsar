@@ -1,10 +1,10 @@
 #
-#Thu Dec 15 11:39:06 CET 2022
-Return\ and\ argument\ types\ of\ methods\ annotated\ with\ @Public\ must\ be\ annotated\ with\ @Public.=2a4fcdd8-60e4-4082-b57b-556a8f752e25
-Connector\ production\ code\ must\ not\ depend\ on\ non-public\ API\ outside\ of\ connector\ packages=3d200b76-6b88-4f90-b43e-9b162ed73d16
-ITCASE\ tests\ should\ use\ a\ MiniCluster\ resource\ or\ extension=f4d91193-72ba-4ce4-ad83-98f780dce581
-Production\ code\ must\ not\ call\ methods\ annotated\ with\ @VisibleForTesting=aa1707ac-09b7-4467-973b-7223857d3409
-Tests\ inheriting\ from\ AbstractTestBase\ should\ have\ name\ ending\ with\ ITCase=3ac3a1dc-681f-4213-9990-b7b3298a20bc
-Options\ for\ connectors\ and\ formats\ should\ reside\ in\ a\ consistent\ package\ and\ be\ public\ API.=7e457e8d-a085-43cc-868c-fba88916032a
-Return\ and\ argument\ types\ of\ methods\ annotated\ with\ @PublicEvolving\ must\ be\ annotated\ with\ @Public(Evolving).=a1d4eff3-5439-411c-9c89-a80f3ff0241d
-Classes\ in\ API\ packages\ should\ have\ at\ least\ one\ API\ visibility\ annotation.=6a91e845-4388-460c-a448-42f7c0045e63
+#Tue Dec 12 23:53:57 CST 2023
+Production\ code\ must\ not\ call\ methods\ annotated\ with\ @VisibleForTesting=660539fb-3e21-4ab9-a9c0-2a16a5d6472f
+Options\ for\ connectors\ and\ formats\ should\ reside\ in\ a\ consistent\ package\ and\ be\ public\ API.=89e608b0-1438-434c-a08e-80e6a4de4646
+Tests\ inheriting\ from\ AbstractTestBase\ should\ have\ name\ ending\ with\ ITCase=b4233890-ecb8-4921-b0de-45b2f0092a1d
+Connector\ production\ code\ must\ depend\ only\ on\ public\ API\ when\ outside\ of\ connector\ packages=284bb951-3f59-4332-b61b-6f65b674f2ac
+Classes\ in\ API\ packages\ should\ have\ at\ least\ one\ API\ visibility\ annotation.=5afc9aa4-9738-4cde-9966-1ca0c364183f
+Return\ and\ argument\ types\ of\ methods\ annotated\ with\ @PublicEvolving\ must\ be\ annotated\ with\ @Public(Evolving).=eec485f7-b61c-4644-bfa8-460b161d0a4a
+ITCASE\ tests\ should\ use\ a\ MiniCluster\ resource\ or\ extension=c10e9875-cfe1-4167-b920-9d84d8d91f18
+Return\ and\ argument\ types\ of\ methods\ annotated\ with\ @Public\ must\ be\ annotated\ with\ @Public.=185733ff-3e1c-48d3-a0c1-7652b72151f2
