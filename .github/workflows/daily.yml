@@ -44,10 +44,10 @@ jobs:
         }]
         include:
           - jdk: 17
-            flink_branches: [ {
+            flink_branches: {
               flink: 1.18-SNAPSHOT,
               branch: main
-            }]
+            }
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       jdk_version: ${{ matrix.jdk }}
