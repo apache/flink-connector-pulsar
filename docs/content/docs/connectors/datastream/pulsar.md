@@ -565,16 +565,6 @@ which is required for creating a `PulsarClient`, as Flink configuration options 
 
 {{< generated/pulsar_client_configuration >}}
 
-#### PulsarAdmin Options
-
-The [admin API](https://pulsar.apache.org/docs/2.11.x/admin-api-overview/) is used for querying topic metadata
-and for discovering the desired topics when the Pulsar connector uses topic-pattern subscription.
-It shares most part of the configuration options with the client API.
-The configuration options listed here are only used in the admin API.
-They are also defined in `PulsarOptions`.
-
-{{< generated/pulsar_admin_configuration >}}
-
 #### Pulsar Consumer Options
 
 In general, Pulsar provides the Reader API and Consumer API for consuming messages in different scenarios.
