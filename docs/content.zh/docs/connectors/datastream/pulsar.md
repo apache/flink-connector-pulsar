@@ -484,12 +484,6 @@ Pulsar Source 使用 [Java 客户端](https://pulsar.apache.org/docs/2.11.x/clie
 
 {{< generated/pulsar_client_configuration >}}
 
-#### Pulsar 管理 API 配置项
-
-[管理 API](https://pulsar.apache.org/docs/2.11.x/admin-api-overview/) 用于查询 Topic 的元数据和用正则订阅的时候的 Topic 查找，它与 Java 客户端共享大部分配置。下面列举的配置只供管理 API 使用，`PulsarOptions` 包含了这些配置 。
-
-{{< generated/pulsar_admin_configuration >}}
-
 #### Pulsar 消费者 API 配置项
 
 Pulsar 提供了消费者 API 和读者 API 两套 API 来进行数据消费，它们可用于不同的业务场景。Flink 上的 Pulsar Source 使用消费者 API 进行消费，它的配置定义于 Pulsar 的 `ConsumerConfigurationData` 内。Pulsar Source 将其中大部分的可供用户定义的配置定义于 `PulsarSourceOptions` 内。
