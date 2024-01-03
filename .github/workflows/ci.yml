@@ -55,3 +55,13 @@ jobs:
       jdk_version: ${{ matrix.jdk }}
       timeout_global: 120
       timeout_test: 80
+  check_dead_links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo npm install -g markdown-link-check@3.10.0
+      - run: |
+          for file in $(find . -name "*.md"); do
+            markdown-link-check -c .dlc.json -q "$file"
+          done
