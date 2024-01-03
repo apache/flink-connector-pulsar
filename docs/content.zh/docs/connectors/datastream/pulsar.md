@@ -823,13 +823,6 @@ public interface TopicRouter<IN> extends Serializable {
 
 可以在 builder 类里通过 `setConfig(ConfigOption<T>, T)` 和 `setConfig(Configuration)` 方法给定下述的全部配置。
 
-#### PulsarClient 和 PulsarAdmin 配置项
-
-Pulsar Sink 和 Pulsar Source 公用的配置选项可参考
-
-- [Pulsar Java 客户端配置项](#pulsar-java-客户端配置项)
-- [Pulsar 管理 API 配置项](#pulsar-管理-api-配置项)
-
 #### Pulsar 生产者 API 配置项
 
 Pulsar Sink 使用生产者 API 来发送消息。Pulsar 的 `ProducerConfigurationData` 中大部分的配置项被映射为 `PulsarSinkOptions` 里的选项。

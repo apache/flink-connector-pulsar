@@ -975,10 +975,6 @@ The dispatch time should be calculated by the `PulsarSinkContext.processTime()`.
 You can set options for `PulsarClient`, `PulsarAdmin`, Pulsar `Producer` and `PulsarSink`
 by using `setConfig(ConfigOption<T>, T)`, `setConfig(Configuration)` and `setConfig(Properties)`.
 
-#### PulsarClient and PulsarAdmin Options
-
-For details, refer to [PulsarAdmin options](#pulsaradmin-options).
-
 #### Pulsar Producer Options
 
 The Pulsar connector uses the Producer API to send messages. It extracts most parts of
