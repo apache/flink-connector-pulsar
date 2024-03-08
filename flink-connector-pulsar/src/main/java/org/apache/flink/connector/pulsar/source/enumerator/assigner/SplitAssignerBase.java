@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Common abstraction for split assigner. */
 abstract class SplitAssignerBase implements SplitAssigner {
@@ -44,6 +45,7 @@ abstract class SplitAssignerBase implements SplitAssigner {
     protected final Map<Integer, Set<PulsarPartitionSplit>> pendingPartitionSplits;
 
     protected boolean initialized;
+    private static final AtomicInteger idCounter = new AtomicInteger(0);
 
     protected SplitAssignerBase(
             StopCursor stopCursor,
@@ -125,11 +127,12 @@ abstract class SplitAssignerBase implements SplitAssigner {
 
     @VisibleForTesting
     static int calculatePartitionOwner(String topic, int partitionId, int parallelism) {
-        int startIndex = ((topic.hashCode() * 31) & 0x7FFFFFFF) % parallelism;
+        // int startIndex = ((topic.hashCode() * 31) & 0x7FFFFFFF) % parallelism;
         /*
          * Here, the assumption is that the id of Pulsar partitions are always ascending starting from
          * 0. Therefore, can be used directly as the offset clockwise from the start index.
          */
-        return (startIndex + partitionId) % parallelism;
+        // return (startIndex + partitionId) % parallelism;
+        return idCounter.getAndIncrement() % parallelism;
     }
 }
