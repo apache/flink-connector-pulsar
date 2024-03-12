@@ -36,6 +36,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
@@ -150,6 +152,38 @@ class SplitAssignerImplTest {
         readers = Collections.singletonList(5);
         assignment = assigner.createAssignment(readers);
         assertThat(assignment).isNotPresent();
+    }
+
+    @Test
+    void registerTopicPartitionsWithNonPartitionedTopic() {
+        int maxParallelism = 10;
+        String[] topics = {
+            "persistent://public/default/nonPartitionedTopic1",
+            "persistent://public/default/nonPartitionedTopic2",
+            "persistent://public/default/nonPartitionedTopic3"
+        };
+
+        for (int parallelism = 1; parallelism <= maxParallelism; parallelism++) {
+            List<Integer> readers =
+                    IntStream.range(0, parallelism).boxed().collect(Collectors.toList());
+            for (String topic : topics) {
+                SplitAssigner assigner = splitAssigner(true, parallelism);
+                TopicPartition nonPartitionedTopicPartition = new TopicPartition(topic);
+
+                Set<TopicPartition> partitions = singleton(nonPartitionedTopicPartition);
+                List<TopicPartition> newPartitions = assigner.registerTopicPartitions(partitions);
+                assertThat(newPartitions)
+                        .hasSize(1)
+                        .first()
+                        .hasFieldOrPropertyWithValue("topic", topic)
+                        .hasFieldOrPropertyWithValue("partitionId", -1);
+
+                Optional<SplitsAssignment<PulsarPartitionSplit>> assignment =
+                        assigner.createAssignment(readers);
+                assertThat(assignment).isPresent();
+                assertThat(assignment.get().assignment()).hasSize(1);
+            }
+        }
     }
 
     @AfterAll

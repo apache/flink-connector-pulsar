@@ -159,13 +159,17 @@ class SplitAssignerImpl implements SplitAssigner {
                 partition.getTopic(), partition.getPartitionId(), context.currentParallelism());
     }
 
+    /**
+     * Calculate the partition owner by the topic name, partition id, and parallelism.
+     *
+     * @param topic The topic name.
+     * @param partitionId The partition id.
+     * @param parallelism The parallelism.
+     * @return The id of the reader that owns this partition.
+     */
     @VisibleForTesting
     static int calculatePartitionOwner(String topic, int partitionId, int parallelism) {
         int startIndex = ((topic.hashCode() * 31) & 0x7FFFFFFF) % parallelism;
-        /*
-         * Here, the assumption is that the id of Pulsar partitions are always ascending starting from
-         * 0. Therefore, can be used directly as the offset clockwise from the start index.
-         */
-        return (startIndex + partitionId) % parallelism;
+        return Math.floorMod(startIndex + partitionId, parallelism);
     }
 }
