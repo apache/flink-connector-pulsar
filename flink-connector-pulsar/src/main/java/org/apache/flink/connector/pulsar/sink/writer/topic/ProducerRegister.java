@@ -220,11 +220,7 @@ public class ProducerRegister implements Closeable {
         try {
             // Use this method for auto creating the non-exist topics. Otherwise, it will throw an
             // exception.
-            TopicName topicName = TopicName.get(topic);
-            ((PulsarClientImpl) pulsarClient)
-                    .getLookup()
-                    .getPartitionedTopicMetadata(topicName)
-                    .get();
+            pulsarClient.getPartitionsForTopic(topic).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new FlinkRuntimeException(FAIL_TO_CREATE_TOPIC, e);
