@@ -51,9 +51,9 @@ under the License.
     </modules>
 
     <properties>
-        <flink.version>1.18.0</flink.version>
-        <flink-ci-tools.version>1.18.0</flink-ci-tools.version>
-        <pulsar.version>3.0.0</pulsar.version>
+        <flink.version>1.18.1</flink.version>
+        <flink-ci-tools.version>1.18.1</flink-ci-tools.version>
+        <pulsar.version>3.0.4</pulsar.version>
         <scala.binary.version>2.12</scala.binary.version>
         <bouncycastle.version>1.69</bouncycastle.version>
 
