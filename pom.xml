@@ -55,7 +55,7 @@ under the License.
         <flink-ci-tools.version>1.18.0</flink-ci-tools.version>
         <pulsar.version>3.0.2</pulsar.version>
         <scala.binary.version>2.12</scala.binary.version>
-        <bouncycastle.version>1.69</bouncycastle.version>
+        <bouncycastle.version>1.78</bouncycastle.version>
 
         <scala-reflect.version>2.12.7</scala-reflect.version>
         <scala-library.version>2.12.7</scala-library.version>
@@ -408,13 +408,13 @@ under the License.
             <!-- For dependency convergence -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-ext-jdk15on</artifactId>
+                <artifactId>bcprov-ext-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
                 <scope>compile</scope>
             </dependency>
