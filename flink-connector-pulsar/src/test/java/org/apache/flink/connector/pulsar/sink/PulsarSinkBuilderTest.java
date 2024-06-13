@@ -103,7 +103,7 @@ class PulsarSinkBuilderTest {
         builder.setTopics("a", "b");
         assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
 
-        builder.setServiceUrl("pulsar://127.0.0.1:8888");
+        builder.setServiceUrl("pulsar+ssl://127.0.0.1:8888");
         assertThatCode(builder::build).doesNotThrowAnyException();
     }
 }

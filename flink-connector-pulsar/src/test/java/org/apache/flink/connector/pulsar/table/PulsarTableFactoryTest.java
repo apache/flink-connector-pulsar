@@ -80,7 +80,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class PulsarTableFactoryTest {
     private static final String TEST_TOPIC = "test-topic";
-    private static final String TEST_SERVICE_URL = "pulsar://localhost:6650";
+    private static final String TEST_SERVICE_URL = "pulsar+ssl://localhost:6650";
     private static final String TEST_SUBSCRIPTION_NAME = "default-subscription";
 
     private static final String NAME = "name";
