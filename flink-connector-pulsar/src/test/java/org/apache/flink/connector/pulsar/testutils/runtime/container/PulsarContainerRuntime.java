@@ -49,7 +49,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     private static final String PULSAR_INTERNAL_HOSTNAME = "pulsar";
     // This url is used on the container side.
     private static final String PULSAR_SERVICE_URL =
-            String.format("pulsar://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_PORT);
+            String.format("pulsar+ssl://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_PORT);
     // This url is used on the container side.
     private static final String PULSAR_ADMIN_URL =
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);

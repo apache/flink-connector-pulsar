@@ -18,12 +18,8 @@
 
 package org.apache.flink.connector.pulsar.sink.writer;
 
-import org.apache.flink.api.common.JobID;
-import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
-import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.connector.sink2.Sink.InitContext;
+import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
@@ -40,15 +36,11 @@ import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSerializat
 import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
-import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.metrics.groups.OperatorIOMetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
-import org.apache.flink.metrics.testutils.MetricListener;
-import org.apache.flink.runtime.mailbox.SyncMailboxExecutor;
+import org.apache.flink.runtime.metrics.groups.InternalOperatorMetricGroup;
 import org.apache.flink.runtime.metrics.groups.InternalSinkWriterMetricGroup;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
-import org.apache.flink.util.UserCodeClassLoader;
 
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.junit.jupiter.api.Test;
@@ -57,7 +49,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.OptionalLong;
 
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
@@ -65,6 +56,8 @@ import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link PulsarWriter}. */
 class PulsarWriterTest extends PulsarTestSuiteBase {
@@ -95,10 +88,15 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         TopicRouter<String> router = new DynamicTopicRouter<>(configuration, topic);
         PulsarSerializationSchema<String> schema = new PulsarSchemaWrapper<>(STRING);
         FixedMessageDelayer<String> delayer = MessageDelayer.never();
-        MockInitContext initContext = new MockInitContext();
-
+        Sink.InitContext initContext = mock(Sink.InitContext.class);
+        ProcessingTimeService timeService = new TestProcessingTimeService();
+        InternalOperatorMetricGroup ioMetricGroup =
+                UnregisteredMetricGroups.createUnregisteredOperatorMetricGroup();
+        SinkWriterMetricGroup metricGroup = InternalSinkWriterMetricGroup.wrap(ioMetricGroup);
+        when(initContext.metricGroup()).thenReturn(metricGroup);
+        when(initContext.getProcessingTimeService()).thenReturn(timeService);
         PulsarWriter<String> writer =
-                new PulsarWriter<>(
+                new PulsarWriter<String>(
                         configuration,
                         schema,
                         listener,
@@ -157,99 +155,6 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
             } else {
                 return robinTopicRouter.route(in, key, partitions, context);
             }
-        }
-    }
-
-    private static class MockInitContext implements InitContext {
-
-        private final MetricListener metricListener;
-        private final OperatorIOMetricGroup ioMetricGroup;
-        private final SinkWriterMetricGroup metricGroup;
-        private final ProcessingTimeService timeService;
-
-        private MockInitContext() {
-            this.metricListener = new MetricListener();
-            this.ioMetricGroup =
-                    UnregisteredMetricGroups.createUnregisteredOperatorMetricGroup()
-                            .getIOMetricGroup();
-            MetricGroup metricGroup = metricListener.getMetricGroup();
-            this.metricGroup = InternalSinkWriterMetricGroup.mock(metricGroup, ioMetricGroup);
-            this.timeService = new TestProcessingTimeService();
-        }
-
-        @Override
-        public UserCodeClassLoader getUserCodeClassLoader() {
-            throw new UnsupportedOperationException("Not implemented.");
-        }
-
-        @Override
-        public MailboxExecutor getMailboxExecutor() {
-            return new SyncMailboxExecutor();
-        }
-
-        @Override
-        public ProcessingTimeService getProcessingTimeService() {
-            return timeService;
-        }
-
-        @Override
-        public int getSubtaskId() {
-            return 0;
-        }
-
-        @Override
-        public int getNumberOfParallelSubtasks() {
-            return 1;
-        }
-
-        @Override
-        public int getAttemptNumber() {
-            return 0;
-        }
-
-        // The following three methods are for compatibility with
-        // https://github.com/apache/flink/commit/4f5b2fb5736f5a1c098a7dc1d448a879f36f801b
-        // . Removed the commented out `@Override` when we move to 1.18.
-
-        // @Override
-        public boolean isObjectReuseEnabled() {
-            return false;
-        }
-
-        // @Override
-        public <IN> TypeSerializer<IN> createInputSerializer() {
-            return null;
-        }
-
-        // @Override
-        public JobID getJobId() {
-            return null;
-        }
-
-        @Override
-        public SinkWriterMetricGroup metricGroup() {
-            return metricGroup;
-        }
-
-        @Override
-        public OptionalLong getRestoredCheckpointId() {
-            return OptionalLong.empty();
-        }
-
-        @Override
-        public SerializationSchema.InitializationContext
-                asSerializationSchemaInitializationContext() {
-            return new SerializationSchema.InitializationContext() {
-                @Override
-                public MetricGroup getMetricGroup() {
-                    return metricGroup;
-                }
-
-                @Override
-                public UserCodeClassLoader getUserCodeClassLoader() {
-                    return null;
-                }
-            };
         }
     }
 

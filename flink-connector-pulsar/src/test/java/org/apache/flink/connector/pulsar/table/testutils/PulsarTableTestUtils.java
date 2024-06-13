@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,14 +92,25 @@ public class PulsarTableTestUtils {
         }
     }
 
+    private static String rowToString(Object o) {
+        if (o instanceof Row) {
+            return ((Row) o).toString();
+        } else {
+            return o.toString();
+        }
+    }
+
     public static void waitingExpectedResults(
             String sinkName, List<String> expected, Duration timeout)
             throws InterruptedException, TimeoutException {
         Collections.sort(expected);
         CommonTestUtils.waitUtil(
                 () -> {
-                    List<String> actual = TestValuesTableFactory.getResults(sinkName);
-                    Collections.sort(actual);
+                    List<String> actual =
+                            TestValuesTableFactory.getResults(sinkName).stream()
+                                    .map(PulsarTableTestUtils::rowToString)
+                                    .sorted()
+                                    .collect(Collectors.toList());
                     return expected.equals(actual);
                 },
                 timeout,

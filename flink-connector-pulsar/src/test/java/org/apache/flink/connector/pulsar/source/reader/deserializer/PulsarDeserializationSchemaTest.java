@@ -18,6 +18,7 @@
 
 package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -102,8 +103,9 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
 
     @Test
     void createFromFlinkTypeInformation() throws Exception {
+        ExecutionConfig config = new ExecutionConfig();
         PulsarDeserializationSchema<String> schema =
-                new PulsarTypeInformationWrapper<>(Types.STRING, null);
+                new PulsarTypeInformationWrapper<>(Types.STRING, config);
         schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
         assertThatCode(() -> InstantiationUtil.clone(schema)).doesNotThrowAnyException();
 
