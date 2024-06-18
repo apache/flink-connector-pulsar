@@ -65,7 +65,7 @@ under the License.
         <assertj.version>3.23.1</assertj.version>
         <mockito.version>4.11.0</mockito.version>
         <archunit.version>1.0.1</archunit.version>
-        <testcontainers.version>1.17.6</testcontainers.version>
+        <testcontainers.version>1.19.6</testcontainers.version>
 
         <japicmp.skip>false</japicmp.skip>
         <japicmp.referenceVersion>3.0.0-1.16</japicmp.referenceVersion>
