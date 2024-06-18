@@ -54,7 +54,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     private static final String PULSAR_ADMIN_URL =
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);
 
-    private static final String CURRENT_VERSION = "3.0.0";
+    private static final String CURRENT_VERSION = "3.0.5";
 
     private final PulsarContainer container;
     private final AtomicBoolean started;
@@ -136,9 +136,16 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     @Override
     public void tearDown() throws Exception {
         if (operator != null) {
-            operator.close();
+            try {
+                operator.close();
+            } catch (Exception e) {
+                LOG.warn("Failed to close the pulsar operator.", e);
+            } finally {
+                operator = null;
+            }
         }
         container.stop();
+        boundFlink = false;
         started.compareAndSet(true, false);
     }
 
