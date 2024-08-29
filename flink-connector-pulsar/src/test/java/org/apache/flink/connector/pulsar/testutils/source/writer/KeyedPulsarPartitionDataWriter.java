@@ -55,10 +55,10 @@ public class KeyedPulsarPartitionDataWriter implements ExternalSystemSplitDataWr
         try {
             // Send messages with the key we don't need.
             List<String> newRecords = records.stream().map(a -> a + keyToRead).collect(toList());
-            operator.sendMessages(fullTopicName, Schema.STRING, keyToExclude, newRecords);
+            operator.sendMessages(fullTopicName, Schema.STRING, keyToExclude, newRecords, false);
 
             // Send messages with the given key.
-            operator.sendMessages(fullTopicName, Schema.STRING, keyToRead, records);
+            operator.sendMessages(fullTopicName, Schema.STRING, keyToRead, records, false);
         } catch (Exception e) {
             throw new FlinkRuntimeException(e);
         }

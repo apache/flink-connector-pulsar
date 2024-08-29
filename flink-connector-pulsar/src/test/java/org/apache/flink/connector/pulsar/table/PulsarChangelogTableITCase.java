@@ -447,6 +447,6 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
     }
 
     private void writeRecordsToPulsar(String topic, List<String> lines) throws Exception {
-        pulsar.operator().sendMessages(topic, Schema.STRING, lines);
+        pulsar.operator().sendMessages(topic, Schema.STRING, lines, false);
     }
 }

@@ -32,11 +32,13 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -244,7 +246,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
-        operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10), 20, false);
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
                         operator()
@@ -261,6 +263,36 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
                         lastMessageId.getEntryId() - 1,
                         lastMessageId.getPartitionIndex()));
         fetchedMessages(splitReader, 1, true);
+    }
+
+    @Test
+    void consumeBatchMessageFromRecover() throws Exception {
+        PulsarPartitionSplitReader splitReader = splitReader();
+        String topicName = randomAlphabetic(10);
+
+        int numRecords = 20;
+        operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10), numRecords, true);
+        MessageIdImpl lastMessageId =
+                (MessageIdImpl)
+                        operator()
+                                .admin()
+                                .topics()
+                                .getLastMessageId(topicNameWithPartition(topicName, 0));
+        // Pretend that we consumed the 2th message of the last batch Entry
+        int lastConsumedBatchIndex = 2;
+        BitSet ackSet = new BitSet(numRecords);
+        ackSet.set(0, numRecords);
+        BatchMessageIdImpl batchMessageId =
+                new BatchMessageIdImpl(lastMessageId.getLedgerId(), lastMessageId.getEntryId(),
+                        lastMessageId.getPartitionIndex(), lastConsumedBatchIndex, numRecords, ackSet);
+        int expectedCount = numRecords - lastConsumedBatchIndex - 1;
+        // when recover, use exclusive startCursor
+        handleSplit(
+                splitReader,
+                topicName,
+                0,
+                batchMessageId);
+        fetchedMessages(splitReader, expectedCount, true);
     }
 
     /** Create a split reader with max message 1, fetch timeout 1s. */
