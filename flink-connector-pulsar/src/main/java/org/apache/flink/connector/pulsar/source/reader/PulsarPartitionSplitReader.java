@@ -198,8 +198,10 @@ public class PulsarPartitionSplitReader
 
         if (latestConsumedId != null) {
             if (latestConsumedId instanceof BatchMessageIdImpl) {
-                LOG.info("Reset subscription position by the checkpoint {}, batchSize {}",
-                        latestConsumedId, ((BatchMessageIdImpl) latestConsumedId).getBatchSize());
+                LOG.info(
+                        "Reset subscription position by the checkpoint {}, batchSize {}",
+                        latestConsumedId,
+                        ((BatchMessageIdImpl) latestConsumedId).getBatchSize());
             } else {
                 LOG.info("Reset subscription position by the checkpoint {}", latestConsumedId);
             }

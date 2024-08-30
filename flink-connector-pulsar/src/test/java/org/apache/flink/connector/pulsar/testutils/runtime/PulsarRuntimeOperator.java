@@ -161,7 +161,11 @@ public class PulsarRuntimeOperator implements Closeable {
      * @param numRecordsPerSplit The number of records for a partition.
      */
     public <T> void setupTopic(
-            String topic, Schema<T> schema, Supplier<T> supplier, int numRecordsPerSplit, boolean enableBatch)
+            String topic,
+            Schema<T> schema,
+            Supplier<T> supplier,
+            int numRecordsPerSplit,
+            boolean enableBatch)
             throws Exception {
         String topicName = topicName(topic);
         createTopic(topicName, DEFAULT_PARTITIONS);
@@ -270,7 +274,8 @@ public class PulsarRuntimeOperator implements Closeable {
      */
     public <T> MessageId sendMessage(String topic, Schema<T> schema, String key, T message)
             throws Exception {
-        List<MessageId> messageIds = sendMessages(topic, schema, key, singletonList(message), false);
+        List<MessageId> messageIds =
+                sendMessages(topic, schema, key, singletonList(message), false);
         checkArgument(messageIds.size() == 1);
 
         return messageIds.get(0);
@@ -285,7 +290,8 @@ public class PulsarRuntimeOperator implements Closeable {
      * @param <T> The type of the record.
      * @return message id.
      */
-    public <T> List<MessageId> sendMessages(String topic, Schema<T> schema, Collection<T> messages, boolean enableBatch)
+    public <T> List<MessageId> sendMessages(
+            String topic, Schema<T> schema, Collection<T> messages, boolean enableBatch)
             throws Exception {
         return sendMessages(topic, schema, null, messages, enableBatch);
     }
@@ -301,7 +307,8 @@ public class PulsarRuntimeOperator implements Closeable {
      * @return message id.
      */
     public <T> List<MessageId> sendMessages(
-            String topic, Schema<T> schema, String key, Collection<T> messages, boolean enableBatch) throws Exception {
+            String topic, Schema<T> schema, String key, Collection<T> messages, boolean enableBatch)
+            throws Exception {
         try (Producer<T> producer = createProducer(topic, schema, enableBatch)) {
             List<MessageId> messageIds = new ArrayList<>(messages.size());
             for (T message : messages) {
@@ -310,9 +317,10 @@ public class PulsarRuntimeOperator implements Closeable {
                     builder.key(key);
                 }
                 final CompletableFuture<MessageId> messageIdCompletableFuture = builder.sendAsync();
-                messageIdCompletableFuture.whenComplete((messageId, ignore) -> {
-                    messageIds.add(messageId);
-                });
+                messageIdCompletableFuture.whenComplete(
+                        (messageId, ignore) -> {
+                            messageIds.add(messageId);
+                        });
             }
             producer.flush();
             return messageIds;
@@ -483,13 +491,15 @@ public class PulsarRuntimeOperator implements Closeable {
         }
     }
 
-    public <T> Producer<T> createProducer(String topic, Schema<T> schema, boolean enableBatch) throws Exception {
+    public <T> Producer<T> createProducer(String topic, Schema<T> schema, boolean enableBatch)
+            throws Exception {
         return client().newProducer(schema)
                 .topic(topic)
                 .enableBatching(enableBatch)
                 .enableMultiSchema(true)
                 .accessMode(Shared)
-                .batchingMaxPublishDelay(10, TimeUnit.SECONDS) // Give enough time to assemble the batch
+                .batchingMaxPublishDelay(
+                        10, TimeUnit.SECONDS) // Give enough time to assemble the batch
                 .create();
     }
 

@@ -283,15 +283,16 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         BitSet ackSet = new BitSet(numRecords);
         ackSet.set(0, numRecords);
         BatchMessageIdImpl batchMessageId =
-                new BatchMessageIdImpl(lastMessageId.getLedgerId(), lastMessageId.getEntryId(),
-                        lastMessageId.getPartitionIndex(), lastConsumedBatchIndex, numRecords, ackSet);
+                new BatchMessageIdImpl(
+                        lastMessageId.getLedgerId(),
+                        lastMessageId.getEntryId(),
+                        lastMessageId.getPartitionIndex(),
+                        lastConsumedBatchIndex,
+                        numRecords,
+                        ackSet);
         int expectedCount = numRecords - lastConsumedBatchIndex - 1;
         // when recover, use exclusive startCursor
-        handleSplit(
-                splitReader,
-                topicName,
-                0,
-                batchMessageId);
+        handleSplit(splitReader, topicName, 0, batchMessageId);
         fetchedMessages(splitReader, expectedCount, true);
     }
 

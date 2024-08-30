@@ -106,9 +106,11 @@ public final class CursorPosition implements Serializable {
             return messageIdImpl;
         } else {
             // if the message is batched, should return next single message in current batch.
-            if (messageIdImpl.getBatchIndex() >= 0 && messageIdImpl.getBatchSize() > 0
+            if (messageIdImpl.getBatchIndex() >= 0
+                    && messageIdImpl.getBatchSize() > 0
                     && messageIdImpl.getBatchIndex() != messageIdImpl.getBatchSize() - 1) {
-                return new BatchMessageIdImpl(messageIdImpl.getLedgerId(),
+                return new BatchMessageIdImpl(
+                        messageIdImpl.getLedgerId(),
                         messageIdImpl.getEntryId(),
                         messageIdImpl.getPartitionIndex(),
                         messageIdImpl.getBatchIndex() + 1,
