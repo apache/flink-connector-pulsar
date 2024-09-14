@@ -61,9 +61,9 @@ public class SinkConfiguration extends PulsarConfiguration {
         super(configuration);
 
         this.deliveryGuarantee = get(PULSAR_WRITE_DELIVERY_GUARANTEE);
-        this.transactionTimeoutMillis = getLong(PULSAR_WRITE_TRANSACTION_TIMEOUT);
-        this.topicMetadataRefreshInterval = getLong(PULSAR_TOPIC_METADATA_REFRESH_INTERVAL);
-        this.partitionSwitchSize = getInteger(PULSAR_BATCHING_MAX_MESSAGES);
+        this.transactionTimeoutMillis = get(PULSAR_WRITE_TRANSACTION_TIMEOUT);
+        this.topicMetadataRefreshInterval = get(PULSAR_TOPIC_METADATA_REFRESH_INTERVAL);
+        this.partitionSwitchSize = get(PULSAR_BATCHING_MAX_MESSAGES);
         this.messageKeyHash = get(PULSAR_MESSAGE_KEY_HASH);
         this.enableSchemaEvolution = get(PULSAR_WRITE_SCHEMA_EVOLUTION);
         this.maxRecommitTimes = get(PULSAR_MAX_RECOMMIT_TIMES);
