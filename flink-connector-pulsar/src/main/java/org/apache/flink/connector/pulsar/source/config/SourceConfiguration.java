@@ -72,7 +72,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     public SourceConfiguration(Configuration configuration) {
         super(configuration);
 
-        this.messageQueueCapacity = getInteger(ELEMENT_QUEUE_CAPACITY);
+        this.messageQueueCapacity = get(ELEMENT_QUEUE_CAPACITY);
         this.partitionDiscoveryIntervalMs = get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage = get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
         this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
