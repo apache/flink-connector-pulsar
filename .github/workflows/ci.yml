@@ -47,15 +47,11 @@ jobs:
   compile_and_test:
     strategy:
       matrix:
-        flink: [ 1.17.1, 1.18.0 ]
-        jdk: [ 8, 11, 17 ]
-        exclude:
-          - jdk: 17
-            flink: 1.17.1
+        flink: [ 1.18.1, 1.19.0 ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: ${{ matrix.flink }}
-      jdk_version: ${{ matrix.jdk }}
+      jdk_version: ${{ matrix.jdk || '8, 11, 17' }}
       timeout_global: 120
       timeout_test: 80
   check_dead_links:
