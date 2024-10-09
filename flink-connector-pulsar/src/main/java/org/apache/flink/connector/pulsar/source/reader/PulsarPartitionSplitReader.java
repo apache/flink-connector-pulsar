@@ -49,6 +49,7 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
 import org.slf4j.Logger;
@@ -196,7 +197,14 @@ public class PulsarPartitionSplitReader
         MessageId latestConsumedId = registeredSplit.getLatestConsumedId();
 
         if (latestConsumedId != null) {
-            LOG.info("Reset subscription position by the checkpoint {}", latestConsumedId);
+            if (latestConsumedId instanceof BatchMessageIdImpl) {
+                LOG.info(
+                        "Reset subscription position by the checkpoint {}, batchSize {}",
+                        latestConsumedId,
+                        ((BatchMessageIdImpl) latestConsumedId).getBatchSize());
+            } else {
+                LOG.info("Reset subscription position by the checkpoint {}", latestConsumedId);
+            }
             try {
                 CursorPosition cursorPosition;
                 if (latestConsumedId == MessageId.latest

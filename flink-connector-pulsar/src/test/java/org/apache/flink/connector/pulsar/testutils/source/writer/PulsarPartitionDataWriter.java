@@ -46,7 +46,7 @@ public class PulsarPartitionDataWriter<T> implements ExternalSystemSplitDataWrit
     @Override
     public void writeRecords(List<T> records) {
         try {
-            operator.sendMessages(fullTopicName, schema, records);
+            operator.sendMessages(fullTopicName, schema, records, false);
         } catch (Exception e) {
             throw new FlinkRuntimeException(e);
         }

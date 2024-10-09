@@ -292,7 +292,7 @@ public class PulsarTableITCase extends PulsarTableTestBase {
         properties.put("key1", "value1");
         properties.put("key2", "value2");
         try (Producer<String> producer =
-                pulsar.operator().createProducer(sourceTopic, Schema.STRING)) {
+                pulsar.operator().createProducer(sourceTopic, Schema.STRING, false)) {
             producer.newMessage().value(value).properties(properties).send();
         }
 

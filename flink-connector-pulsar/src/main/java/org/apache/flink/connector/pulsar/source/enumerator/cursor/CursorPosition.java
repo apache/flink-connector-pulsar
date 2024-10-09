@@ -28,6 +28,7 @@ import org.apache.pulsar.client.api.MessageIdAdv;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.ChunkMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
@@ -104,6 +105,19 @@ public final class CursorPosition implements Serializable {
         if (include) {
             return messageIdImpl;
         } else {
+            // if the message is batched, should return next single message in current batch.
+            if (messageIdImpl.getBatchIndex() >= 0
+                    && messageIdImpl.getBatchSize() > 0
+                    && messageIdImpl.getBatchIndex() != messageIdImpl.getBatchSize() - 1) {
+                return new BatchMessageIdImpl(
+                        messageIdImpl.getLedgerId(),
+                        messageIdImpl.getEntryId(),
+                        messageIdImpl.getPartitionIndex(),
+                        messageIdImpl.getBatchIndex() + 1,
+                        messageIdImpl.getBatchSize(),
+                        messageIdImpl.getAckSet());
+            }
+
             // if the (ledgerId, entryId + 1) is not valid
             // pulsar broker will automatically set the cursor to the next valid message
             return new MessageIdImpl(
