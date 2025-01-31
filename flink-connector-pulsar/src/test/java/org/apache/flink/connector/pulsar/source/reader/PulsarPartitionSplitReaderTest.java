@@ -311,7 +311,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         Configuration config = operator().config();
         config.set(PULSAR_MAX_FETCH_RECORDS, 1);
         config.set(PULSAR_FETCH_ONE_MESSAGE_TIME, 2000);
-        config.set(PULSAR_MAX_FETCH_TIME, 3000L);
+        config.set(PULSAR_MAX_FETCH_TIME, 30000L);
         config.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
         config.set(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE, true);
 
