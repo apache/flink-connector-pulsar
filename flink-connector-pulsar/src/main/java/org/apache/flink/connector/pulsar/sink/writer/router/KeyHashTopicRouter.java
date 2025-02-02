@@ -23,7 +23,7 @@ import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
-import org.apache.flink.shaded.guava30.com.google.common.base.Strings;
+import org.apache.flink.shaded.guava31.com.google.common.base.Strings;
 
 import org.apache.pulsar.client.impl.Hash;
 

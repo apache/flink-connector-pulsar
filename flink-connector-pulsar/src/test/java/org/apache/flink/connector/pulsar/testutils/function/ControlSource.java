@@ -29,7 +29,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.testutils.junit.SharedObjectsExtension;
 import org.apache.flink.testutils.junit.SharedReference;
 
-import org.apache.flink.shaded.guava30.com.google.common.util.concurrent.Uninterruptibles;
+import org.apache.flink.shaded.guava31.com.google.common.util.concurrent.Uninterruptibles;
 
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;

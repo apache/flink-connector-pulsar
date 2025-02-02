@@ -17,7 +17,7 @@ import org.apache.flink.connector.testframe.external.sink.DataStreamSinkV2Extern
 import org.apache.flink.connector.testframe.external.sink.TestingSinkSettings;
 import org.apache.flink.util.FlinkRuntimeException;
 
-import org.apache.flink.shaded.guava30.com.google.common.io.Closer;
+import org.apache.flink.shaded.guava31.com.google.common.io.Closer;
 
 import org.apache.pulsar.client.api.Schema;
 

@@ -24,7 +24,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.core.memory.DataOutputSerializer;
 import org.apache.flink.util.InstantiationUtil;
 
-import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava31.com.google.common.collect.Sets;
 
 import org.apache.pulsar.client.api.MessageId;
 import org.junit.jupiter.api.Test;
