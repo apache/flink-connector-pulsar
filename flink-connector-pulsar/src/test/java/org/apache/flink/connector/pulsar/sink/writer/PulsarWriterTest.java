@@ -18,9 +18,13 @@
 
 package org.apache.flink.connector.pulsar.sink.writer;
 
+import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobInfo;
+import org.apache.flink.api.common.TaskInfo;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.connector.sink2.Sink.InitContext;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.configuration.Configuration;
@@ -40,6 +44,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.OperatorIOMetricGroup;
+import org.apache.flink.metrics.groups.OperatorMetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.metrics.testutils.MetricListener;
 import org.apache.flink.runtime.mailbox.SyncMailboxExecutor;
@@ -63,6 +68,8 @@ import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link PulsarWriter}. */
 class PulsarWriterTest extends PulsarTestSuiteBase {
@@ -170,8 +177,9 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
             this.ioMetricGroup =
                     UnregisteredMetricGroups.createUnregisteredOperatorMetricGroup()
                             .getIOMetricGroup();
-            MetricGroup metricGroup = metricListener.getMetricGroup();
-            this.metricGroup = InternalSinkWriterMetricGroup.mock(metricGroup, ioMetricGroup);
+            OperatorMetricGroup mockOperatorMetricGroup = mock(OperatorMetricGroup.class);
+            when(mockOperatorMetricGroup.getIOMetricGroup()).thenReturn(ioMetricGroup);
+            this.metricGroup = InternalSinkWriterMetricGroup.wrap(mockOperatorMetricGroup);
             this.timeService = new TestProcessingTimeService();
         }
 
@@ -205,6 +213,35 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
             return 0;
         }
 
+        // The following three methods are for compatibility with
+        // https://github.com/apache/flink/commit/4f5b2fb5736f5a1c098a7dc1d448a879f36f801b
+        // . Removed the commented out `@Override` when we move to 1.18.
+
+        // @Override
+        public boolean isObjectReuseEnabled() {
+            return false;
+        }
+
+        // @Override
+        public <IN> TypeSerializer<IN> createInputSerializer() {
+            return null;
+        }
+
+        // @Override
+        public JobID getJobId() {
+            return null;
+        }
+
+        @Override
+        public JobInfo getJobInfo() {
+            return null;
+        }
+
+        @Override
+        public TaskInfo getTaskInfo() {
+            return null;
+        }
+
         @Override
         public SinkWriterMetricGroup metricGroup() {
             return metricGroup;
@@ -217,7 +254,7 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
 
         @Override
         public SerializationSchema.InitializationContext
-                asSerializationSchemaInitializationContext() {
+        asSerializationSchemaInitializationContext() {
             return new SerializationSchema.InitializationContext() {
                 @Override
                 public MetricGroup getMetricGroup() {
