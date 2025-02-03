@@ -102,24 +102,26 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
 
     @Test
     void createFromFlinkTypeInformation() throws Exception {
-        PulsarDeserializationSchema<String> schema =
-                new PulsarTypeInformationWrapper<>(Types.STRING, null);
-        schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
-        assertThatCode(() -> InstantiationUtil.clone(schema)).doesNotThrowAnyException();
+        try (StreamExecutionEnvironment executionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment()) {
+            PulsarDeserializationSchema<String> schema =
+                    new PulsarTypeInformationWrapper<>(Types.STRING, executionEnvironment.getConfig());
+            schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
+            assertThatCode(() -> InstantiationUtil.clone(schema)).doesNotThrowAnyException();
 
-        String content = "test-content-" + randomAlphanumeric(10);
-        Message<byte[]> message =
-                getMessage(
-                        content,
-                        s -> {
-                            DataOutputSerializer serializer = new DataOutputSerializer(10);
-                            StringValue.writeString(s, serializer);
-                            return serializer.getSharedBuffer();
-                        });
-        SingleMessageCollector<String> collector = new SingleMessageCollector<>();
-        schema.deserialize(message, collector);
+            String content = "test-content-" + randomAlphanumeric(10);
+            Message<byte[]> message =
+                    getMessage(
+                            content,
+                            s -> {
+                                DataOutputSerializer serializer = new DataOutputSerializer(10);
+                                StringValue.writeString(s, serializer);
+                                return serializer.getSharedBuffer();
+                            });
+            SingleMessageCollector<String> collector = new SingleMessageCollector<>();
+            schema.deserialize(message, collector);
 
-        assertThat(collector.result).isNotNull().isEqualTo(content);
+            assertThat(collector.result).isNotNull().isEqualTo(content);
+        }
     }
 
     @Test
