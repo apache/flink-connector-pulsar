@@ -136,9 +136,9 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
     @Override
     public PrecommittingSinkWriter<IN, PulsarCommittable> createWriter(InitContext initContext)
             throws PulsarClientException {
-        SinkUserCallback<IN> userCallback = null;
+        SinkUserCallback<IN> callback = null;
         if (sinkUserCallbackFactory != null) {
-            userCallback = sinkUserCallbackFactory.create();
+            callback = sinkUserCallbackFactory.create();
         }
 
         return new PulsarWriter<>(
@@ -149,7 +149,7 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
                 messageDelayer,
                 pulsarCrypto,
                 initContext,
-                userCallback);
+                callback);
     }
 
     @Internal
