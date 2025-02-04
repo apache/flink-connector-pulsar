@@ -28,6 +28,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfigBuilder;
 import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
+import org.apache.flink.connector.pulsar.source.callback.SourceUserCallback;
+import org.apache.flink.connector.pulsar.source.callback.SourceUserCallbackFactory;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
@@ -135,6 +137,7 @@ public final class PulsarSourceBuilder<OUT> {
     private Boundedness boundedness;
     private PulsarDeserializationSchema<OUT> deserializationSchema;
     private PulsarCrypto pulsarCrypto;
+    private SourceUserCallbackFactory<OUT> userCallbackFactory;
 
     // private builder constructor.
     PulsarSourceBuilder() {
@@ -536,6 +539,18 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
+     * Set a factory for the {@link SourceUserCallback}.
+     *
+     * @param callbackFactory the factory.
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setUserCallbackFactory(
+            SourceUserCallbackFactory<OUT> callbackFactory) {
+        this.userCallbackFactory = callbackFactory;
+        return this;
+    }
+
+    /**
      * Build the {@link PulsarSource}.
      *
      * @return a PulsarSource with the settings made for this builder.
@@ -611,7 +626,8 @@ public final class PulsarSourceBuilder<OUT> {
                 stopCursor,
                 boundedness,
                 deserializationSchema,
-                pulsarCrypto);
+                pulsarCrypto,
+                userCallbackFactory);
     }
 
     // ------------- private helpers  --------------
