@@ -222,7 +222,9 @@ public class ProducerRegister implements Closeable {
             TopicName topicName = TopicName.get(topic);
             // Step-1: create partitioned topic metadata.
             if (topicName.isPartitioned()) {
-                pulsarClient.getPartitionsForTopic(TopicName.get(topic).getPartitionedTopicName()).get();
+                pulsarClient
+                        .getPartitionsForTopic(TopicName.get(topic).getPartitionedTopicName())
+                        .get();
             }
             // Step-2: create partition.
             pulsarClient.getPartitionsForTopic(topic).get();
