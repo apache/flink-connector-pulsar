@@ -313,6 +313,9 @@ public class PulsarPartitionSplitReader
             consumerBuilder.keySharedPolicy(policy);
         }
 
+        // set initial position
+        consumerBuilder.subscriptionInitialPosition(sourceConfiguration.getInitialPosition());
+
         // Create the consumer configuration by using common utils.
         Consumer<byte[]> consumer = consumerBuilder.subscribe();
 

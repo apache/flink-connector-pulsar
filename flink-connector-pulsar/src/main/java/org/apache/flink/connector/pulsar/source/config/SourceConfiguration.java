@@ -27,6 +27,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 
 import org.apache.pulsar.client.api.ConsumerBuilder;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
 
@@ -40,6 +41,7 @@ import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSA
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_ENABLE_SOURCE_METRICS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_FETCH_ONE_MESSAGE_TIME;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_INITIAL_CURSOR;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_RECORDS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_MAX_FETCH_TIME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
@@ -68,6 +70,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final boolean enableSchemaEvolution;
     private final boolean enableMetrics;
     private final boolean resetSubscriptionCursor;
+    private final SubscriptionInitialPosition subscriptionInitialPosition;
 
     public SourceConfiguration(Configuration configuration) {
         super(configuration);
@@ -87,6 +90,7 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.enableMetrics =
                 get(PULSAR_ENABLE_SOURCE_METRICS) && get(PULSAR_STATS_INTERVAL_SECONDS) > 0;
         this.resetSubscriptionCursor = get(PULSAR_RESET_SUBSCRIPTION_CURSOR);
+        this.subscriptionInitialPosition = get(PULSAR_INITIAL_CURSOR);
     }
 
     /** The capacity of the element queue in the source reader. */
@@ -209,6 +213,11 @@ public class SourceConfiguration extends PulsarConfiguration {
         return getSubscriptionName() + "(Exclusive," + getSubscriptionMode() + ")";
     }
 
+    /** The initial position for the subscription. */
+    public SubscriptionInitialPosition getInitialPosition() {
+        return subscriptionInitialPosition;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -234,7 +243,8 @@ public class SourceConfiguration extends PulsarConfiguration {
                 && allowKeySharedOutOfOrderDelivery == that.allowKeySharedOutOfOrderDelivery
                 && enableSchemaEvolution == that.enableSchemaEvolution
                 && enableMetrics == that.enableMetrics
-                && resetSubscriptionCursor == that.resetSubscriptionCursor;
+                && resetSubscriptionCursor == that.resetSubscriptionCursor
+                && subscriptionInitialPosition == that.subscriptionInitialPosition;
     }
 
     @Override
@@ -254,6 +264,7 @@ public class SourceConfiguration extends PulsarConfiguration {
                 allowKeySharedOutOfOrderDelivery,
                 enableSchemaEvolution,
                 enableMetrics,
-                resetSubscriptionCursor);
+                resetSubscriptionCursor,
+                subscriptionInitialPosition);
     }
 }

@@ -220,7 +220,9 @@ public class PulsarSourceEnumerator
                     startCursor.position(partition.getTopic(), partition.getPartitionId());
 
             try {
-                position.setupSubPosition(pulsarClient, topic, subscriptionName);
+                if (sourceConfiguration.isResetSubscriptionCursor()) {
+                    position.setupSubPosition(pulsarClient, topic, subscriptionName);
+                }
             } catch (PulsarClientException e) {
                 throw new FlinkRuntimeException(e);
             }
