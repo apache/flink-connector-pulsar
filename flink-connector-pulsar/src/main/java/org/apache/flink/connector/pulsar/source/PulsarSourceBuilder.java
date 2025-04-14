@@ -46,6 +46,7 @@ import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarTypeIn
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -56,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -65,6 +67,7 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULS
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_CONSUMER_NAME;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_CRYPTO_FAILURE_ACTION;
+import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_INITIAL_CURSOR;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_PARTITION_DISCOVERY_INTERVAL_MS;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_READ_SCHEMA_EVOLUTION;
 import static org.apache.flink.connector.pulsar.source.PulsarSourceOptions.PULSAR_SUBSCRIPTION_NAME;
@@ -588,6 +591,12 @@ public final class PulsarSourceBuilder<OUT> {
             if (!consumerName.contains("%s")) {
                 configBuilder.override(PULSAR_CONSUMER_NAME, consumerName + " - %s");
             }
+        }
+
+        if (Objects.equals(startCursor, StartCursor.latest())) {
+            configBuilder.set(PULSAR_INITIAL_CURSOR, SubscriptionInitialPosition.Latest);
+        } else {
+            configBuilder.set(PULSAR_INITIAL_CURSOR, SubscriptionInitialPosition.Earliest);
         }
 
         // Make sure they are serializable.

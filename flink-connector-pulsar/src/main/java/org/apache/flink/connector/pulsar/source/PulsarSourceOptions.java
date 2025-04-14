@@ -28,6 +28,7 @@ import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
 import org.apache.flink.connector.pulsar.source.config.CursorVerification;
 
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 
 import java.time.Duration;
@@ -231,6 +232,13 @@ public final class PulsarSourceOptions {
                                             " by using %s everytime you start the application without the checkpoint.",
                                             code("StartCursor"))
                                     .build());
+
+    public static final ConfigOption<SubscriptionInitialPosition> PULSAR_INITIAL_CURSOR =
+            ConfigOptions.key(SOURCE_CONFIG_PREFIX + "initialCursor")
+                    .enumType(SubscriptionInitialPosition.class)
+                    .defaultValue(SubscriptionInitialPosition.Latest)
+                    .withDescription(
+                            Description.builder().text("Consumer initial position.").build());
 
     ///////////////////////////////////////////////////////////////////////////////
     //

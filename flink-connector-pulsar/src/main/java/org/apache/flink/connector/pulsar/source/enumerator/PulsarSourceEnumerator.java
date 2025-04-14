@@ -220,7 +220,8 @@ public class PulsarSourceEnumerator
                     startCursor.position(partition.getTopic(), partition.getPartitionId());
 
             try {
-                //If resetSubscriptionCursor is set to true, the position is reset to the position specified by StartCursor each time
+                // If resetSubscriptionCursor is set to true, the position is reset to the position
+                // specified by StartCursor each time
                 if (sourceConfiguration.isResetSubscriptionCursor()) {
                     position.setupSubPosition(pulsarClient, topic, subscriptionName);
                 }
