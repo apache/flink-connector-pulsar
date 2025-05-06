@@ -100,7 +100,7 @@ public class PulsarSourceReader<OUT>
         super(
                 elementsQueue,
                 fetcherManager,
-                new PulsarRecordEmitter<>(deserializationSchema),
+                new PulsarRecordEmitter<>(deserializationSchema, userCallback),
                 sourceConfiguration,
                 context);
 
