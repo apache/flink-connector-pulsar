@@ -53,7 +53,7 @@ under the License.
     <properties>
         <flink.version>1.20.0</flink.version>
         <flink-ci-tools.version>1.20.0</flink-ci-tools.version>
-        <pulsar.version>3.0.2</pulsar.version>
+        <pulsar.version>3.0.12</pulsar.version>
         <scala.binary.version>2.12</scala.binary.version>
         <bouncycastle.version>1.69</bouncycastle.version>
 
