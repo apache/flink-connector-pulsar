@@ -29,7 +29,7 @@ under the License.
         <version>1.0.0</version>
     </parent>
 
-    <groupId>org.apache.flink</groupId>
+    <groupId>com.attentivemobile.fork.org.apache.flink</groupId>
     <artifactId>flink-connector-pulsar-parent</artifactId>
     <version>4.2-SNAPSHOT</version>
     <name>Flink : Connectors : Pulsar : Parent</name>
@@ -554,6 +554,22 @@ under the License.
             <plugin>
                 <groupId>org.commonjava.maven.plugins</groupId>
                 <artifactId>directory-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>directories</id>
+                        <goals>
+                            <goal>directory-of</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <configuration>
+                            <property>rootDir</property>
+                            <project>
+                                <groupId>com.attentivemobile.fork.org.apache.flink</groupId>
+                                <artifactId>${flink.parent.artifactId}</artifactId>
+                            </project>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
