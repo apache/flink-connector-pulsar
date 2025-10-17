@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
+import org.apache.flink.connector.pulsar.source.callback.SourceUserCallback;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitState;
 import org.apache.flink.util.Collector;
@@ -34,10 +35,12 @@ public class PulsarRecordEmitter<T>
         implements RecordEmitter<Message<byte[]>, T, PulsarPartitionSplitState> {
 
     private final PulsarDeserializationSchema<T> deserializationSchema;
+    private final SourceUserCallback<T> userCallback;
     private final SourceOutputWrapper<T> sourceOutputWrapper;
 
-    public PulsarRecordEmitter(PulsarDeserializationSchema<T> deserializationSchema) {
+    public PulsarRecordEmitter(PulsarDeserializationSchema<T> deserializationSchema, SourceUserCallback<T> userCallback) {
         this.deserializationSchema = deserializationSchema;
+        this.userCallback = userCallback;
         this.sourceOutputWrapper = new SourceOutputWrapper<>();
     }
 
@@ -49,8 +52,28 @@ public class PulsarRecordEmitter<T>
         sourceOutputWrapper.setSourceOutput(output);
         sourceOutputWrapper.setTimestamp(element);
 
+        /**
+         * We need to wrap the source output collector to pass the message to the user callback.
+         * As the deserialization logic directly passes to the collector instead of returning a value.
+         * Since the collector only in takes the deserialized value we cannot re-use the collector object.
+         * Instead, we create an anonymous collector to capture the element and pass it to the callback.
+         */
+        Collector<T> sourceCallbackCollector = new Collector<T>() {
+
+            @Override
+            public void collect(T record) {
+                userCallback.process(element, record);
+                sourceOutputWrapper.collect(record);
+            }
+
+            @Override
+            public void close() {
+                sourceOutputWrapper.close();
+            }
+        };
+
         // Deserialize the message and since it to output.
-        deserializationSchema.deserialize(element, sourceOutputWrapper);
+        deserializationSchema.deserialize(element, sourceCallbackCollector);
         splitState.setLatestConsumedId(element.getMessageId());
 
         // Release the messages if we use message pool in Pulsar.

@@ -247,7 +247,7 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         SourceConfiguration sourceConfiguration = new SourceConfiguration(configuration);
 
         return PulsarSourceReader.create(
-                sourceConfiguration, deserializationSchema, PulsarCrypto.disabled(), context);
+                sourceConfiguration, deserializationSchema, PulsarCrypto.disabled(), null, context);
     }
 
     private void setupSourceReader(
