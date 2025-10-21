@@ -112,12 +112,11 @@ public class SourceConfiguration extends PulsarConfiguration {
     }
 
     /**
-     * This is used for all subscription type.
-     * If you don't enable the flink checkpoint, please make sure this option is set to true.
-     * <p>
-     * {@link SubscriptionType#Failover} and {@link SubscriptionType#Exclusive} would perform
-     *  an incremental acknowledgment in a fixed {@link #getAutoCommitCursorInterval}.
+     * This is used for all subscription type. If you don't enable the flink checkpoint, please make
+     * sure this option is set to true.
      *
+     * <p>{@link SubscriptionType#Failover} and {@link SubscriptionType#Exclusive} would perform an
+     * incremental acknowledgment in a fixed {@link #getAutoCommitCursorInterval}.
      */
     public boolean isEnableAutoAcknowledgeMessage() {
         return enableAutoAcknowledgeMessage;
