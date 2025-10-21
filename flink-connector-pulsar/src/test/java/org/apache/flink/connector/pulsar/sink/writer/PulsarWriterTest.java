@@ -19,6 +19,8 @@
 package org.apache.flink.connector.pulsar.sink.writer;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobInfo;
+import org.apache.flink.api.common.TaskInfo;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -41,12 +43,8 @@ import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.metrics.groups.OperatorIOMetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
-import org.apache.flink.metrics.testutils.MetricListener;
 import org.apache.flink.runtime.mailbox.SyncMailboxExecutor;
-import org.apache.flink.runtime.metrics.groups.InternalSinkWriterMetricGroup;
-import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.UserCodeClassLoader;
 
@@ -63,6 +61,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
+import static org.apache.flink.metrics.groups.UnregisteredMetricsGroup.createSinkWriterMetricGroup;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -105,7 +104,8 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
                         router,
                         delayer,
                         PulsarCrypto.disabled(),
-                        initContext);
+                        initContext,
+                        null);
 
         writer.flush(false);
         writer.prepareCommit();
@@ -162,18 +162,11 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
 
     private static class MockInitContext implements InitContext {
 
-        private final MetricListener metricListener;
-        private final OperatorIOMetricGroup ioMetricGroup;
         private final SinkWriterMetricGroup metricGroup;
         private final ProcessingTimeService timeService;
 
         private MockInitContext() {
-            this.metricListener = new MetricListener();
-            this.ioMetricGroup =
-                    UnregisteredMetricGroups.createUnregisteredOperatorMetricGroup()
-                            .getIOMetricGroup();
-            MetricGroup metricGroup = metricListener.getMetricGroup();
-            this.metricGroup = InternalSinkWriterMetricGroup.mock(metricGroup, ioMetricGroup);
+            this.metricGroup = createSinkWriterMetricGroup();
             this.timeService = new TestProcessingTimeService();
         }
 
@@ -223,6 +216,16 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
 
         // @Override
         public JobID getJobId() {
+            return null;
+        }
+
+        @Override
+        public JobInfo getJobInfo() {
+            return null;
+        }
+
+        @Override
+        public TaskInfo getTaskInfo() {
             return null;
         }
 
