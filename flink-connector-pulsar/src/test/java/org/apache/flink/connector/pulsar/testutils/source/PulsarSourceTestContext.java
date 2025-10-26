@@ -50,7 +50,7 @@ import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
 public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
         implements DataStreamSourceExternalContext<String> {
 
-    private static final long DISCOVERY_INTERVAL = 1000L;
+    private static final long DISCOVERY_INTERVAL_MS = 1000L;
     private static final int BATCH_DATA_SIZE = 300;
 
     protected PulsarSourceTestContext(PulsarTestEnvironment environment) {
@@ -65,7 +65,7 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
                         .setServiceUrl(operator.serviceUrl())
                         .setTopicPattern(topicPattern(), AllTopics)
                         .setSubscriptionName(subscriptionName())
-                        .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL);
+                        .setConfig(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS, DISCOVERY_INTERVAL_MS);
 
         // Set extra configuration for source builder.
         setSourceBuilder(builder);
@@ -117,7 +117,7 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
 
     /**
      * The topic pattern which is used in Pulsar topic auto discovery. It was discovered every
-     * {@link #DISCOVERY_INTERVAL} ms;
+     * {@link #DISCOVERY_INTERVAL_MS};
      */
     protected abstract String topicPattern();
 

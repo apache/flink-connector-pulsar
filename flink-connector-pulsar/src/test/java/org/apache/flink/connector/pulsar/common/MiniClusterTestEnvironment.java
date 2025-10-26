@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -65,7 +66,9 @@ public class MiniClusterTestEnvironment implements TestEnvironment, ClusterContr
 
     public MiniClusterTestEnvironment() {
         Configuration conf = new Configuration();
-        conf.set(METRIC_FETCHER_UPDATE_INTERVAL, METRIC_FETCHER_UPDATE_INTERVAL_MS);
+        conf.set(
+                METRIC_FETCHER_UPDATE_INTERVAL,
+                Duration.ofMillis(METRIC_FETCHER_UPDATE_INTERVAL_MS));
         TaskExecutorResourceUtils.adjustForLocalExecution(conf);
         this.miniCluster =
                 new MiniClusterWithClientResource(
