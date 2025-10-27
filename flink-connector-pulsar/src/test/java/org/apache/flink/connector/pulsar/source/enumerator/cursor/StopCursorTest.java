@@ -33,6 +33,8 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
@@ -95,8 +97,8 @@ class StopCursorTest extends PulsarTestSuiteBase {
     private SourceConfiguration sourceConfig() {
         Configuration config = operator().config();
         config.set(PULSAR_MAX_FETCH_RECORDS, 1);
-        config.set(PULSAR_FETCH_ONE_MESSAGE_TIME, 2000);
-        config.set(PULSAR_MAX_FETCH_TIME, 3000L);
+        config.set(PULSAR_FETCH_ONE_MESSAGE_TIME, Duration.ofSeconds(2));
+        config.set(PULSAR_MAX_FETCH_TIME, Duration.ofSeconds(3));
         config.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
         config.set(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE, true);
         return new SourceConfiguration(config);

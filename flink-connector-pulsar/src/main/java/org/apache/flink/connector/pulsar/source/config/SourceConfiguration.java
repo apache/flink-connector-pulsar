@@ -60,7 +60,7 @@ public class SourceConfiguration extends PulsarConfiguration {
     private final long partitionDiscoveryIntervalMs;
     private final boolean enableAutoAcknowledgeMessage;
     private final long autoCommitCursorInterval;
-    private final int fetchOneMessageTime;
+    private final long fetchOneMessageTime;
     private final Duration maxFetchTime;
     private final int maxFetchRecords;
     private final CursorVerification verifyInitialOffsets;
@@ -78,9 +78,10 @@ public class SourceConfiguration extends PulsarConfiguration {
         this.messageQueueCapacity = get(ELEMENT_QUEUE_CAPACITY);
         this.partitionDiscoveryIntervalMs = get(PULSAR_PARTITION_DISCOVERY_INTERVAL_MS);
         this.enableAutoAcknowledgeMessage = get(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE);
-        this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL);
-        this.fetchOneMessageTime = getOptional(PULSAR_FETCH_ONE_MESSAGE_TIME).orElse(0);
-        this.maxFetchTime = get(PULSAR_MAX_FETCH_TIME, Duration::ofMillis);
+        this.autoCommitCursorInterval = get(PULSAR_AUTO_COMMIT_CURSOR_INTERVAL).toMillis();
+        this.fetchOneMessageTime =
+                getOptional(PULSAR_FETCH_ONE_MESSAGE_TIME).map(Duration::toMillis).orElse(0L);
+        this.maxFetchTime = get(PULSAR_MAX_FETCH_TIME);
         this.maxFetchRecords = get(PULSAR_MAX_FETCH_RECORDS);
         this.verifyInitialOffsets = get(PULSAR_VERIFY_INITIAL_OFFSETS);
         this.subscriptionName = get(PULSAR_SUBSCRIPTION_NAME);
@@ -136,7 +137,7 @@ public class SourceConfiguration extends PulsarConfiguration {
      * messages in {@link RecordsWithSplitIds} when meet this timeout and no message consumed.
      */
     public int getFetchOneMessageTime() {
-        return fetchOneMessageTime;
+        return (int) fetchOneMessageTime;
     }
 
     /**
