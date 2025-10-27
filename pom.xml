@@ -80,6 +80,7 @@ under the License.
         <kryo.version>2.24.0</kryo.version>
         <objenesis.version>3.3</objenesis.version>
         <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
+        <snappy.java.version>1.1.10.4</snappy.java.version>
 
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
@@ -390,7 +391,7 @@ under the License.
                 <version>${jackson-bom.version}</version>
             </dependency>
 
-            <!-- For dependency convergence -->
+            <!-- Start of pinned versions for dependency convergence -->
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -398,21 +399,17 @@ under the License.
                 <version>${commons-compress.version}</version>
             </dependency>
 
-            <!-- For dependency convergence  -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
             </dependency>
 
-            <!-- For dependency convergence  -->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
-
-            <!-- For dependency convergence -->
 
             <dependency>
                 <groupId>net.bytebuddy</groupId>
@@ -420,15 +417,11 @@ under the License.
                 <version>${byte-buddy.version}</version>
             </dependency>
 
-            <!-- For dependency convergence -->
-
             <dependency>
                 <groupId>com.esotericsoftware.kryo</groupId>
                 <artifactId>kryo</artifactId>
                 <version>${kryo.version}</version>
             </dependency>
-
-            <!-- For dependency convergence -->
 
             <dependency>
                 <groupId>org.objenesis</groupId>
@@ -442,7 +435,6 @@ under the License.
                 <version>${protobuf.version}</version>
             </dependency>
 
-            <!-- For dependency convergence -->
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-reflect</artifactId>
@@ -454,6 +446,14 @@ under the License.
                 <artifactId>scala-library</artifactId>
                 <version>${scala-library.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>${snappy.java.version}</version>
+            </dependency>
+
+            <!-- End of pinned versions for dependency convergence -->
         </dependencies>
     </dependencyManagement>
 
