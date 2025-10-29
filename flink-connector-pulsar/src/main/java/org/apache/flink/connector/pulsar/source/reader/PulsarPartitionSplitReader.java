@@ -238,7 +238,7 @@ public class PulsarPartitionSplitReader
         try {
             this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
         } catch (PulsarClientException e) {
-            throw new FlinkRuntimeException(e);
+            throw new FlinkRuntimeException(String.format("Failed to create consumer on partition %s", registeredSplit.getPartition()), e);
         }
 
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
