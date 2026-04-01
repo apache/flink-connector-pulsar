@@ -238,27 +238,34 @@ public class PulsarPartitionSplitReader
         try {
             this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
         } catch (PulsarClientException e) {
-            LOG.warn("Failed to create consumer on partition {} on first attempt, will retry after 2 seconds",
-                    registeredSplit.getPartition(), e);
+            LOG.warn(
+                    "Failed to create consumer on partition {} on first attempt, will retry after 2 seconds",
+                    registeredSplit.getPartition(),
+                    e);
 
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new FlinkRuntimeException(
-                        String.format("Interrupted while waiting to retry consumer creation on partition %s",
-                                registeredSplit.getPartition()), ie);
+                        String.format(
+                                "Interrupted while waiting to retry consumer creation on partition %s",
+                                registeredSplit.getPartition()),
+                        ie);
             }
 
             // Retry consumer creation
             try {
                 this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
-                LOG.info("Successfully created consumer on partition {} on second attempt",
+                LOG.info(
+                        "Successfully created consumer on partition {} on second attempt",
                         registeredSplit.getPartition());
             } catch (PulsarClientException retryException) {
                 throw new FlinkRuntimeException(
-                        String.format("Failed to create consumer on partition %s after retry",
-                                registeredSplit.getPartition()), retryException);
+                        String.format(
+                                "Failed to create consumer on partition %s after retry",
+                                registeredSplit.getPartition()),
+                        retryException);
             }
         }
 
