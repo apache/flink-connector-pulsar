@@ -21,6 +21,7 @@ package org.apache.flink.tests.util.pulsar;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.sink.cases.SingleTopicProducingContext;
 import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
+import org.apache.flink.connector.testframe.container.FlinkContainersSettings;
 import org.apache.flink.connector.testframe.external.ExternalContextFactory;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
@@ -45,7 +46,12 @@ public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
     // Defines TestEnvironment
     @TestEnv
     FlinkContainerTestEnvironment flink =
-            new FlinkContainerTestEnvironment(FlinkContainerUtils.flinkConfiguration(), 1, 6);
+            FlinkContainerTestEnvironment.fromSettings(
+                    FlinkContainersSettings.builder()
+                            .basedOn(FlinkContainerUtils.flinkConfiguration())
+                            .numTaskManagers(1)
+                            .numSlotsPerTaskManager(6)
+                            .build());
 
     // Defines ConnectorExternalSystem.
     @TestExternalSystem PulsarTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);
