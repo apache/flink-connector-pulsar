@@ -106,6 +106,10 @@ under the License.
 									<pattern>com.scurrilous</pattern>
 									<shadedPattern>org.apache.pulsar.shade.com.scurrilous</shadedPattern>
 								</relocation>
+								<relocation>
+									<pattern>com.fasterxml</pattern>
+									<shadedPattern>org.apache.pulsar.shade.com.fasterxml</shadedPattern>
+								</relocation>
 							</relocations>
 						</configuration>
 					</execution>
