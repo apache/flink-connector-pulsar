@@ -31,11 +31,11 @@ import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
-import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.core.execution.CheckpointingMode;
 
 import org.apache.pulsar.client.api.SubscriptionType;
 
-import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
+import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
 /**
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}
