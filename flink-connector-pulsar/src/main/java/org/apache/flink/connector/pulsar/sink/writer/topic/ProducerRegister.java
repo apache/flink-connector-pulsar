@@ -47,6 +47,7 @@ import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.apache.pulsar.client.impl.transaction.TransactionImpl;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.SchemaHash;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
@@ -218,6 +219,14 @@ public class ProducerRegister implements Closeable {
         try {
             // Use this method for auto creating the non-exist topics. Otherwise, it will throw an
             // exception.
+            TopicName topicName = TopicName.get(topic);
+            // Step-1: create partitioned topic metadata.
+            if (topicName.isPartitioned()) {
+                pulsarClient
+                        .getPartitionsForTopic(TopicName.get(topic).getPartitionedTopicName())
+                        .get();
+            }
+            // Step-2: create partition.
             pulsarClient.getPartitionsForTopic(topic).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
