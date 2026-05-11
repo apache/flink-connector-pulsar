@@ -31,7 +31,7 @@ import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
-import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.util.CloseableIterator;
 
 import org.apache.pulsar.client.api.SubscriptionType;
@@ -44,11 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
-import org.apache.flink.core.execution.CheckpointingMode;
-
-import org.apache.pulsar.client.api.SubscriptionType;
 
 import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
