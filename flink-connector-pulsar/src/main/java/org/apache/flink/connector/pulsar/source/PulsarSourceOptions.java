@@ -28,6 +28,7 @@ import org.apache.flink.connector.pulsar.common.config.PulsarOptions;
 import org.apache.flink.connector.pulsar.source.config.CursorVerification;
 
 import org.apache.pulsar.client.api.ConsumerCryptoFailureAction;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 
 import java.time.Duration;
@@ -102,26 +103,26 @@ public final class PulsarSourceOptions {
                                             "The source would use pulsar client's internal mechanism and commit cursor in a given interval.")
                                     .build());
 
-    public static final ConfigOption<Long> PULSAR_AUTO_COMMIT_CURSOR_INTERVAL =
+    public static final ConfigOption<Duration> PULSAR_AUTO_COMMIT_CURSOR_INTERVAL =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "autoCommitCursorInterval")
-                    .longType()
-                    .defaultValue(Duration.ofSeconds(5).toMillis())
+                    .durationType()
+                    .defaultValue(Duration.ofSeconds(5))
                     .withDescription(
                             Description.builder()
                                     .text(
                                             "This option is used only when the user disables the checkpoint and uses Exclusive or Failover subscription.")
                                     .text(
-                                            " We would automatically commit the cursor using the given period (in ms).")
+                                            " We would automatically commit the cursor using the given duration.")
                                     .build());
 
-    public static final ConfigOption<Integer> PULSAR_FETCH_ONE_MESSAGE_TIME =
+    public static final ConfigOption<Duration> PULSAR_FETCH_ONE_MESSAGE_TIME =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "fetchOneMessageTime")
-                    .intType()
+                    .durationType()
                     .noDefaultValue()
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "The time (in ms) for fetching one message from Pulsar. If time exceed and no message returned from Pulsar.")
+                                            "The time to wait for fetching one message from Pulsar. If time exceeded and no message returned from Pulsar.")
                                     .text(
                                             " We would consider there is no record at the current topic partition and stop fetching until next switch.")
                                     .linebreak()
@@ -133,13 +134,13 @@ public final class PulsarSourceOptions {
                                             " Add this option in source builder avoiding waiting too long.")
                                     .build());
 
-    public static final ConfigOption<Long> PULSAR_MAX_FETCH_TIME =
+    public static final ConfigOption<Duration> PULSAR_MAX_FETCH_TIME =
             ConfigOptions.key(SOURCE_CONFIG_PREFIX + "maxFetchTime")
-                    .longType()
-                    .defaultValue(Duration.ofSeconds(10).toMillis())
+                    .durationType()
+                    .defaultValue(Duration.ofSeconds(10))
                     .withDescription(
                             Description.builder()
-                                    .text("The maximum time (in ms) to wait when fetching records.")
+                                    .text("The maximum time to wait when fetching records.")
                                     .text(" A longer time increases throughput but also latency.")
                                     .text(
                                             " A fetch batch might be finished earlier because of %s.",
@@ -231,6 +232,13 @@ public final class PulsarSourceOptions {
                                             " by using %s everytime you start the application without the checkpoint.",
                                             code("StartCursor"))
                                     .build());
+
+    public static final ConfigOption<SubscriptionInitialPosition> PULSAR_INITIAL_CURSOR =
+            ConfigOptions.key(SOURCE_CONFIG_PREFIX + "initialCursor")
+                    .enumType(SubscriptionInitialPosition.class)
+                    .defaultValue(SubscriptionInitialPosition.Latest)
+                    .withDescription(
+                            Description.builder().text("Consumer initial position.").build());
 
     ///////////////////////////////////////////////////////////////////////////////
     //

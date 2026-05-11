@@ -19,43 +19,30 @@
 # We need to specify repo related information here since Apache INFRA doesn't differentiate
 # between several workflows with the same names while preparing a report for GHA usage
 # https://infra-reports.apache.org/#ghactions
-name: Nightly Flink Connector Pulsar
-on:
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
-
+name: Flink Connector Pulsar CI
+on: [push, pull_request]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   compile_and_test:
-    if: github.repository_owner == 'apache'
     strategy:
-      fail-fast: false
       matrix:
-        jdk: [ 8, 11 ]
-        flink_branches: [{
-          flink: 1.17-SNAPSHOT,
-          branch: main
-        }, {
-          flink: 1.18-SNAPSHOT,
-          branch: main
-        }, {
-          flink: 1.16.2,
-          branch: v3.0
-        }, {
-          flink: 1.17.1,
-          branch: v4.0
-        }]
-        include:
-          - jdk: 17
-            flink_branches: {
-              flink: 1.18-SNAPSHOT,
-              branch: main
-            }
+        flink: [ 1.20.3 ]
+        jdk: [ '8, 11, 17' ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
+      flink_version: ${{ matrix.flink }}
       jdk_version: ${{ matrix.jdk }}
-      flink_version: ${{ matrix.flink_branches.flink }}
-      connector_branch: ${{ matrix.flink_branches.branch }}
-      run_dependency_convergence: false
       timeout_global: 120
       timeout_test: 80
+  check_dead_links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo npm install -g markdown-link-check@3.10.0
+      - run: |
+          for file in $(find . -name "*.md"); do
+            markdown-link-check -c .dlc.json -q "$file"
+          done

@@ -19,6 +19,8 @@
 package org.apache.flink.connector.pulsar.sink.writer;
 
 import org.apache.flink.api.common.JobID;
+import org.apache.flink.api.common.JobInfo;
+import org.apache.flink.api.common.TaskInfo;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -45,7 +47,7 @@ import org.apache.flink.metrics.groups.OperatorIOMetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.metrics.testutils.MetricListener;
 import org.apache.flink.runtime.mailbox.SyncMailboxExecutor;
-import org.apache.flink.runtime.metrics.groups.InternalSinkWriterMetricGroup;
+import org.apache.flink.runtime.metrics.groups.MetricsGroupTestUtils;
 import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.UserCodeClassLoader;
@@ -173,7 +175,8 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
                     UnregisteredMetricGroups.createUnregisteredOperatorMetricGroup()
                             .getIOMetricGroup();
             MetricGroup metricGroup = metricListener.getMetricGroup();
-            this.metricGroup = InternalSinkWriterMetricGroup.mock(metricGroup, ioMetricGroup);
+            this.metricGroup =
+                    MetricsGroupTestUtils.mockWriterMetricGroup(metricGroup, ioMetricGroup);
             this.timeService = new TestProcessingTimeService();
         }
 
@@ -250,6 +253,16 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
                     return null;
                 }
             };
+        }
+
+        @Override
+        public JobInfo getJobInfo() {
+            return null;
+        }
+
+        @Override
+        public TaskInfo getTaskInfo() {
+            return null;
         }
     }
 

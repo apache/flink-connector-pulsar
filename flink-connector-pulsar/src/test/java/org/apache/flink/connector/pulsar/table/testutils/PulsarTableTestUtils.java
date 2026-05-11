@@ -97,7 +97,7 @@ public class PulsarTableTestUtils {
         Collections.sort(expected);
         CommonTestUtils.waitUtil(
                 () -> {
-                    List<String> actual = TestValuesTableFactory.getResults(sinkName);
+                    List<String> actual = TestValuesTableFactory.getResultsAsStrings(sinkName);
                     Collections.sort(actual);
                     return expected.equals(actual);
                 },

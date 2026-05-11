@@ -23,6 +23,7 @@ import org.apache.flink.formats.json.debezium.DebeziumJsonFormatFactory;
 import org.apache.flink.formats.json.maxwell.MaxwellJsonFormatFactory;
 import org.apache.flink.table.api.TableConfig;
 import org.apache.flink.table.api.TableResult;
+import org.apache.flink.table.api.config.AggregatePhaseStrategy;
 import org.apache.flink.table.api.config.ExecutionConfigOptions;
 import org.apache.flink.table.api.config.OptimizerConfigOptions;
 import org.apache.flink.test.junit5.MiniClusterExtension;
@@ -53,7 +54,9 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
         tableConf.set(
                 ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_ALLOW_LATENCY, Duration.ofSeconds(1));
         tableConf.set(ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_SIZE, 5000L);
-        tableConf.set(OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY, "TWO_PHASE");
+        tableConf.set(
+                OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY,
+                AggregatePhaseStrategy.TWO_PHASE);
 
         // ---------- Write the Debezium json into Pulsar -------------------
         List<String> lines = readLines("debezium-data-schema-exclude.txt");
@@ -182,7 +185,9 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
         tableConf.set(
                 ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_ALLOW_LATENCY, Duration.ofSeconds(1));
         tableConf.set(ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_SIZE, 5000L);
-        tableConf.set(OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY, "TWO_PHASE");
+        tableConf.set(
+                OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY,
+                AggregatePhaseStrategy.TWO_PHASE);
 
         // ---------- Write the Canal json into Pulsar -------------------
         List<String> lines = readLines("canal-data.txt");
@@ -323,7 +328,9 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
         tableConf.set(
                 ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_ALLOW_LATENCY, Duration.ofSeconds(1));
         tableConf.set(ExecutionConfigOptions.TABLE_EXEC_MINIBATCH_SIZE, 5000L);
-        tableConf.set(OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY, "TWO_PHASE");
+        tableConf.set(
+                OptimizerConfigOptions.TABLE_OPTIMIZER_AGG_PHASE_STRATEGY,
+                AggregatePhaseStrategy.TWO_PHASE);
 
         // ---------- Write the Maxwell json into Pulsar -------------------
         List<String> lines = readLines("maxwell-data.txt");

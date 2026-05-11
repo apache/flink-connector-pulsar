@@ -21,18 +21,19 @@ package org.apache.flink.tests.util.pulsar;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.sink.cases.SingleTopicProducingContext;
 import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
+import org.apache.flink.connector.testframe.container.FlinkContainersSettings;
 import org.apache.flink.connector.testframe.external.ExternalContextFactory;
 import org.apache.flink.connector.testframe.junit.annotations.TestContext;
 import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SinkTestSuiteBase;
-import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
 
-import static org.apache.flink.streaming.api.CheckpointingMode.AT_LEAST_ONCE;
-import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
+import static org.apache.flink.core.execution.CheckpointingMode.AT_LEAST_ONCE;
+import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
 /** Pulsar sink E2E test based on the connector testing framework. */
 @SuppressWarnings("unused")
@@ -45,7 +46,12 @@ public class PulsarSinkE2ECase extends SinkTestSuiteBase<String> {
     // Defines TestEnvironment
     @TestEnv
     FlinkContainerTestEnvironment flink =
-            new FlinkContainerTestEnvironment(FlinkContainerUtils.flinkConfiguration(), 1, 6);
+            FlinkContainerTestEnvironment.fromSettings(
+                    FlinkContainersSettings.builder()
+                            .basedOn(FlinkContainerUtils.flinkConfiguration())
+                            .numTaskManagers(1)
+                            .numSlotsPerTaskManager(6)
+                            .build());
 
     // Defines ConnectorExternalSystem.
     @TestExternalSystem PulsarTestEnvironment pulsar = new PulsarContainerTestEnvironment(flink);

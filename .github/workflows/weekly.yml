@@ -19,52 +19,26 @@
 # We need to specify repo related information here since Apache INFRA doesn't differentiate
 # between several workflows with the same names while preparing a report for GHA usage
 # https://infra-reports.apache.org/#ghactions
-name: Flink Connector Pulsar CI
+name: Weekly Flink Connector Pulsar CI
 on:
-  push:
-    branches:
-      - 'main'
-      - 'v*'
-  pull_request:
-    branches:
-      - 'main'
-      - 'v*'
-
-# Concurrency strategy:
-#   github.workflow: distinguish this workflow from others
-#   github.event_name: distinguish `push` event from `pull_request` event
-#   github.event.number: set to the number of the pull request if `pull_request` event
-#   github.run_id: otherwise, it's a `push` or `schedule` event, only cancel if we rerun the workflow
-#
-# Reference:
-#   https://docs.github.com/en/actions/using-jobs/using-concurrency
-#   https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.number || github.run_id }}
-  cancel-in-progress: true
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
 
 jobs:
   compile_and_test:
+    if: github.repository_owner == 'apache'
     strategy:
       matrix:
-        flink: [ 1.17.1, 1.18.0 ]
-        jdk: [ 8, 11, 17 ]
-        exclude:
-          - jdk: 17
-            flink: 1.17.1
+        flink_branches: [{
+          flink: 1.20-SNAPSHOT,
+          branch: main
+        }]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
-      flink_version: ${{ matrix.flink }}
-      jdk_version: ${{ matrix.jdk }}
+      flink_version: ${{ matrix.flink_branches.flink }}
+      connector_branch: ${{ matrix.flink_branches.branch }}
+      jdk_version: ${{ matrix.flink_branches.jdk || '8, 11, 17' }}
+      run_dependency_convergence: false
       timeout_global: 120
       timeout_test: 80
-  check_dead_links:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v3
-      - run: sudo npm install -g markdown-link-check@3.10.0
-      - run: |
-          for file in $(find . -name "*.md"); do
-            markdown-link-check -c .dlc.json -q "$file"
-          done

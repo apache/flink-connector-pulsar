@@ -46,6 +46,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.flink.streaming.api.CheckpointingMode.EXACTLY_ONCE;
+import org.apache.flink.core.execution.CheckpointingMode;
+
+import org.apache.pulsar.client.api.SubscriptionType;
+
+import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
 /**
  * Unit test class for {@link PulsarSource}. Used for {@link SubscriptionType#Exclusive}

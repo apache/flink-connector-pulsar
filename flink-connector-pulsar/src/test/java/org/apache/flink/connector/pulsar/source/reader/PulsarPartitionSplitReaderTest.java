@@ -37,6 +37,7 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -107,6 +108,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         seekStartPositionAndHandleSplit(splitReader, topicName, 0);
         fetchedMessages(splitReader, 0, true);
     }
@@ -118,6 +120,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         seekStartPositionAndHandleSplit(splitReader, topicName, 0, MessageId.earliest);
         fetchedMessages(splitReader, NUM_RECORDS_PER_PARTITION, true);
     }
@@ -128,6 +131,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         seekStartPositionAndHandleSplit(splitReader, topicName, 0, MessageId.latest);
         fetchedMessages(splitReader, 0, true);
     }
@@ -139,6 +143,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
                         operator()
@@ -214,6 +219,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         handleSplit(splitReader, topicName, 0);
         fetchedMessages(splitReader, 0, true);
     }
@@ -225,6 +231,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         handleSplit(splitReader, topicName, 0, MessageId.latest);
         fetchedMessages(splitReader, 0, true);
     }
@@ -236,6 +243,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10));
+        waitForTopicMetadataReady(topicName, 0);
         handleSplit(splitReader, topicName, 0, MessageId.earliest);
         fetchedMessages(splitReader, NUM_RECORDS_PER_PARTITION, true);
     }
@@ -247,6 +255,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10), 20, false);
+        waitForTopicMetadataReady(topicName, 0);
+
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
                         operator()
@@ -272,6 +282,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
 
         int numRecords = 20;
         operator().setupTopic(topicName, STRING, () -> randomAlphabetic(10), numRecords, true);
+        waitForTopicMetadataReady(topicName, 0);
         MessageIdImpl lastMessageId =
                 (MessageIdImpl)
                         operator()
@@ -310,8 +321,8 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
     private SourceConfiguration sourceConfig() {
         Configuration config = operator().config();
         config.set(PULSAR_MAX_FETCH_RECORDS, 1);
-        config.set(PULSAR_FETCH_ONE_MESSAGE_TIME, 2000);
-        config.set(PULSAR_MAX_FETCH_TIME, 3000L);
+        config.set(PULSAR_FETCH_ONE_MESSAGE_TIME, Duration.ofSeconds(2));
+        config.set(PULSAR_MAX_FETCH_TIME, Duration.ofSeconds(3));
         config.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
         config.set(PULSAR_ENABLE_AUTO_ACKNOWLEDGE_MESSAGE, true);
 
@@ -401,5 +412,22 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         }
 
         return messages;
+    }
+
+    // Wait for topic metadata to stabilize after setupTopic
+    private void waitForTopicMetadataReady(String topicName, int partitionId) throws Exception {
+        String partitionTopicName = topicNameWithPartition(topicName, partitionId);
+        waitUtil(
+                () -> {
+                    try {
+                        MessageId id =
+                                operator().admin().topics().getLastMessageId(partitionTopicName);
+                        return id != null;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                },
+                ofSeconds(30),
+                "Topic metadata not ready for " + partitionTopicName);
     }
 }

@@ -228,8 +228,8 @@ class PulsarSourceReaderTest extends PulsarTestSuiteBase {
         Configuration configuration = operator().config();
 
         configuration.set(PULSAR_MAX_FETCH_RECORDS, 1);
-        configuration.set(PULSAR_FETCH_ONE_MESSAGE_TIME, 2000);
-        configuration.set(PULSAR_MAX_FETCH_TIME, 3000L);
+        configuration.set(PULSAR_FETCH_ONE_MESSAGE_TIME, Duration.ofSeconds(2));
+        configuration.set(PULSAR_MAX_FETCH_TIME, Duration.ofSeconds(3));
         configuration.set(PULSAR_SUBSCRIPTION_NAME, randomAlphabetic(10));
 
         PulsarDeserializationSchema<Integer> deserializationSchema =
