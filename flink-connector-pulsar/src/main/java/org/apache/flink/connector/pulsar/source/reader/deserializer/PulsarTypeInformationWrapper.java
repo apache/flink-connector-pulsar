@@ -18,10 +18,9 @@
 package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.serialization.SerializerConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.core.memory.DataInputDeserializer;
 import org.apache.flink.util.Collector;
 
@@ -29,8 +28,7 @@ import org.apache.pulsar.client.api.Message;
 
 /**
  * Wrap the flink TypeInformation into a {@code PulsarDeserializationSchema}. We would create a
- * flink {@code TypeSerializer} by using given ExecutionConfig. This execution config could be
- * {@link ExecutionEnvironment#getConfig()}.
+ * flink {@code TypeSerializer} by using given SerializerConfig.
  */
 @Internal
 public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSchema<T> {
@@ -47,7 +45,7 @@ public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSch
     private final TypeInformation<T> information;
     private final TypeSerializer<T> serializer;
 
-    public PulsarTypeInformationWrapper(TypeInformation<T> information, ExecutionConfig config) {
+    public PulsarTypeInformationWrapper(TypeInformation<T> information, SerializerConfig config) {
         this.information = information;
         this.serializer = information.createSerializer(config);
     }

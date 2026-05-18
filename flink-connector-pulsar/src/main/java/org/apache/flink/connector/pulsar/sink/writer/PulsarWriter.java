@@ -22,8 +22,9 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema.InitializationContext;
-import org.apache.flink.api.connector.sink2.Sink.InitContext;
-import org.apache.flink.api.connector.sink2.TwoPhaseCommittingSink.PrecommittingSinkWriter;
+import org.apache.flink.api.connector.sink2.CommittingSinkWriter;
+import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
@@ -67,7 +68,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <IN> The type of the input elements.
  */
 @Internal
-public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommittable> {
+public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommittable> {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarWriter.class);
 
     private final PulsarSerializationSchema<IN> serializationSchema;
@@ -101,7 +102,7 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
             TopicRouter<IN> topicRouter,
             MessageDelayer<IN> messageDelayer,
             PulsarCrypto pulsarCrypto,
-            InitContext initContext)
+            WriterInitContext initContext)
             throws PulsarClientException {
         checkNotNull(sinkConfiguration);
         this.serializationSchema = checkNotNull(serializationSchema);
@@ -139,7 +140,8 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
     }
 
     @Override
-    public void write(IN element, Context context) throws IOException, InterruptedException {
+    public void write(IN element, SinkWriter.Context context)
+            throws IOException, InterruptedException {
         PulsarMessage<?> message = serializationSchema.serialize(element, sinkContext);
 
         // Choose the right topic to send.
@@ -185,7 +187,8 @@ public class PulsarWriter<IN> implements PrecommittingSinkWriter<IN, PulsarCommi
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private TypedMessageBuilder<?> createMessageBuilder(
-            String topic, Context context, PulsarMessage<?> message) throws PulsarClientException {
+            String topic, SinkWriter.Context context, PulsarMessage<?> message)
+            throws PulsarClientException {
 
         Schema<?> schema = message.getSchema();
         TypedMessageBuilder<?> builder = producerRegister.createMessageBuilder(topic, schema);

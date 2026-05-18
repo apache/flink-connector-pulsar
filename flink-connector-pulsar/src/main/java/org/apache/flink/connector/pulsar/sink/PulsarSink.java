@@ -21,7 +21,11 @@ package org.apache.flink.connector.pulsar.sink;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.sink2.Committer;
-import org.apache.flink.api.connector.sink2.TwoPhaseCommittingSink;
+import org.apache.flink.api.connector.sink2.CommitterInitContext;
+import org.apache.flink.api.connector.sink2.CommittingSinkWriter;
+import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.SupportsCommitter;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
@@ -81,7 +85,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <IN> The input type of the sink.
  */
 @PublicEvolving
-public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommittable> {
+public class PulsarSink<IN> implements Sink<IN>, SupportsCommitter<PulsarCommittable> {
     private static final long serialVersionUID = 4416714587951282119L;
 
     private final SinkConfiguration sinkConfiguration;
@@ -129,7 +133,7 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
 
     @Internal
     @Override
-    public PrecommittingSinkWriter<IN, PulsarCommittable> createWriter(InitContext initContext)
+    public CommittingSinkWriter<IN, PulsarCommittable> createWriter(WriterInitContext initContext)
             throws PulsarClientException {
         return new PulsarWriter<>(
                 sinkConfiguration,
@@ -143,7 +147,7 @@ public class PulsarSink<IN> implements TwoPhaseCommittingSink<IN, PulsarCommitta
 
     @Internal
     @Override
-    public Committer<PulsarCommittable> createCommitter() {
+    public Committer<PulsarCommittable> createCommitter(CommitterInitContext context) {
         return new PulsarCommitter(sinkConfiguration);
     }
 

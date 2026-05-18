@@ -70,7 +70,7 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
 
     /** An interface for providing extra schema initial context for users. */
     @PublicEvolving
-    public interface PulsarInitializationContext extends InitializationContext {
+    interface PulsarInitializationContext extends InitializationContext {
 
         /** Return the internal client for extra dynamic features. */
         PulsarClient getPulsarClient();
