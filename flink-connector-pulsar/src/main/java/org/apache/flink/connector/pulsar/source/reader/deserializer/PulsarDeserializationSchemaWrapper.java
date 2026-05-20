@@ -55,7 +55,10 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
         byte[] bytes = message.getData();
         T instance = deserializationSchema.deserialize(bytes);
 
-        out.collect(instance);
+        // Per DeserializationSchema contract, null means "drop this record".
+        if (instance != null) {
+            out.collect(instance);
+        }
     }
 
     @Override

@@ -20,6 +20,8 @@ package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.configuration.Configuration;
@@ -50,6 +52,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -78,6 +82,28 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         schema.deserialize(message, collector);
 
         assertThat(collector.result).isNotNull().isEqualTo(content);
+    }
+
+    @Test
+    void wrapperDropsNullDeserializedRecord() throws Exception {
+        DeserializationSchema<String> nullReturningSchema =
+                new AbstractDeserializationSchema<String>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public String deserialize(byte[] message) {
+                        return null;
+                    }
+                };
+        PulsarDeserializationSchema<String> schema =
+                new PulsarDeserializationSchemaWrapper<>(nullReturningSchema);
+        schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
+
+        Message<byte[]> message = getMessage("ignored", String::getBytes);
+        CountingCollector<String> collector = new CountingCollector<>();
+        schema.deserialize(message, collector);
+
+        assertThat(collector.collected).isEmpty();
     }
 
     @Test
@@ -371,6 +397,22 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         ByteBuffer payload = ByteBuffer.wrap(bytes);
 
         return MessageImpl.create(metadata, payload, Schema.BYTES, "");
+    }
+
+    /** Collector that records every {@link #collect} invocation, including nulls. */
+    private static class CountingCollector<T> implements Collector<T> {
+
+        private final List<T> collected = new ArrayList<>();
+
+        @Override
+        public void collect(T record) {
+            collected.add(record);
+        }
+
+        @Override
+        public void close() {
+            // do nothing
+        }
     }
 
     /** This collector is used for collecting only one message. Used for test purpose. */
