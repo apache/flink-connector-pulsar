@@ -27,6 +27,7 @@ concurrency:
 jobs:
   compile_and_test:
     strategy:
+      max-parallel: 1
       matrix:
         flink: [ 2.2.1 ]
         jdk: [ '11, 17' ]
