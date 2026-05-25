@@ -11,6 +11,8 @@ import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 import org.apache.pulsar.client.impl.schema.generic.MultiVersionSchemaInfoProvider;
 import org.apache.pulsar.common.naming.TopicName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +24,9 @@ import java.util.Map;
 @Internal
 public class GenericRecordDeserializationSchema<T> implements PulsarDeserializationSchema<T> {
     private static final long serialVersionUID = 1133225716807307498L;
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(GenericRecordDeserializationSchema.class);
 
     private transient PulsarClientImpl client;
     private transient Map<String, AutoConsumeSchema> schemaMap;
@@ -38,7 +43,11 @@ public class GenericRecordDeserializationSchema<T> implements PulsarDeserializat
         GenericRecord element = schema.decode(message.getData(), message.getSchemaVersion());
         T msg = deserializer.deserialize(element);
 
-        out.collect(msg);
+        if (msg != null) {
+            out.collect(msg);
+        } else {
+            LOG.debug("Dropped null record for Pulsar message ID: {}", message.getMessageId());
+        }
     }
 
     @Override

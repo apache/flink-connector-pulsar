@@ -26,6 +26,8 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils.createTypeInformation;
 
@@ -38,6 +40,8 @@ import static org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils.
 @Internal
 public class PulsarSchemaWrapper<T> implements PulsarDeserializationSchema<T> {
     private static final long serialVersionUID = -4864701207257059158L;
+
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarSchemaWrapper.class);
 
     /** The serializable pulsar schema, it wrap the schema with type class. */
     private final PulsarSchema<T> pulsarSchema;
@@ -65,7 +69,11 @@ public class PulsarSchemaWrapper<T> implements PulsarDeserializationSchema<T> {
         byte[] bytes = message.getData();
         T instance = schema.decode(bytes);
 
-        out.collect(instance);
+        if (instance != null) {
+            out.collect(instance);
+        } else {
+            LOG.debug("Dropped null record for Pulsar message ID: {}", message.getMessageId());
+        }
     }
 
     @Override
