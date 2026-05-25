@@ -18,8 +18,8 @@
 
 package org.apache.flink.connector.pulsar.table;
 
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.IntType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.VarCharType;
@@ -37,13 +37,11 @@ class TableDataTypeUtilsTest {
 
     @Test
     void testStripRowPrefix() {
-        RowType rowType =
-                new RowType(
-                        Arrays.asList(
-                                new RowType.RowField("prefix_name", new VarCharType()),
-                                new RowType.RowField("prefix_age", new IntType()),
-                                new RowType.RowField("other_field", new VarCharType())));
-        DataType dataType = new FieldsDataType(rowType);
+        DataType dataType =
+                DataTypes.ROW(
+                        DataTypes.FIELD("prefix_name", DataTypes.STRING()),
+                        DataTypes.FIELD("prefix_age", DataTypes.INT()),
+                        DataTypes.FIELD("other_field", DataTypes.STRING()));
 
         DataType result = TableDataTypeUtils.stripRowPrefix(dataType, "prefix_");
 
@@ -53,12 +51,10 @@ class TableDataTypeUtilsTest {
 
     @Test
     void testStripRowPrefixNoMatch() {
-        RowType rowType =
-                new RowType(
-                        Arrays.asList(
-                                new RowType.RowField("name", new VarCharType()),
-                                new RowType.RowField("age", new IntType())));
-        DataType dataType = new FieldsDataType(rowType);
+        DataType dataType =
+                DataTypes.ROW(
+                        DataTypes.FIELD("name", DataTypes.STRING()),
+                        DataTypes.FIELD("age", DataTypes.INT()));
 
         DataType result = TableDataTypeUtils.stripRowPrefix(dataType, "prefix_");
 
@@ -68,7 +64,7 @@ class TableDataTypeUtilsTest {
 
     @Test
     void testStripRowPrefixThrowsForNonRowType() {
-        DataType dataType = new FieldsDataType(new IntType());
+        DataType dataType = DataTypes.INT();
 
         assertThatThrownBy(() -> TableDataTypeUtils.stripRowPrefix(dataType, "prefix_"))
                 .isInstanceOf(IllegalArgumentException.class)
