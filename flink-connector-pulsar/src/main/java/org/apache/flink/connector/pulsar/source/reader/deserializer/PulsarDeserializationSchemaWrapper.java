@@ -25,6 +25,8 @@ import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
 import org.apache.flink.util.Collector;
 
 import org.apache.pulsar.client.api.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link PulsarDeserializationSchema} implementation which based on the given flink's {@link
@@ -36,6 +38,9 @@ import org.apache.pulsar.client.api.Message;
 @Internal
 public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializationSchema<T> {
     private static final long serialVersionUID = -630646912412751300L;
+
+    private static final Logger LOG =
+            LoggerFactory.getLogger(PulsarDeserializationSchemaWrapper.class);
 
     private final DeserializationSchema<T> deserializationSchema;
 
@@ -55,7 +60,12 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
         byte[] bytes = message.getData();
         T instance = deserializationSchema.deserialize(bytes);
 
-        out.collect(instance);
+        // Per DeserializationSchema contract, null means "drop this record".
+        if (instance != null) {
+            out.collect(instance);
+        } else {
+            LOG.debug("Dropped null record for Pulsar message ID: {}", message.getMessageId());
+        }
     }
 
     @Override

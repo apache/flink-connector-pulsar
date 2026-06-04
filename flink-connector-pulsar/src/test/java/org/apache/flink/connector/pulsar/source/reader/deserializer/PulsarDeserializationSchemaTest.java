@@ -20,10 +20,16 @@ package org.apache.flink.connector.pulsar.source.reader.deserializer;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.util.ListCollector;
+import org.apache.flink.api.common.serialization.AbstractDeserializationSchema;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.SampleMessage.TestMessage;
+import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
 import org.apache.flink.connector.pulsar.source.PulsarSource;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.config.SourceConfiguration;
@@ -32,6 +38,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.PulsarDeserializationSchema.PulsarInitializationContext;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.flink.connector.testutils.source.deserialization.TestingDeserializationContext;
+import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataOutputSerializer;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.StringValue;
@@ -49,7 +56,10 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -59,6 +69,9 @@ import static org.apache.flink.util.Preconditions.checkState;
 import static org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link PulsarDeserializationSchema}. */
 class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
@@ -78,6 +91,63 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         schema.deserialize(message, collector);
 
         assertThat(collector.result).isNotNull().isEqualTo(content);
+    }
+
+    @Test
+    void wrapperDropsNullDeserializedRecord() throws Exception {
+        DeserializationSchema<String> nullReturningSchema =
+                new AbstractDeserializationSchema<String>() {
+                    private static final long serialVersionUID = 1L;
+
+                    @Override
+                    public String deserialize(byte[] message) {
+                        return null;
+                    }
+                };
+        PulsarDeserializationSchema<String> schema =
+                new PulsarDeserializationSchemaWrapper<>(nullReturningSchema);
+        schema.open(new PulsarTestingDeserializationContext(), sourceConfig);
+
+        Message<byte[]> message = getMessage("ignored", String::getBytes);
+        List<String> records = new ArrayList<>();
+        ListCollector<String> collector = new ListCollector<>(records);
+        schema.deserialize(message, collector);
+
+        assertThat(records).isEmpty();
+    }
+
+    @Test
+    void pulsarSchemaWrapperDropsNullDecodedRecord() throws Exception {
+        @SuppressWarnings("unchecked")
+        Schema<String> pulsarSchema = mock(Schema.class);
+        when(pulsarSchema.decode(any(byte[].class))).thenReturn(null);
+        PulsarSchema<String> serializableSchema = new PulsarSchema<>(Schema.STRING);
+        setPulsarSchema(serializableSchema, pulsarSchema);
+        PulsarDeserializationSchema<String> schema = new PulsarSchemaWrapper<>(serializableSchema);
+
+        Message<byte[]> message = getMessage("ignored", String::getBytes);
+        List<String> records = new ArrayList<>();
+        schema.deserialize(message, new ListCollector<>(records));
+
+        assertThat(records).isEmpty();
+    }
+
+    @Test
+    void typeInformationWrapperDropsNullDeserializedRecord() throws Exception {
+        @SuppressWarnings("unchecked")
+        TypeInformation<String> typeInformation = mock(TypeInformation.class);
+        @SuppressWarnings("unchecked")
+        TypeSerializer<String> serializer = mock(TypeSerializer.class);
+        when(typeInformation.createSerializer(any(ExecutionConfig.class))).thenReturn(serializer);
+        when(serializer.deserialize(any(DataInputView.class))).thenReturn(null);
+        PulsarDeserializationSchema<String> schema =
+                new PulsarTypeInformationWrapper<>(typeInformation, new ExecutionConfig());
+
+        Message<byte[]> message = getMessage("ignored", String::getBytes);
+        List<String> records = new ArrayList<>();
+        schema.deserialize(message, new ListCollector<>(records));
+
+        assertThat(records).isEmpty();
     }
 
     @Test
@@ -371,6 +441,13 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
         ByteBuffer payload = ByteBuffer.wrap(bytes);
 
         return MessageImpl.create(metadata, payload, Schema.BYTES, "");
+    }
+
+    private static <T> void setPulsarSchema(PulsarSchema<T> serializableSchema, Schema<T> schema)
+            throws Exception {
+        Field schemaField = PulsarSchema.class.getDeclaredField("schema");
+        schemaField.setAccessible(true);
+        schemaField.set(serializableSchema, schema);
     }
 
     /** This collector is used for collecting only one message. Used for test purpose. */

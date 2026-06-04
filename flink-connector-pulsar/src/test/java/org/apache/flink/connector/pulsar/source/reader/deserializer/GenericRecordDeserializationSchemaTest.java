@@ -107,6 +107,36 @@ class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
         }
     }
 
+    @Test
+    void deserializeDropsNullRecords() throws Exception {
+        String topic = "generic-record-null-" + randomAlphanumeric(10);
+        operator().createTopic(topic, 1);
+
+        Bar bar = new Bar(random.nextBoolean(), randomAlphanumeric(10));
+        operator().sendMessage(topic, Schema.AVRO(Bar.class), bar);
+
+        PulsarSource<String> source =
+                PulsarSource.builder()
+                        .setDeserializationSchema(
+                                new GenericRecordDeserializationSchema<>(
+                                        new NullReturningGenericRecordDeserializer()))
+                        .setServiceUrl(operator().serviceUrl())
+                        .setTopics(topic)
+                        .setStartCursor(StartCursor.earliest())
+                        .setBoundedStopCursor(StopCursor.latest())
+                        .setSubscriptionName("generic-record-null")
+                        .build();
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+
+        DataStreamSource<String> stream =
+                env.fromSource(source, noWatermarks(), "null-record-deserializer");
+        List<String> results = stream.executeAndCollect(1);
+
+        assertThat(results).isEmpty();
+    }
+
     @Override
     protected PulsarRuntime runtime() {
         return PulsarRuntime.container();
@@ -130,6 +160,22 @@ class GenericRecordDeserializationSchemaTest extends PulsarTestSuiteBase {
                             org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord.class);
 
             return object.toString();
+        }
+
+        @Override
+        public TypeInformation<String> getProducedType() {
+            return Types.STRING;
+        }
+    }
+
+    private static class NullReturningGenericRecordDeserializer
+            implements GenericRecordDeserializer<String> {
+        private static final long serialVersionUID = 5260115535492423071L;
+
+        @Override
+        public String deserialize(GenericRecord message) {
+            assertThat(message.getSchemaType()).isEqualTo(SchemaType.AVRO);
+            return null;
         }
 
         @Override
