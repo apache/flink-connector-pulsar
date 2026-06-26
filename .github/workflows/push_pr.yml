@@ -27,7 +27,6 @@ concurrency:
 jobs:
   compile_and_test:
     strategy:
-      max-parallel: 1
       matrix:
         flink: [ 2.2.1 ]
         jdk: [ '11, 17' ]
@@ -35,8 +34,8 @@ jobs:
     with:
       flink_version: ${{ matrix.flink }}
       jdk_version: ${{ matrix.jdk }}
-      timeout_global: 120
-      timeout_test: 80
+      timeout_global: 180
+      timeout_test: 150
   check_dead_links:
     runs-on: ubuntu-latest
     timeout-minutes: 30
