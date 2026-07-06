@@ -23,7 +23,6 @@ import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema.InitializationContext;
 import org.apache.flink.api.connector.sink2.CommittingSinkWriter;
-import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
@@ -58,6 +57,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.Collections.emptyList;
+import static org.apache.flink.api.connector.sink2.SinkWriter.Context;
 import static org.apache.flink.util.IOUtils.closeAll;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -140,8 +140,7 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
     }
 
     @Override
-    public void write(IN element, SinkWriter.Context context)
-            throws IOException, InterruptedException {
+    public void write(IN element, Context context) throws IOException, InterruptedException {
         PulsarMessage<?> message = serializationSchema.serialize(element, sinkContext);
 
         // Choose the right topic to send.
@@ -187,8 +186,7 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private TypedMessageBuilder<?> createMessageBuilder(
-            String topic, SinkWriter.Context context, PulsarMessage<?> message)
-            throws PulsarClientException {
+            String topic, Context context, PulsarMessage<?> message) throws PulsarClientException {
 
         Schema<?> schema = message.getSchema();
         TypedMessageBuilder<?> builder = producerRegister.createMessageBuilder(topic, schema);

@@ -19,10 +19,12 @@
 package org.apache.flink.connector.pulsar.table;
 
 import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.pulsar.table.testutils.TestingUser;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.sink.legacy.SinkFunction;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.test.util.SuccessException;
@@ -135,8 +137,8 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         randomTableName);
 
         DataStream<Row> result = tableEnv.toDataStream(tableEnv.sqlQuery(query));
-        TestingSinkFunction sink = new TestingSinkFunction(2);
-        result.addSink(sink).setParallelism(1);
+        TestingSink sink = new TestingSink(2);
+        result.sinkTo(sink).setParallelism(1);
 
         try {
             env.execute("Job_2");
@@ -149,10 +151,10 @@ public class PulsarTableITCase extends PulsarTableTestBase {
 
         List<String> expected =
                 Arrays.asList(
-                        "+I[2019-12-12 00:00:05.000, 2019-12-12, 00:00:03, 2019-12-12 00:00:04.004, 3, 50.00]",
-                        "+I[2019-12-12 00:00:10.000, 2019-12-12, 00:00:05, 2019-12-12 00:00:06.006, 2, 5.33]");
+                        "+I[2019-12-12 00:00:05.000, 2019-12-12, 00:00:03.0, 2019-12-12 00:00:04.004, 3, 50.00]",
+                        "+I[2019-12-12 00:00:10.000, 2019-12-12, 00:00:05.0, 2019-12-12 00:00:06.006, 2, 5.33]");
 
-        assertThat(TestingSinkFunction.rows).isEqualTo(expected);
+        assertThat(TestingSink.rows).isEqualTo(expected);
     }
 
     @ParameterizedTest
@@ -592,26 +594,46 @@ public class PulsarTableITCase extends PulsarTableTestBase {
                         });
     }
 
-    private static final class TestingSinkFunction implements SinkFunction<Row> {
+    private static final class TestingSink implements Sink<Row> {
 
         private static final long serialVersionUID = 455430015321124493L;
         private static List<String> rows = new ArrayList<>();
 
         private final int expectedSize;
 
-        private TestingSinkFunction(int expectedSize) {
+        private TestingSink(int expectedSize) {
             this.expectedSize = expectedSize;
             rows.clear();
         }
 
         @Override
-        public void invoke(Row value, Context context) {
-            rows.add(value.toString());
-            if (rows.size() >= expectedSize) {
+        public SinkWriter<Row> createWriter(WriterInitContext context) {
+            return new TestingSinkWriter(expectedSize);
+        }
+    }
+
+    private static final class TestingSinkWriter implements SinkWriter<Row> {
+
+        private final int expectedSize;
+
+        private TestingSinkWriter(int expectedSize) {
+            this.expectedSize = expectedSize;
+        }
+
+        @Override
+        public void write(Row element, Context context) {
+            TestingSink.rows.add(element.toString());
+            if (TestingSink.rows.size() >= expectedSize) {
                 // job finish
                 throw new SuccessException();
             }
         }
+
+        @Override
+        public void flush(boolean endOfInput) {}
+
+        @Override
+        public void close() {}
     }
 
     private static boolean isCausedByJobFinished(Throwable e) {

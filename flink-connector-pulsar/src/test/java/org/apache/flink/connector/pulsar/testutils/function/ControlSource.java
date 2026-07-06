@@ -1,5 +1,5 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
+ * Licensed to the Apache Software Foundation (ASF)
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -18,14 +18,12 @@
 
 package org.apache.flink.connector.pulsar.testutils.function;
 
-import org.apache.flink.api.common.functions.AbstractRichFunction;
-import org.apache.flink.api.common.state.CheckpointListener;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.connector.source.util.ratelimit.RateLimiterStrategy;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.datagen.source.DataGeneratorSource;
+import org.apache.flink.connector.datagen.source.GeneratorFunction;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
-import org.apache.flink.runtime.state.FunctionInitializationContext;
-import org.apache.flink.runtime.state.FunctionSnapshotContext;
-import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
-import org.apache.flink.streaming.api.functions.source.legacy.SourceFunction;
 import org.apache.flink.testutils.junit.SharedObjectsExtension;
 import org.apache.flink.testutils.junit.SharedReference;
 
@@ -34,7 +32,6 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
-import org.apache.pulsar.shade.com.google.common.util.concurrent.Uninterruptibles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +39,6 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,17 +51,15 @@ import static org.apache.pulsar.client.api.SubscriptionType.Exclusive;
 
 /**
  * This source is used for testing in Pulsar sink. We would generate a fix number of records by the
- * topic name and message index.
+ * topic name and message index. It wraps a {@link DataGeneratorSource} so the connector test code
+ * does not depend on the legacy {@code SourceFunction} API in Flink 2.x.
  */
-public class ControlSource extends AbstractRichFunction
-        implements SourceFunction<String>, CheckpointListener, CheckpointedFunction {
-    private static final long serialVersionUID = -3124248855144675017L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(StopSignal.class);
+public class ControlSource {
 
     private final SharedReference<MessageGenerator> sharedGenerator;
     private final SharedReference<StopSignal> sharedSignal;
-    private Object lock;
+    private final int messageCounts;
+    private final Duration interval;
 
     public ControlSource(
             SharedObjectsExtension sharedObjects,
@@ -76,28 +70,23 @@ public class ControlSource extends AbstractRichFunction
             Duration interval,
             Duration timeout)
             throws PulsarClientException {
-        MessageGenerator generator =
-                new MessageGenerator(topic, guarantee, messageCounts, interval);
+        MessageGenerator generator = new MessageGenerator(topic, guarantee, messageCounts);
         StopSignal signal = new StopSignal(operator, topic, messageCounts, timeout);
 
         this.sharedGenerator = sharedObjects.add(generator);
         this.sharedSignal = sharedObjects.add(signal);
+        this.messageCounts = messageCounts;
+        this.interval = interval;
     }
 
-    @Override
-    public void run(SourceContext<String> ctx) {
-        MessageGenerator generator = sharedGenerator.get();
-        StopSignal signal = sharedSignal.get();
-        this.lock = ctx.getCheckpointLock();
-
-        while (!signal.canStop()) {
-            synchronized (lock) {
-                if (generator.hasNext()) {
-                    String message = generator.next();
-                    ctx.collect(message);
-                }
-            }
-        }
+    /** Creates the bounded {@link DataGeneratorSource} that drives this control source. */
+    public DataGeneratorSource<String> createSource() {
+        double permitsPerSecond = 1000.0 / Math.max(1, interval.toMillis());
+        return new DataGeneratorSource<>(
+                new MessageGeneratorFunction(sharedGenerator),
+                messageCounts,
+                RateLimiterStrategy.perSecond(permitsPerSecond),
+                TypeInformation.of(String.class));
     }
 
     public List<String> getExpectedRecords() {
@@ -110,70 +99,39 @@ public class ControlSource extends AbstractRichFunction
         return signal.getConsumedRecords();
     }
 
-    @Override
-    public void cancel() {
-        LOG.warn("Triggering cancel action. Set the stop timeout to zero.");
-        StopSignal signal = sharedSignal.get();
-        signal.deadline.set(System.currentTimeMillis());
+    /** Bridges the {@link DataGeneratorSource} index into a concrete Pulsar message string. */
+    private static final class MessageGeneratorFunction implements GeneratorFunction<Long, String> {
+
+        private static final long serialVersionUID = 1L;
+
+        private final SharedReference<MessageGenerator> sharedGenerator;
+
+        MessageGeneratorFunction(SharedReference<MessageGenerator> sharedGenerator) {
+            this.sharedGenerator = sharedGenerator;
+        }
+
+        @Override
+        public String map(Long index) {
+            return sharedGenerator.get().generate(index);
+        }
     }
 
-    @Override
-    public void close() throws Exception {
-        StopSignal signal = sharedSignal.get();
-        signal.close();
-    }
-
-    @Override
-    public void notifyCheckpointComplete(long checkpointId) {
-        // Nothing to do.
-    }
-
-    @Override
-    public void snapshotState(FunctionSnapshotContext context) {
-        // Nothing to do.
-    }
-
-    @Override
-    public void initializeState(FunctionInitializationContext context) {
-        // Nothing to do.
-    }
-
-    private static class MessageGenerator implements Iterator<String> {
+    private static class MessageGenerator {
 
         private final String topic;
         private final DeliveryGuarantee guarantee;
-        private final int messageCounts;
         private final List<String> expectedRecords;
-        private final Duration interval;
 
-        public MessageGenerator(
-                String topic, DeliveryGuarantee guarantee, int messageCounts, Duration interval) {
+        public MessageGenerator(String topic, DeliveryGuarantee guarantee, int messageCounts) {
             this.topic = topic;
             this.guarantee = guarantee;
-            this.messageCounts = messageCounts;
             this.expectedRecords = new ArrayList<>(messageCounts);
-            this.interval = interval;
         }
 
-        @Override
-        public boolean hasNext() {
-            return messageCounts > expectedRecords.size();
-        }
-
-        @Override
-        public String next() {
+        public String generate(long index) {
             String content =
-                    guarantee.name()
-                            + "-"
-                            + topic
-                            + "-"
-                            + expectedRecords.size()
-                            + "-"
-                            + randomAlphanumeric(10);
+                    guarantee.name() + "-" + topic + "-" + index + "-" + randomAlphanumeric(10);
             expectedRecords.add(content);
-
-            // Make sure the message was generated in the fixed interval.
-            Uninterruptibles.sleepUninterruptibly(interval);
             return content;
         }
 

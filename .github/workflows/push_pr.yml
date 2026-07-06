@@ -28,7 +28,9 @@ jobs:
   compile_and_test:
     strategy:
       matrix:
-        flink: [ 2.2.1 ]
+        # Run this PR against all supported Flink 2.x lines first; once CI is
+        # green we narrow the per-push matrix back to the latest release.
+        flink: [ '2.0.0', '2.1.0', '2.2.1', '2.3.0' ]
         jdk: [ '11, 17' ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:

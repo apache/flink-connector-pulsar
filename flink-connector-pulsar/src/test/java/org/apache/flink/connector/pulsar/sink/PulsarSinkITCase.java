@@ -18,6 +18,7 @@
 
 package org.apache.flink.connector.pulsar.sink;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.MiniClusterTestEnvironment;
@@ -142,7 +143,11 @@ class PulsarSinkITCase {
             if (guarantee != DeliveryGuarantee.NONE) {
                 env.enableCheckpointing(500L);
             }
-            env.addSource(source).sinkTo(sink);
+            env.fromSource(
+                            source.createSource(),
+                            WatermarkStrategy.noWatermarks(),
+                            "pulsar-sink-control")
+                    .sinkTo(sink);
             env.execute();
 
             List<String> expectedRecords = source.getExpectedRecords();

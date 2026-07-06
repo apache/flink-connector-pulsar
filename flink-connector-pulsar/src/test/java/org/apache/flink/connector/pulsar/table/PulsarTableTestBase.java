@@ -18,6 +18,8 @@
 
 package org.apache.flink.connector.pulsar.table;
 
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.pulsar.common.MiniClusterTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
@@ -31,6 +33,8 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
+
+import static org.apache.flink.configuration.RestartStrategyOptions.RestartStrategyType.NO_RESTART_STRATEGY;
 
 /** Base class for Pulsar table integration test. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -55,7 +59,9 @@ public abstract class PulsarTableTestBase {
     public void beforeAll() throws Exception {
         pulsar.startUp();
         // run env
-        env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration conf = new Configuration();
+        conf.set(RestartStrategyOptions.RESTART_STRATEGY, NO_RESTART_STRATEGY.getMainValue());
+        env = StreamExecutionEnvironment.getExecutionEnvironment(conf);
         env.setParallelism(DEFAULT_PARALLELISM);
         tableEnv = StreamTableEnvironment.create(env);
         tableEnv.getConfig()

@@ -51,7 +51,7 @@ under the License.
     </modules>
 
     <properties>
-        <flink.version>2.2.1</flink.version>
+        <flink.version>2.3.0</flink.version>
         <pulsar.version>3.0.5</pulsar.version>
         <scala.binary.version>2.12</scala.binary.version>
         <bouncycastle.version>1.69</bouncycastle.version>
