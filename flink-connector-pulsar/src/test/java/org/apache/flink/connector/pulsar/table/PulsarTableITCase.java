@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
@@ -149,12 +150,22 @@ public class PulsarTableITCase extends PulsarTableTestBase {
             }
         }
 
+        // CAST(TIME AS VARCHAR) shows a trailing ".0" for the fractional part on
+        // Flink 2.2+ but not on 2.0/2.1. Strip the all-zero fraction from the
+        // standalone TIME field so the assertion is stable across the whole CI
+        // matrix (2.0.2 / 2.1.3 / 2.2.1 / 2.3.0). TIMESTAMP fields are not
+        // affected: they carry a date prefix and the regex requires ", HH:mm:ss".
+        List<String> actual =
+                TestingSink.rows.stream()
+                        .map(row -> row.replaceAll(", (\\d{2}:\\d{2}:\\d{2})\\.0+, ", ", $1, "))
+                        .collect(Collectors.toList());
+
         List<String> expected =
                 Arrays.asList(
-                        "+I[2019-12-12 00:00:05.000, 2019-12-12, 00:00:03.0, 2019-12-12 00:00:04.004, 3, 50.00]",
-                        "+I[2019-12-12 00:00:10.000, 2019-12-12, 00:00:05.0, 2019-12-12 00:00:06.006, 2, 5.33]");
+                        "+I[2019-12-12 00:00:05.000, 2019-12-12, 00:00:03, 2019-12-12 00:00:04.004, 3, 50.00]",
+                        "+I[2019-12-12 00:00:10.000, 2019-12-12, 00:00:05, 2019-12-12 00:00:06.006, 2, 5.33]");
 
-        assertThat(TestingSink.rows).isEqualTo(expected);
+        assertThat(actual).isEqualTo(expected);
     }
 
     @ParameterizedTest
