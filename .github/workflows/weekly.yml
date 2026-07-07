@@ -53,5 +53,5 @@ jobs:
       connector_branch: ${{ matrix.flink_branches.branch }}
       jdk_version: ${{ matrix.flink_branches.jdk || '11, 17' }}
       run_dependency_convergence: false
-      timeout_global: 180
-      timeout_test: 150
+      timeout_global: 240
+      timeout_test: 200

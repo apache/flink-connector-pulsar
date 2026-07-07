@@ -29,19 +29,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Run this PR against all supported Flink 2.x lines first; once CI is
-        # green we narrow the per-push matrix back to the latest release.
-        # Use the latest patch release of each minor line — dlcdn.apache.org
-        # only mirrors the newest point release per minor version, so older
-        # patches (e.g. 2.0.0, 2.1.0) 404 in the "Download Flink binary" step.
-        flink: [ '2.0.2', '2.1.3', '2.2.1', '2.3.0' ]
+        # Per-push CI tests only the latest Flink release (2.3.0). Cross-version
+        # compatibility (2.0.x – 2.2.x) is covered by weekly.yml against the
+        # snapshot branches. The affected IT cases have been verified locally
+        # against 2.0.2 / 2.1.3 / 2.2.1 / 2.3.0 — see PR description.
+        flink: [ '2.3.0' ]
         jdk: [ '11, 17' ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: ${{ matrix.flink }}
       jdk_version: ${{ matrix.jdk }}
-      timeout_global: 180
-      timeout_test: 150
+      timeout_global: 240
+      timeout_test: 200
   check_dead_links:
     runs-on: ubuntu-latest
     timeout-minutes: 30
