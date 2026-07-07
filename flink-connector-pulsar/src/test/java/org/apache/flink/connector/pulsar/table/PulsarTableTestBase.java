@@ -67,6 +67,9 @@ public abstract class PulsarTableTestBase {
         tableEnv.getConfig()
                 .getConfiguration()
                 .setString("table.dynamic-table-options.enabled", "true");
+        tableEnv.getConfig()
+                .getConfiguration()
+                .setString("table.exec.sink.require-on-conflict", "false");
     }
 
     public void createTestTopic(String topic, int numPartitions) throws Exception {

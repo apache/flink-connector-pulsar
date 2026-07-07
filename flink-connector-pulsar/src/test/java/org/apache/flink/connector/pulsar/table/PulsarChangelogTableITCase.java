@@ -248,8 +248,7 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
                         "INSERT INTO canal_sink "
                                 + "SELECT origin_topic, origin_database, origin_table, origin_sql_type, "
                                 + "origin_pk_names, origin_ts, origin_es, name "
-                                + "FROM canal_source "
-                                + "ON CONFLICT DO DEDUPLICATE");
+                                + "FROM canal_source");
 
         /*
          * Canal captures change data on the `products` table:
@@ -387,8 +386,7 @@ public class PulsarChangelogTableITCase extends PulsarTableTestBase {
                         "INSERT INTO maxwell_sink "
                                 + "SELECT origin_topic, origin_database, origin_table, origin_primary_key_columns, "
                                 + "origin_ts, name "
-                                + "FROM maxwell_source "
-                                + "ON CONFLICT DO DEDUPLICATE");
+                                + "FROM maxwell_source");
 
         /*
          * Maxwell captures change data on the `products` table:
