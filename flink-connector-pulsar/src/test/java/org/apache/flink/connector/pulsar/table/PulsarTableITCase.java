@@ -151,10 +151,11 @@ public class PulsarTableITCase extends PulsarTableTestBase {
         }
 
         // CAST(TIME AS VARCHAR) shows a trailing ".0" for the fractional part on
-        // Flink 2.2+ but not on 2.0/2.1. Strip the all-zero fraction from the
-        // standalone TIME field so the assertion is stable across the whole CI
-        // matrix (2.0.2 / 2.1.3 / 2.2.1 / 2.3.0). TIMESTAMP fields are not
-        // affected: they carry a date prefix and the regex requires ", HH:mm:ss".
+        // Flink 2.2+ but not on 2.0/2.1 (see FLINK-26551 which disabled the
+        // legacy cast behaviour by default). Strip the all-zero fraction from
+        // the standalone TIME field so the assertion is stable across the whole
+        // CI matrix (2.0.x ~ 2.3.x). TIMESTAMP fields are not affected: they
+        // carry a date prefix and the regex requires ", HH:mm:ss".
         List<String> actual =
                 TestingSink.rows.stream()
                         .map(row -> row.replaceAll(", (\\d{2}:\\d{2}:\\d{2})\\.0+, ", ", $1, "))

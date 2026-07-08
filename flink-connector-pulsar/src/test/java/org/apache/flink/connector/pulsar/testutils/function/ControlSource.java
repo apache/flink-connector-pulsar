@@ -1,5 +1,5 @@
 /*
- * Licensed to the Apache Software Foundation (ASF)
+ * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -51,8 +51,7 @@ import static org.apache.pulsar.client.api.SubscriptionType.Exclusive;
 
 /**
  * This source is used for testing in Pulsar sink. We would generate a fix number of records by the
- * topic name and message index. It wraps a {@link DataGeneratorSource} so the connector test code
- * does not depend on the legacy {@code SourceFunction} API in Flink 2.x.
+ * topic name and message index.
  */
 public class ControlSource {
 

@@ -33,6 +33,8 @@ jobs:
       matrix:
         # Track the latest snapshot of every supported Flink 2.x line so we
         # catch breaking changes in Flink before they ship a release.
+        # The v4.2 entry tests the latest released connector (based on Flink
+        # 1.20.4) for backward compatibility; it needs JDK 8.
         flink_branches: [{
           flink: 2.0-SNAPSHOT,
           branch: main
@@ -45,6 +47,10 @@ jobs:
         }, {
           flink: 2.3-SNAPSHOT,
           branch: main
+        }, {
+          flink: 1.20.4,
+          branch: v4.2,
+          jdk: '8, 11, 17'
         }
         ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
