@@ -28,14 +28,14 @@ jobs:
   compile_and_test:
     strategy:
       matrix:
-        flink: [ 1.20.4 ]
-        jdk: [ '8, 11, 17' ]
+        flink: [ '2.3.0' ]
+        jdk: [ '11, 17' ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: ${{ matrix.flink }}
       jdk_version: ${{ matrix.jdk }}
-      timeout_global: 120
-      timeout_test: 80
+      timeout_global: 240
+      timeout_test: 200
   check_dead_links:
     runs-on: ubuntu-latest
     timeout-minutes: 30

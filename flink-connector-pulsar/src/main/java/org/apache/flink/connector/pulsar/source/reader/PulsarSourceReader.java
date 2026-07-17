@@ -22,10 +22,8 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceReaderContext;
-import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SourceReaderBase;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.schema.BytesSchema;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchema;
@@ -84,14 +82,12 @@ public class PulsarSourceReader<OUT>
     private ScheduledExecutorService cursorScheduler;
 
     private PulsarSourceReader(
-            FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue,
             PulsarSourceFetcherManager fetcherManager,
             PulsarDeserializationSchema<OUT> deserializationSchema,
             SourceConfiguration sourceConfiguration,
             PulsarClient pulsarClient,
             SourceReaderContext context) {
         super(
-                elementsQueue,
                 fetcherManager,
                 new PulsarRecordEmitter<>(deserializationSchema),
                 sourceConfiguration,
@@ -252,11 +248,6 @@ public class PulsarSourceReader<OUT>
             SourceReaderContext readerContext)
             throws Exception {
 
-        // Create a message queue with the predefined source option.
-        int queueCapacity = sourceConfiguration.getMessageQueueCapacity();
-        FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue =
-                new FutureCompletingBlockingQueue<>(queueCapacity);
-
         PulsarClient pulsarClient = createClient(sourceConfiguration);
 
         // Initialize the deserialization schema before creating the pulsar reader.
@@ -287,10 +278,9 @@ public class PulsarSourceReader<OUT>
 
         PulsarSourceFetcherManager fetcherManager =
                 new PulsarSourceFetcherManager(
-                        elementsQueue, splitReaderSupplier, readerContext.getConfiguration());
+                        splitReaderSupplier, readerContext.getConfiguration());
 
         return new PulsarSourceReader<>(
-                elementsQueue,
                 fetcherManager,
                 deserializationSchema,
                 sourceConfiguration,

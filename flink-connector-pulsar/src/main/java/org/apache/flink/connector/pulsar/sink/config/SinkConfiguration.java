@@ -19,7 +19,7 @@
 package org.apache.flink.connector.pulsar.sink.config;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.connector.sink2.Sink.InitContext;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.config.PulsarConfiguration;
@@ -80,9 +80,9 @@ public class SinkConfiguration extends PulsarConfiguration {
     /**
      * Pulsar's transactions have a timeout mechanism for the uncommitted transaction. We use
      * transactions for making sure the message could be written only once. Since the checkpoint
-     * interval couldn't be acquired from {@link InitContext}, we have to expose this option. Make
-     * sure this value is greater than the checkpoint interval. Create a pulsar producer builder by
-     * using the given Configuration.
+     * interval couldn't be acquired from {@link WriterInitContext}, we have to expose this option.
+     * Make sure this value is greater than the checkpoint interval. Create a pulsar producer
+     * builder by using the given Configuration.
      */
     public long getTransactionTimeoutMillis() {
         return transactionTimeoutMillis;

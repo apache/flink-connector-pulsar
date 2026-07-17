@@ -18,7 +18,7 @@
 
 package org.apache.flink.connector.pulsar.common.schema.factories;
 
-import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.serialization.SerializerConfigImpl;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.ComparatorTestBase.TestInputView;
 import org.apache.flink.api.common.typeutils.ComparatorTestBase.TestOutputView;
@@ -91,7 +91,7 @@ class AvroSchemaFactoryTest {
 
         // Serialize by type information.
         TypeSerializer<StructWithAnnotations> serializer =
-                information.createSerializer(new ExecutionConfig());
+                information.createSerializer(new SerializerConfigImpl());
         // TypeInformation serialization.
         assertThatCode(() -> InstantiationUtil.clone(information)).doesNotThrowAnyException();
         assertThatCode(() -> InstantiationUtil.clone(serializer)).doesNotThrowAnyException();

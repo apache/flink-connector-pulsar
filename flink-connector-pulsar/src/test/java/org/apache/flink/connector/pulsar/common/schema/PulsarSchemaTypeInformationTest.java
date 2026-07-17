@@ -18,7 +18,7 @@
 
 package org.apache.flink.connector.pulsar.common.schema;
 
-import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.serialization.SerializerConfigImpl;
 import org.apache.flink.connector.pulsar.testutils.SampleData.Bar;
 import org.apache.flink.util.InstantiationUtil;
 
@@ -40,7 +40,7 @@ class PulsarSchemaTypeInformationTest {
         PulsarSchemaTypeInformation<Bar> clonedInfo = InstantiationUtil.clone(info);
         assertThat(clonedInfo).isEqualTo(info).isNotSameAs(info);
 
-        assertThatCode(() -> info.createSerializer(new ExecutionConfig()))
+        assertThatCode(() -> info.createSerializer(new SerializerConfigImpl()))
                 .doesNotThrowAnyException();
 
         assertThat(clonedInfo.getTypeClass()).isEqualTo(info.getTypeClass());

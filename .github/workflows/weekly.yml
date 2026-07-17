@@ -29,20 +29,35 @@ jobs:
   compile_and_test:
     if: github.repository_owner == 'apache'
     strategy:
+      fail-fast: false
       matrix:
+        # Track the latest snapshot of every supported Flink 2.x line so we
+        # catch breaking changes in Flink before they ship a release.
+        # The v4.2 entry tests the latest released connector (based on Flink
+        # 1.20.4) for backward compatibility; it needs JDK 8.
         flink_branches: [{
-          flink: 1.20-SNAPSHOT,
+          flink: 2.0-SNAPSHOT,
+          branch: main
+        }, {
+          flink: 2.1-SNAPSHOT,
+          branch: main
+        }, {
+          flink: 2.2-SNAPSHOT,
+          branch: main
+        }, {
+          flink: 2.3-SNAPSHOT,
           branch: main
         }, {
           flink: 1.20.4,
-          branch: v4.2
+          branch: v4.2,
+          jdk: '8, 11, 17'
         }
         ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: ${{ matrix.flink_branches.flink }}
       connector_branch: ${{ matrix.flink_branches.branch }}
-      jdk_version: ${{ matrix.flink_branches.jdk || '8, 11, 17' }}
+      jdk_version: ${{ matrix.flink_branches.jdk || '11, 17' }}
       run_dependency_convergence: false
-      timeout_global: 120
-      timeout_test: 80
+      timeout_global: 240
+      timeout_test: 200

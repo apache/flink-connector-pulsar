@@ -19,8 +19,8 @@
 package org.apache.flink.connector.pulsar.source;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.serialization.SerializerConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.configuration.ConfigOption;
@@ -434,7 +434,7 @@ public final class PulsarSourceBuilder<OUT> {
      * only used for treating messages that was written into pulsar by {@link TypeInformation}.
      */
     public <T extends OUT> PulsarSourceBuilder<T> setDeserializationSchema(
-            TypeInformation<T> information, ExecutionConfig config) {
+            TypeInformation<T> information, SerializerConfig config) {
         return setDeserializationSchema(new PulsarTypeInformationWrapper<>(information, config));
     }
 
