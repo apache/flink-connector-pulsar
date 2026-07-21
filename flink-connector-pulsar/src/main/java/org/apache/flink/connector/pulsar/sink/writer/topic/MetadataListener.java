@@ -27,10 +27,9 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.util.FlinkRuntimeException;
 
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 import org.apache.pulsar.shade.com.google.common.cache.CacheBuilder;
 import org.apache.pulsar.shade.com.google.common.cache.CacheLoader;
 import org.apache.pulsar.shade.com.google.common.cache.LoadingCache;
@@ -69,7 +68,7 @@ public class MetadataListener implements Serializable, Closeable {
     private ImmutableList<TopicPartition> availablePartitions;
 
     // Dynamic fields.
-    private transient PulsarClientImpl clientImpl;
+    private transient PulsarClient client;
     private transient Long topicMetadataRefreshInterval;
     private transient ProcessingTimeService timeService;
     private transient LoadingCache<String, Optional<Integer>> topicPartitionCache;
@@ -99,7 +98,7 @@ public class MetadataListener implements Serializable, Closeable {
     public void open(SinkConfiguration sinkConfiguration, ProcessingTimeService timeService)
             throws PulsarClientException {
         // Initialize listener properties.
-        this.clientImpl = (PulsarClientImpl) createClient(sinkConfiguration);
+        this.client = createClient(sinkConfiguration);
         this.topicMetadataRefreshInterval = sinkConfiguration.getTopicMetadataRefreshInterval();
         this.timeService = timeService;
         this.topicPartitionCache =
@@ -111,9 +110,12 @@ public class MetadataListener implements Serializable, Closeable {
                                     @ParametersAreNonnullByDefault
                                     public Optional<Integer> load(String topic)
                                             throws ExecutionException, InterruptedException {
-                                        PartitionedTopicMetadata metadata =
-                                                clientImpl.getPartitionedTopicMetadata(topic).get();
-                                        return Optional.of(metadata.partitions);
+                                        List<String> partitions =
+                                                client.getPartitionsForTopic(topic).get();
+                                        if (!TopicName.get(partitions.get(0)).isPartitioned()) {
+                                            return Optional.of(NON_PARTITIONED);
+                                        }
+                                        return Optional.of(partitions.size());
                                     }
                                 });
 
@@ -162,8 +164,8 @@ public class MetadataListener implements Serializable, Closeable {
 
     @Override
     public void close() throws IOException {
-        if (clientImpl != null) {
-            clientImpl.close();
+        if (client != null) {
+            client.close();
         }
     }
 
