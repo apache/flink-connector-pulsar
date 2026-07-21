@@ -25,8 +25,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicRange;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
 import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.impl.PulsarClientImpl;
-import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
+import org.apache.pulsar.common.naming.TopicName;
 
 import java.util.HashSet;
 import java.util.List;
@@ -52,12 +51,12 @@ public abstract class BasePulsarSubscriber implements PulsarSubscriber {
             return new TopicMetadata(topic, NON_PARTITIONED);
         }
 
-        PulsarClientImpl clientImpl = (PulsarClientImpl) client;
-        PartitionedTopicMetadata metadata = clientImpl.getPartitionedTopicMetadata(topic).get();
-        if (metadata.partitions == NON_PARTITIONED) {
+        List<String> partitions = client.getPartitionsForTopic(topic).get();
+        if (!TopicName.get(partitions.get(0)).isPartitioned()) {
             NON_PARTITIONED_TOPICS.add(topic);
+            return new TopicMetadata(topic, NON_PARTITIONED);
         }
-        return new TopicMetadata(topic, metadata.partitions);
+        return new TopicMetadata(topic, partitions.size());
     }
 
     protected Set<TopicPartition> createTopicPartitions(
