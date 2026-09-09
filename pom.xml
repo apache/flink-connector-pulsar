@@ -83,7 +83,7 @@ under the License.
         <byte-buddy.version>1.12.20</byte-buddy.version>
         <kryo.version>2.24.0</kryo.version>
         <objenesis.version>3.3</objenesis.version>
-        <jackson-bom.version>2.18.6</jackson-bom.version>
+        <jackson-bom.version>2.22.2</jackson-bom.version>
         <snappy.java.version>1.1.10.4</snappy.java.version>
 
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>

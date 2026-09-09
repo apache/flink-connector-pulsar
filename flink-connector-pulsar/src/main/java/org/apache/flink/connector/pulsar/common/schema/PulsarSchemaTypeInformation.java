@@ -66,8 +66,6 @@ public class PulsarSchemaTypeInformation<T> extends TypeInformation<T> {
         return false;
     }
 
-    // https://issues.apache.org/jira/browse/FLINK-34125 modified the definition, BTW the param is
-    // useless for the current project.
     @Override
     public TypeSerializer<T> createSerializer(SerializerConfig serializerConfig) {
         return new PulsarSchemaTypeSerializer<>(schema);
