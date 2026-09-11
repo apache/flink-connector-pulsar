@@ -95,6 +95,21 @@ under the License.
 			<artifactId>pulsar-client-all</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-api</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-api-incubator</artifactId>
+		</dependency>
+
 		<!-- Tests -->
 
 		<dependency>
@@ -116,6 +131,12 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-test-utils</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-test-utils</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -153,7 +174,7 @@ under the License.
 
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>pulsar</artifactId>
+			<artifactId>testcontainers-pulsar</artifactId>
 			<scope>test</scope>
 		</dependency>
 
@@ -260,6 +281,14 @@ under the License.
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Avoid CI hanging indefinitely when tests are done but forked JVM doesn't exit cleanly. -->
+					<forkedProcessExitTimeoutInSeconds>120</forkedProcessExitTimeoutInSeconds>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

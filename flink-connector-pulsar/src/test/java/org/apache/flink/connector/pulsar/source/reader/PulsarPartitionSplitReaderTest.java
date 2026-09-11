@@ -72,7 +72,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         String topicName = randomAlphabetic(10);
 
         // Add a split
-        handleSplit(splitReader, topicName, 0, MessageId.latest);
+        handleSplit(splitReader, topicName, 0, MessageId.earliest);
 
         // Poll once with a null message
         Message<byte[]> message1 = fetchedMessage(splitReader);
@@ -97,7 +97,7 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
         PulsarPartitionSplitReader splitReader = splitReader();
         String topicName = randomAlphabetic(10);
 
-        handleSplit(splitReader, topicName, 0, MessageId.latest);
+        handleSplit(splitReader, topicName, 0, MessageId.earliest);
         operator().sendMessage(topicNameWithPartition(topicName, 0), STRING, randomAlphabetic(10));
         fetchedMessages(splitReader, 1, true);
     }
@@ -263,16 +263,20 @@ class PulsarPartitionSplitReaderTest extends PulsarTestSuiteBase {
                                 .admin()
                                 .topics()
                                 .getLastMessageId(topicNameWithPartition(topicName, 0));
-        // when recover, use exclusive startCursor
-        handleSplit(
-                splitReader,
-                topicName,
-                0,
+        MessageId startMessageId =
                 new MessageIdImpl(
                         lastMessageId.getLedgerId(),
                         lastMessageId.getEntryId() - 1,
-                        lastMessageId.getPartitionIndex()));
-        fetchedMessages(splitReader, 1, true);
+                        lastMessageId.getPartitionIndex());
+        try {
+            // when recover, use exclusive startCursor
+            handleSplit(splitReader, topicName, 0, startMessageId);
+            fetchedMessages(splitReader, 1, true);
+        } catch (Throwable t) {
+            throw t;
+        } finally {
+            splitReader.close();
+        }
     }
 
     @Test

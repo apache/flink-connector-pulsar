@@ -46,6 +46,7 @@ import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageCrypto;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageIdAdv;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -59,6 +60,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -129,25 +131,71 @@ public class PulsarPartitionSplitReader
         Deadline deadline = Deadline.fromNow(sourceConfiguration.getMaxFetchTime());
 
         // Consume messages from pulsar until it was woken up by flink reader.
+        CompletableFuture<Message<byte[]>> msgFuture = null;
+        MessageIdAdv latestMessageIdInTheCurrentFetch = null;
         for (int messageNum = 0;
-                messageNum < sourceConfiguration.getMaxFetchRecords() && deadline.hasTimeLeft();
-                messageNum++) {
+                messageNum < sourceConfiguration.getMaxFetchRecords() && deadline.hasTimeLeft(); ) {
             try {
                 int fetchTime = sourceConfiguration.getFetchOneMessageTime();
                 if (fetchTime <= 0) {
                     fetchTime = (int) deadline.timeLeftIfAny().toMillis();
                 }
-
-                Message<byte[]> message = pulsarConsumer.receive(fetchTime, TimeUnit.MILLISECONDS);
+                // (Highlight) The synchronised API "receive(Duration)" has a bug, which may throw
+                // an error: "Try to
+                // reserve/release memory failed, the param memorySize is a negative value".
+                // Here we use an asynchronous API.
+                msgFuture = pulsarConsumer.receiveAsync();
+                Message<byte[]> message = null;
+                try {
+                    message = msgFuture.get(fetchTime, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    if (msgFuture.completeExceptionally(e)) {
+                        throw e;
+                    } else if (!msgFuture.isCompletedExceptionally()) {
+                        message = msgFuture.get();
+                    } else {
+                        // throws error.
+                        msgFuture.get();
+                    }
+                }
                 if (message == null) {
                     break;
                 }
+
+                MessageIdAdv msgId = (MessageIdAdv) message.getMessageId();
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(
+                            "[{}] [{}] received a message {}:{}:{}/{}.",
+                            pulsarConsumer.getTopic(),
+                            pulsarConsumer.getSubscription(),
+                            msgId.getLedgerId(),
+                            msgId.getEntryId(),
+                            msgId.getBatchIndex(),
+                            msgId.getBatchSize());
+                }
+                // (Highlight) Since the connector will not acknowledge messages immediately, when
+                // the pulsar consumer
+                // reconnects, it may receive repeated messages. We use the following two mechanism
+                // to solve the
+                // repeated receiving messages issue.
+                if (latestMessageIdInTheCurrentFetch != null
+                        && compareMessageIds(latestMessageIdInTheCurrentFetch, msgId) >= 0) {
+                    continue;
+                }
+                if (registeredSplit.getLatestConsumedId() != null
+                        && compareMessageIds(
+                                        (MessageIdAdv) registeredSplit.getLatestConsumedId(), msgId)
+                                >= 0) {
+                    continue;
+                }
+                latestMessageIdInTheCurrentFetch = msgId;
 
                 StopCondition condition = stopCursor.shouldStop(message);
 
                 if (condition == StopCondition.CONTINUE || condition == StopCondition.EXACTLY) {
                     // Collect original message.
                     builder.add(splitId, message);
+                    messageNum++;
                     LOG.debug("Finished polling message {}", message);
                 }
 
@@ -163,6 +211,28 @@ public class PulsarPartitionSplitReader
         }
 
         return builder.build();
+    }
+
+    private int compareMessageIds(MessageIdAdv messageId1, MessageIdAdv messageId2) {
+        if (messageId1.getLedgerId() > messageId2.getLedgerId()) {
+            return 1;
+        }
+        if (messageId1.getLedgerId() < messageId2.getLedgerId()) {
+            return -1;
+        }
+        if (messageId1.getEntryId() > messageId2.getEntryId()) {
+            return 1;
+        }
+        if (messageId1.getEntryId() < messageId2.getEntryId()) {
+            return -1;
+        }
+        if (messageId2 instanceof BatchMessageIdImpl && messageId1 instanceof BatchMessageIdImpl) {
+            BatchMessageIdImpl batchMessageId1 = (BatchMessageIdImpl) messageId1;
+            BatchMessageIdImpl batchMessageId2 = (BatchMessageIdImpl) messageId2;
+            return batchMessageId1.getBatchIndex() - batchMessageId2.getBatchIndex();
+        } else {
+            return 0;
+        }
     }
 
     @Override

@@ -21,11 +21,15 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.core.memory.DataInputDeserializer;
 import org.apache.flink.util.Collector;
 
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageIdAdv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 /**
  * Wrap the flink TypeInformation into a {@code PulsarDeserializationSchema}. We would create a
@@ -35,6 +39,7 @@ import org.apache.pulsar.client.api.Message;
 @Internal
 public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSchema<T> {
     private static final long serialVersionUID = 6647084180084963022L;
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarTypeInformationWrapper.class);
 
     /**
      * PulsarDeserializationSchema would be shared for multiple SplitReaders in different fetcher
@@ -47,9 +52,11 @@ public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSch
     private final TypeInformation<T> information;
     private final TypeSerializer<T> serializer;
 
-    public PulsarTypeInformationWrapper(TypeInformation<T> information, ExecutionConfig config) {
+    public PulsarTypeInformationWrapper(
+            TypeInformation<T> information, @Nullable ExecutionConfig config) {
         this.information = information;
-        this.serializer = information.createSerializer(config);
+        final ExecutionConfig executionConfig = config == null ? new ExecutionConfig() : config;
+        this.serializer = information.createSerializer(executionConfig.getSerializerConfig());
     }
 
     @Override
@@ -57,7 +64,20 @@ public class PulsarTypeInformationWrapper<T> implements PulsarDeserializationSch
         DataInputDeserializer dis = DESERIALIZER.get();
         dis.setBuffer(message.getData());
         T instance = serializer.deserialize(dis);
-
+        MessageIdAdv messageIdAdv = (MessageIdAdv) message.getMessageId();
+        if (LOG.isDebugEnabled()) {
+            if (messageIdAdv != null) {
+                LOG.debug(
+                        "Deserialize message {}:{}:{}/{} of {}",
+                        messageIdAdv.getLedgerId(),
+                        messageIdAdv.getEntryId(),
+                        messageIdAdv.getBatchIndex(),
+                        messageIdAdv.getBatchSize(),
+                        String.valueOf(instance));
+            } else {
+                LOG.debug("Deserialize message {id-null} of {}", String.valueOf(instance));
+            }
+        }
         out.collect(instance);
     }
 

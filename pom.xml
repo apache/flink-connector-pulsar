@@ -51,8 +51,9 @@ under the License.
     </modules>
 
     <properties>
-        <flink.version>1.20.3</flink.version>
-        <pulsar.version>3.0.5</pulsar.version>
+        <flink.version>2.0.2</flink.version>
+        <pulsar.version>4.0.13</pulsar.version>
+        <opentelemetry.version>1.62.0</opentelemetry.version>
         <scala.binary.version>2.12</scala.binary.version>
         <bouncycastle.version>1.69</bouncycastle.version>
 
@@ -64,7 +65,7 @@ under the License.
         <assertj.version>3.23.1</assertj.version>
         <mockito.version>4.11.0</mockito.version>
         <archunit.version>1.0.1</archunit.version>
-        <testcontainers.version>1.21.4</testcontainers.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
 
         <japicmp.skip>false</japicmp.skip>
         <japicmp.referenceVersion>3.0.0-1.16</japicmp.referenceVersion>
@@ -76,10 +77,13 @@ under the License.
         <commons-compress.version>1.26.1</commons-compress.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
         <commons-io.version>2.15.1</commons-io.version>
+        <caffeine.version>2.9.1</caffeine.version>
+        <checker-qual.version>3.12.0</checker-qual.version>
+        <errorprone.version>2.11.0</errorprone.version>
         <byte-buddy.version>1.12.20</byte-buddy.version>
         <kryo.version>2.24.0</kryo.version>
         <objenesis.version>3.3</objenesis.version>
-        <jackson-bom.version>2.13.4.20221013</jackson-bom.version>
+        <jackson-bom.version>2.22.2</jackson-bom.version>
         <snappy.java.version>1.1.10.4</snappy.java.version>
 
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
@@ -134,7 +138,7 @@ under the License.
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -391,6 +395,18 @@ under the License.
                 <version>${jackson-bom.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api-incubator</artifactId>
+                <version>${opentelemetry.version}-alpha</version>
+            </dependency>
+
             <!-- Start of pinned versions for dependency convergence -->
 
             <dependency>
@@ -409,6 +425,24 @@ under the License.
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.checkerframework</groupId>
+                <artifactId>checker-qual</artifactId>
+                <version>${checker-qual.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_annotations</artifactId>
+                <version>${errorprone.version}</version>
             </dependency>
 
             <dependency>

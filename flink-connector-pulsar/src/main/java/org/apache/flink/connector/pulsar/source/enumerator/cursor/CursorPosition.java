@@ -32,6 +32,8 @@ import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.ChunkMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 
@@ -43,6 +45,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @PublicEvolving
 public final class CursorPosition implements Serializable {
     private static final long serialVersionUID = -802405183307684549L;
+    private static final Logger LOG = LoggerFactory.getLogger(CursorPosition.class);
 
     private final Type type;
 
@@ -91,11 +94,33 @@ public final class CursorPosition implements Serializable {
                         .subscribe()) {
             // Reset cursor to desired position.
             if (type == Type.TIMESTAMP) {
+                LOG.info(
+                        "[{}] [{}] reset cursor to timestamp {}",
+                        topicName,
+                        subscriptionName,
+                        this.timestamp);
                 consumer.seek(getActualTimestamp(this.timestamp));
             } else if (messageId instanceof ChunkMessageIdImpl) {
                 MessageIdAdv msgId = ((ChunkMessageIdImpl) messageId).getFirstChunkMessageId();
+                LOG.info(
+                        "[{}] [{}] reset cursor to chunk msg id {}:{}:{}/{}",
+                        topicName,
+                        subscriptionName,
+                        msgId.getLedgerId(),
+                        msgId.getEntryId(),
+                        msgId.getBatchIndex(),
+                        msgId.getBatchSize());
                 consumer.seek(getActualMessageId(msgId));
             } else {
+                MessageIdAdv msgId = (MessageIdAdv) messageId;
+                LOG.info(
+                        "[{}] [{}] reset cursor to msg id {}:{}:{}/{}",
+                        topicName,
+                        subscriptionName,
+                        msgId.getLedgerId(),
+                        msgId.getEntryId(),
+                        msgId.getBatchIndex(),
+                        msgId.getBatchSize());
                 consumer.seek(getActualMessageId((MessageIdAdv) messageId));
             }
         }
