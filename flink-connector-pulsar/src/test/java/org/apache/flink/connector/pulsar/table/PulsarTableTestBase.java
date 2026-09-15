@@ -18,7 +18,8 @@
 
 package org.apache.flink.connector.pulsar.table;
 
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.pulsar.common.MiniClusterTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
@@ -32,10 +33,14 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Base class for Pulsar table integration test. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class PulsarTableTestBase {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarTableTestBase.class);
+
     @TestEnv protected MiniClusterTestEnvironment flink = new MiniClusterTestEnvironment();
 
     // Defines pulsar running environment
@@ -54,11 +59,15 @@ public abstract class PulsarTableTestBase {
 
     @BeforeAll
     public void beforeAll() throws Exception {
+        LOG.info("Starting Pulsar table test environment for {}.", getClass().getSimpleName());
         pulsar.startUp();
+        LOG.info("Pulsar test environment started for {}.", getClass().getSimpleName());
         // run env
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(DEFAULT_PARALLELISM);
-        env.getConfig().setRestartStrategy(RestartStrategies.noRestart());
+        Configuration noRestart = new Configuration();
+        noRestart.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        env.configure(noRestart);
         tableEnv = StreamTableEnvironment.create(env);
         tableEnv.getConfig()
                 .getConfiguration()
@@ -71,6 +80,15 @@ public abstract class PulsarTableTestBase {
 
     @AfterAll
     public void afterAll() throws Exception {
-        pulsar.tearDown();
+        final long start = System.currentTimeMillis();
+        LOG.info("Tearing down Pulsar table test environment for {}.", getClass().getSimpleName());
+        try {
+            pulsar.tearDown();
+        } finally {
+            LOG.info(
+                    "Finished Pulsar table test environment teardown for {} in {} ms.",
+                    getClass().getSimpleName(),
+                    System.currentTimeMillis() - start);
+        }
     }
 }

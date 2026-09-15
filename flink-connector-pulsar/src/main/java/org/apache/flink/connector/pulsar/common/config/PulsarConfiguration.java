@@ -77,7 +77,7 @@ public abstract class PulsarConfiguration extends UnmodifiableConfiguration {
     }
 
     /** Get an option value from the given config, convert it into a new value instance. */
-    public <F, T> T get(ConfigOption<F> option, Function<F, T> convertor) {
+    public <F, T> T getAndConvert(ConfigOption<F> option, Function<F, T> convertor) {
         F value = get(option);
         if (value != null) {
             return convertor.apply(value);
@@ -97,7 +97,7 @@ public abstract class PulsarConfiguration extends UnmodifiableConfiguration {
     public <T, V> void useOption(
             ConfigOption<T> option, Function<T, V> convertor, Consumer<V> setter) {
         if (contains(option) || option.hasDefaultValue()) {
-            V value = get(option, convertor);
+            V value = getAndConvert(option, convertor);
             setter.accept(value);
         }
     }

@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.source;
 import org.apache.flink.connector.pulsar.common.MiniClusterTestEnvironment;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestContextFactory;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestEnvironment;
+import org.apache.flink.connector.pulsar.testutils.SimpleCollectIteratorAssert;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
 import org.apache.flink.connector.pulsar.testutils.source.cases.EncryptedMessagesConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicsConsumingContext;
@@ -31,9 +32,15 @@ import org.apache.flink.connector.testframe.junit.annotations.TestEnv;
 import org.apache.flink.connector.testframe.junit.annotations.TestExternalSystem;
 import org.apache.flink.connector.testframe.junit.annotations.TestSemantics;
 import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
+import org.apache.flink.connector.testframe.utils.CollectIteratorAssertions;
 import org.apache.flink.core.execution.CheckpointingMode;
+import org.apache.flink.util.CloseableIterator;
 
 import org.apache.pulsar.client.api.SubscriptionType;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
@@ -70,4 +77,34 @@ class PulsarSourceITCase extends SourceTestSuiteBase<String> {
     @TestContext
     PulsarTestContextFactory<String, EncryptedMessagesConsumingContext> encryptMessages =
             new PulsarTestContextFactory<>(pulsar, EncryptedMessagesConsumingContext::new);
+
+    /**
+     * {@link CollectIteratorAssertions} will generate a mismatch description if the result does not
+     * match the expected value. It attempts to capture all following messages, even though already
+     * failed, which helps engineers for troubleshooting, but draining the following messages may
+     * lead the test to get stuck. We rewrite the method to avoid the test to get stuck.
+     */
+    @Override
+    protected void checkResultWithSemantic(
+            CloseableIterator<String> resultIterator,
+            List<List<String>> expectedData,
+            org.apache.flink.core.execution.CheckpointingMode semantic,
+            Integer limit) {
+        if (limit != null) {
+            Runnable runnable =
+                    () ->
+                            new SimpleCollectIteratorAssert<>(resultIterator)
+                                    .withNumRecordsLimit(limit)
+                                    .matchesRecordsFromSource(expectedData, semantic);
+
+            try {
+                CompletableFuture.runAsync(runnable).get(65, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                throw new AssertionError("Timed out or failed while validating source results.", e);
+            }
+        } else {
+            new SimpleCollectIteratorAssert<>(resultIterator)
+                    .matchesRecordsFromSource(expectedData, semantic);
+        }
+    }
 }

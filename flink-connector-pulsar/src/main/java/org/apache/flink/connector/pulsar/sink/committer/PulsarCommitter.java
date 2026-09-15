@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.sink.committer;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.sink2.Committer;
+import org.apache.flink.api.connector.sink2.CommitterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.sink.PulsarSink;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
@@ -60,7 +61,8 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
     private PulsarClient pulsarClient;
     private TransactionCoordinatorClient coordinatorClient;
 
-    public PulsarCommitter(SinkConfiguration sinkConfiguration) {
+    public PulsarCommitter(
+            SinkConfiguration sinkConfiguration, CommitterInitContext committerInitContext) {
         this.sinkConfiguration = checkNotNull(sinkConfiguration);
     }
 

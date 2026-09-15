@@ -40,7 +40,7 @@ class PulsarSchemaTypeInformationTest {
         PulsarSchemaTypeInformation<Bar> clonedInfo = InstantiationUtil.clone(info);
         assertThat(clonedInfo).isEqualTo(info).isNotSameAs(info);
 
-        assertThatCode(() -> info.createSerializer(new ExecutionConfig()))
+        assertThatCode(() -> info.createSerializer(new ExecutionConfig().getSerializerConfig()))
                 .doesNotThrowAnyException();
 
         assertThat(clonedInfo.getTypeClass()).isEqualTo(info.getTypeClass());

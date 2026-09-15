@@ -18,6 +18,7 @@
 
 package org.apache.flink.tests.util.pulsar;
 
+import org.apache.flink.connector.pulsar.testutils.SimpleCollectIteratorAssert;
 import org.apache.flink.connector.pulsar.testutils.source.cases.MultipleTopicsConsumingContext;
 import org.apache.flink.connector.pulsar.testutils.source.cases.PartialKeysConsumingContext;
 import org.apache.flink.connector.testframe.container.FlinkContainerTestEnvironment;
@@ -31,6 +32,11 @@ import org.apache.flink.connector.testframe.testsuites.SourceTestSuiteBase;
 import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.tests.util.pulsar.common.FlinkContainerUtils;
 import org.apache.flink.tests.util.pulsar.common.PulsarContainerTestEnvironment;
+import org.apache.flink.util.CloseableIterator;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.core.execution.CheckpointingMode.EXACTLY_ONCE;
 
@@ -72,4 +78,34 @@ public class PulsarSourceE2ECase extends SourceTestSuiteBase<String> {
                 context.addConnectorJarPaths(FlinkContainerUtils.connectorJarPaths());
                 return context;
             };
+
+    /**
+     * {@link CollectIteratorAssertions} will generate a mismatch description if the result does not
+     * match the expected value. It attempts to capture all following messages, even though already
+     * failed, which helps engineers for troubleshooting, but draining the following messages may
+     * lead the test to get stuck. We rewrite the method to avoid the test to get stuck.
+     */
+    @Override
+    protected void checkResultWithSemantic(
+            CloseableIterator<String> resultIterator,
+            List<List<String>> testData,
+            org.apache.flink.core.execution.CheckpointingMode semantic,
+            Integer limit) {
+        if (limit != null) {
+            Runnable runnable =
+                    () ->
+                            new SimpleCollectIteratorAssert<>(resultIterator)
+                                    .withNumRecordsLimit(limit)
+                                    .matchesRecordsFromSource(testData, semantic);
+
+            try {
+                CompletableFuture.runAsync(runnable).get(65, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                throw new AssertionError("Timed out or failed while validating source results.", e);
+            }
+        } else {
+            new SimpleCollectIteratorAssert<>(resultIterator)
+                    .matchesRecordsFromSource(testData, semantic);
+        }
+    }
 }

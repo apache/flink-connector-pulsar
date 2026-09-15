@@ -20,7 +20,7 @@ package org.apache.flink.connector.pulsar.sink.writer.context;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
-import org.apache.flink.api.connector.sink2.Sink.InitContext;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.topic.MetadataListener;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicMetadata;
@@ -38,11 +38,11 @@ public class PulsarSinkContextImpl implements PulsarSinkContext {
     private final MetadataListener metadataListener;
 
     public PulsarSinkContextImpl(
-            InitContext initContext,
+            WriterInitContext initContext,
             SinkConfiguration sinkConfiguration,
             MetadataListener metadataListener) {
-        this.parallelInstanceId = initContext.getSubtaskId();
-        this.numberOfParallelSubtasks = initContext.getNumberOfParallelSubtasks();
+        this.parallelInstanceId = initContext.getTaskInfo().getIndexOfThisSubtask();
+        this.numberOfParallelSubtasks = initContext.getTaskInfo().getNumberOfParallelSubtasks();
         this.processingTimeService = initContext.getProcessingTimeService();
         this.enableSchemaEvolution = sinkConfiguration.isEnableSchemaEvolution();
         this.metadataListener = metadataListener;

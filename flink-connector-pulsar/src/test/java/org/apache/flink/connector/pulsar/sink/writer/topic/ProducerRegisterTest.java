@@ -28,9 +28,9 @@ import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SchemaSerializationException;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
+import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -113,9 +113,11 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
                         sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         long message = ThreadLocalRandom.current().nextLong();
-        TypedMessageBuilder<byte[]> builder = register.createMessageBuilder(topic, Schema.BYTES);
-
-        assertThatThrownBy(() -> builder.value(Schema.INT64.encode(message)))
+        TypedMessageBuilderImpl<Object> builder =
+                (TypedMessageBuilderImpl<Object>)
+                        register.createMessageBuilder(topic, Schema.BYTES);
+        builder.value(Schema.INT64.encode(message));
+        assertThatThrownBy(() -> builder.getMessage())
                 .isInstanceOf(SchemaSerializationException.class);
     }
 }

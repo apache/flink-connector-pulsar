@@ -202,7 +202,7 @@ public class PulsarSchemaTypeSerializer<T> extends TypeSerializer<T> {
 
         @Override
         public TypeSerializerSchemaCompatibility<T> resolveSchemaCompatibility(
-                TypeSerializer<T> newSerializer) {
+                TypeSerializerSnapshot<T> typeSerializerSnapshot) {
             return TypeSerializerSchemaCompatibility.compatibleAsIs();
         }
     }

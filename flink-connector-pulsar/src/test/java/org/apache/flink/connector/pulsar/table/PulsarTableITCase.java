@@ -22,7 +22,7 @@ import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.connector.pulsar.table.testutils.TestingUser;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.api.functions.sink.legacy.SinkFunction;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.test.util.SuccessException;

@@ -25,6 +25,7 @@ import org.apache.flink.connector.testframe.environment.TestEnvironment;
 import org.apache.flink.connector.testframe.environment.TestEnvironmentSettings;
 import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.runtime.highavailability.nonha.embedded.HaLeadershipControl;
+import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 import org.apache.flink.runtime.minicluster.RpcServiceSharing;
 import org.apache.flink.runtime.taskexecutor.TaskExecutorResourceUtils;
 import org.apache.flink.runtime.testutils.CommonTestUtils;
@@ -49,7 +50,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.configuration.MetricOptions.METRIC_FETCHER_UPDATE_INTERVAL;
 import static org.apache.flink.connector.testframe.utils.ConnectorTestConstants.METRIC_FETCHER_UPDATE_INTERVAL_MS;
-import static org.apache.flink.runtime.jobgraph.SavepointConfigOptions.SAVEPOINT_PATH;
 
 /** Test environment for running jobs on Flink mini-cluster. */
 @Experimental
@@ -91,7 +91,9 @@ public class MiniClusterTestEnvironment implements TestEnvironment, ClusterContr
             TestEnvironmentSettings envOptions) {
         Configuration configuration = new Configuration();
         if (envOptions.getSavepointRestorePath() != null) {
-            configuration.setString(SAVEPOINT_PATH, envOptions.getSavepointRestorePath());
+            SavepointRestoreSettings.toConfiguration(
+                    SavepointRestoreSettings.forPath(envOptions.getSavepointRestorePath()),
+                    configuration);
         }
         return new TestStreamEnvironment(
                 this.miniCluster.getMiniCluster(),

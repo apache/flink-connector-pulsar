@@ -76,10 +76,13 @@ under the License.
 									<include>org.apache.pulsar:pulsar-client-admin-api</include>
 									<include>org.apache.pulsar:pulsar-client-all</include>
 									<include>org.apache.pulsar:pulsar-client-api</include>
-									<include>org.bouncycastle:bcpkix-jdk15on</include>
-									<include>org.bouncycastle:bcprov-ext-jdk15on</include>
-									<include>org.bouncycastle:bcprov-jdk15on</include>
-									<include>org.bouncycastle:bcutil-jdk15on</include>
+									<include>org.bouncycastle:bcpkix-jdk18on</include>
+									<include>org.bouncycastle:bcprov-jdk18on</include>
+									<include>org.bouncycastle:bcutil-jdk18on</include>
+									<include>io.opentelemetry:opentelemetry-api</include>
+									<include>io.opentelemetry:opentelemetry-api-incubator</include>
+									<include>io.opentelemetry:opentelemetry-context</include>
+									<include>io.opentelemetry:opentelemetry-common</include>
 								</includes>
 							</artifactSet>
 							<filters>

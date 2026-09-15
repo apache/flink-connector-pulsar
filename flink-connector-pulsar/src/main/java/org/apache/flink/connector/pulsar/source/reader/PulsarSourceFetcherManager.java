@@ -20,12 +20,9 @@ package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
-import org.apache.flink.connector.base.source.reader.SourceReaderBase;
 import org.apache.flink.connector.base.source.reader.fetcher.SplitFetcher;
 import org.apache.flink.connector.base.source.reader.fetcher.SplitFetcherManager;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
@@ -59,16 +56,12 @@ public class PulsarSourceFetcherManager
     /**
      * Creates a new SplitFetcherManager with multiple I/O threads.
      *
-     * @param elementsQueue The queue that is used to hand over data from the I/O thread (the
-     *     fetchers) to the reader, which emits the records and book-keeps the state. This must be
-     *     the same queue instance that is also passed to the {@link SourceReaderBase}.
      * @param splitReaderSupplier The factory for the split reader that connects to the source
      */
     public PulsarSourceFetcherManager(
-            FutureCompletingBlockingQueue<RecordsWithSplitIds<Message<byte[]>>> elementsQueue,
             Supplier<SplitReader<Message<byte[]>, PulsarPartitionSplit>> splitReaderSupplier,
             Configuration configuration) {
-        super(elementsQueue, splitReaderSupplier, configuration);
+        super(splitReaderSupplier, configuration);
     }
 
     /**
