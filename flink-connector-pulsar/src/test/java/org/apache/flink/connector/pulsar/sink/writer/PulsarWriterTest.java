@@ -127,7 +127,7 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
             assertThat(committables).hasSize(1);
             PulsarCommittable committable =
                     committables.stream().findFirst().orElseThrow(IllegalArgumentException::new);
-            assertThat(committable.getLatestPublishedMessages()).containsKey(topic);
+            assertThat(committable.getLatestPublishedMessages()).hasSize(1);
             TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
             coordinatorClient.commit(committable.getTxnID());
         }
