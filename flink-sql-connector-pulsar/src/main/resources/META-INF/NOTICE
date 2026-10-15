@@ -11,13 +11,13 @@ This project bundles the following dependencies under the Apache Software Licens
 - io.opentelemetry:opentelemetry-api-incubator:1.62.0-alpha
 - io.opentelemetry:opentelemetry-common:1.62.0
 - io.opentelemetry:opentelemetry-context:1.62.0
-- org.apache.pulsar:pulsar-client-admin-api:4.0.13
-- org.apache.pulsar:pulsar-client-all:4.0.13
-- org.apache.pulsar:pulsar-client-api:4.0.13
+- org.apache.pulsar:pulsar-client-admin-api:4.0.14
+- org.apache.pulsar:pulsar-client-all:4.0.14
+- org.apache.pulsar:pulsar-client-api:4.0.14
 
 This project bundles the following dependencies under the Bouncy Castle license.
 See bundled license files for details.
 
-- org.bouncycastle:bcpkix-jdk18on:1.84
-- org.bouncycastle:bcprov-jdk18on:1.84
-- org.bouncycastle:bcutil-jdk18on:1.84
+- org.bouncycastle:bcpkix-jdk18on:1.86
+- org.bouncycastle:bcprov-jdk18on:1.86
+- org.bouncycastle:bcutil-jdk18on:1.86
