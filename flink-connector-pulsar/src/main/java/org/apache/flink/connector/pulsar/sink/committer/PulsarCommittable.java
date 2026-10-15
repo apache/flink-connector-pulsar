@@ -31,20 +31,30 @@ public class PulsarCommittable {
     /** The transaction id. */
     private final TxnID txnID;
 
-    /** The topic name with partition information. */
-    private final String topic;
-
+    /**
+     * Retained so a newer connector can restore committables written by a previous version.
+     *
+     * @deprecated Transactions are no longer associated with a single topic.
+     */
+    @Deprecated
     public PulsarCommittable(TxnID txnID, String topic) {
+        this(txnID);
+    }
+
+    public PulsarCommittable(TxnID txnID) {
         this.txnID = txnID;
-        this.topic = topic;
     }
 
     public TxnID getTxnID() {
         return txnID;
     }
 
+    /**
+     * @deprecated Transactions are no longer associated with a single topic.
+     */
+    @Deprecated
     public String getTopic() {
-        return topic;
+        return PulsarCommittableSerializer.TOPIC_PLACEHOLDER;
     }
 
     @Override
@@ -56,16 +66,16 @@ public class PulsarCommittable {
             return false;
         }
         PulsarCommittable that = (PulsarCommittable) o;
-        return Objects.equals(txnID, that.txnID) && Objects.equals(topic, that.topic);
+        return Objects.equals(txnID, that.txnID);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(txnID, topic);
+        return Objects.hash(txnID);
     }
 
     @Override
     public String toString() {
-        return "PulsarCommittable{" + "txnID=" + txnID + ", topic='" + topic + '\'' + '}';
+        return "PulsarCommittable{" + "txnID=" + txnID + '}';
     }
 }

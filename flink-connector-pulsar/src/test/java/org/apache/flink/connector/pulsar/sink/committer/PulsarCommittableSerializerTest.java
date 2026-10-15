@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -37,13 +36,12 @@ class PulsarCommittableSerializerTest {
 
     @Test
     void committableSerDe() throws IOException {
-        String topic = randomAlphabetic(10);
         TxnID txnID =
                 new TxnID(
                         ThreadLocalRandom.current().nextLong(),
                         ThreadLocalRandom.current().nextLong());
 
-        PulsarCommittable committable = new PulsarCommittable(txnID, topic);
+        PulsarCommittable committable = new PulsarCommittable(txnID);
 
         byte[] bytes = INSTANCE.serialize(committable);
         PulsarCommittable committable1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);

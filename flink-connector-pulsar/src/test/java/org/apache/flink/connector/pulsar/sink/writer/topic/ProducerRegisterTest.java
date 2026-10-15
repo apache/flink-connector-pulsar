@@ -100,6 +100,32 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
     }
 
     @Test
+    void exactlyOnceUsesOneTransactionAcrossTopicsPerCheckpoint() throws Exception {
+        String firstTopic = randomAlphabetic(10);
+        String secondTopic = randomAlphabetic(10);
+        operator().createTopic(firstTopic, 8);
+        operator().createTopic(secondTopic, 8);
+
+        SinkConfiguration configuration =
+                new SinkConfiguration(operator().sinkConfig(DeliveryGuarantee.EXACTLY_ONCE));
+        ProducerRegister register =
+                new ProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+
+        register.createMessageBuilder(firstTopic, Schema.STRING).value("first").send();
+        register.createMessageBuilder(secondTopic, Schema.STRING).value("second").send();
+
+        List<PulsarCommittable> committables = register.prepareCommit();
+        assertThat(committables).hasSize(1);
+        operator().coordinatorClient().commit(committables.get(0).getTxnID());
+
+        assertThat(operator().receiveMessage(firstTopic, Schema.STRING).getValue())
+                .isEqualTo("first");
+        assertThat(operator().receiveMessage(secondTopic, Schema.STRING).getValue())
+                .isEqualTo("second");
+    }
+
+    @Test
     void sendMessageBytesWithWrongSchemaAndEnableCheck() throws Exception {
         String topic = randomAlphabetic(10);
         operator().createTopic(topic, 8);
