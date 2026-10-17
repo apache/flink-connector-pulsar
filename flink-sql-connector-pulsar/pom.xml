@@ -49,6 +49,14 @@ under the License.
 			<artifactId>jackson-annotations</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-base</artifactId>
 			<version>${flink.version}</version>
@@ -72,6 +80,8 @@ under the License.
 							<artifactSet>
 								<includes>
 									<include>com.fasterxml.jackson.core:jackson-annotations</include>
+									<include>com.fasterxml.jackson.core:jackson-core</include>
+									<include>com.fasterxml.jackson.core:jackson-databind</include>
 									<include>org.apache.flink:flink-connector-pulsar</include>
 									<include>org.apache.pulsar:pulsar-client-admin-api</include>
 									<include>org.apache.pulsar:pulsar-client-all</include>
@@ -91,6 +101,18 @@ under the License.
 									<excludes>
 										<exclude>META-INF/versions/**/*</exclude>
 										<exclude>io/swagger/**/*</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>com.fasterxml.jackson.core:jackson-core</artifact>
+									<excludes>
+										<exclude>META-INF/versions/**/*</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>com.fasterxml.jackson.core:jackson-databind</artifact>
+									<excludes>
+										<exclude>META-INF/versions/**/*</exclude>
 									</excludes>
 								</filter>
 								<filter>

@@ -26,6 +26,7 @@ import org.apache.flink.api.connector.sink2.CommittingSinkWriter;
 import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
+import org.apache.flink.connector.pulsar.sink.committer.MessageIdPojo;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
@@ -41,6 +42,7 @@ import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageIdAdv;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -51,9 +53,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.Collections.emptyList;
@@ -79,6 +84,8 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
     private final ProducerRegister producerRegister;
     private final MailboxExecutor mailboxExecutor;
     private final AtomicLong pendingMessages;
+    private final ConcurrentHashMap<String, MessageIdPojo> latestPublishedMessages =
+            new ConcurrentHashMap<>();
 
     /**
      * Constructor creating a Pulsar writer.
@@ -167,14 +174,25 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
             CompletableFuture<MessageId> future = builder.sendAsync();
             future.whenComplete(
                     (id, ex) -> {
-                        pendingMessages.decrementAndGet();
                         if (ex != null) {
                             mailboxExecutor.execute(
                                     () -> throwSendingException(topic, ex),
                                     "Failed to send data to Pulsar");
                         } else {
+                            // Safe cast: all MessageId implementations in Pulsar implement
+                            // MessageIdAdv.
+                            MessageIdAdv messageIdAdv = (MessageIdAdv) id;
+                            latestPublishedMessages.put(
+                                    topic,
+                                    new MessageIdPojo(
+                                            messageIdAdv.getLedgerId(),
+                                            messageIdAdv.getEntryId(),
+                                            messageIdAdv.getBatchSize(),
+                                            messageIdAdv.getBatchIndex(),
+                                            messageIdAdv.getPartitionIndex()));
                             LOG.debug("Sent message to Pulsar {} with message id {}", topic, id);
                         }
+                        pendingMessages.decrementAndGet();
                     });
         }
     }
@@ -266,7 +284,19 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
     @Override
     public Collection<PulsarCommittable> prepareCommit() {
         if (deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE) {
-            return producerRegister.prepareCommit();
+            Collection<PulsarCommittable> committables = producerRegister.prepareCommit();
+            if (committables.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // Flink invokes flush() before prepareCommit(). flush() waits for all pending async
+            // sends and their callbacks, so no message ID can be added between copying and clearing
+            // the map below.
+            Map<String, MessageIdPojo> messageIds = new HashMap<>(latestPublishedMessages);
+            latestPublishedMessages.clear();
+            PulsarCommittable committable = committables.iterator().next();
+            return Collections.singletonList(
+                    new PulsarCommittable(committable.getTxnID(), messageIds));
         } else {
             return emptyList();
         }

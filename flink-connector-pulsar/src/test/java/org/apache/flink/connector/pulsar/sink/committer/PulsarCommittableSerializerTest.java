@@ -21,10 +21,13 @@ package org.apache.flink.connector.pulsar.sink.committer;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -36,18 +39,44 @@ class PulsarCommittableSerializerTest {
     private static final PulsarCommittableSerializer INSTANCE = new PulsarCommittableSerializer();
 
     @Test
-    void committableSerDe() throws IOException {
-        String topic = randomAlphabetic(10);
+    void v2SerializeAndDeserializeWithMessages() throws IOException {
         TxnID txnID =
                 new TxnID(
                         ThreadLocalRandom.current().nextLong(),
                         ThreadLocalRandom.current().nextLong());
+        Map<String, MessageIdPojo> messages = new HashMap<>();
+        messages.put("topic-a", new MessageIdPojo(1L, 2L, 3, 0, -1));
+        messages.put("topic-b", new MessageIdPojo(10L, 20L, 1, 0, -1));
 
-        PulsarCommittable committable = new PulsarCommittable(txnID, topic);
+        PulsarCommittable committable = new PulsarCommittable(txnID, messages);
 
         byte[] bytes = INSTANCE.serialize(committable);
         PulsarCommittable committable1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
 
         assertThat(committable1).isEqualTo(committable);
+        assertThat(committable1.getVersion()).isEqualTo(2);
+    }
+
+    @Test
+    void v1DeserializationIsCompatible() throws IOException {
+        TxnID txnID =
+                new TxnID(
+                        ThreadLocalRandom.current().nextLong(),
+                        ThreadLocalRandom.current().nextLong());
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeLong(txnID.getMostSigBits());
+            output.writeLong(txnID.getLeastSigBits());
+            output.writeUTF("Topic_Placeholder");
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        PulsarCommittable committable = INSTANCE.deserialize(1, serialized);
+
+        assertThat(committable.getVersion()).isEqualTo(1);
+        assertThat(committable.getTxnID()).isEqualTo(txnID);
+        assertThat(committable.getLatestPublishedMessages()).isEmpty();
     }
 }
