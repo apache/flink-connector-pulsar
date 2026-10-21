@@ -23,7 +23,6 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.metrics.ProducerMetricsInterceptor;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils;
-import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
@@ -56,9 +55,7 @@ import javax.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -149,24 +146,23 @@ public class ProducerRegister implements Closeable {
         TransactionImpl transaction = null;
 
         if (sinkConfiguration.getDeliveryGuarantee() == DeliveryGuarantee.EXACTLY_ONCE) {
-            transaction = (TransactionImpl) getOrCreateTransaction(topic);
+            transaction = (TransactionImpl) getOrCreateTransaction();
         }
 
         return (TypedMessageBuilder<T>)
                 new TypedMessageBuilderImpl<>(producer, schema, transaction);
     }
 
-    /**
-     * Convert the transaction for the current checkpoint into a committable for Pulsar Committer.
-     */
-    public List<PulsarCommittable> prepareCommit() {
+    /** Return the transaction for the current checkpoint and clear it from the writer state. */
+    @Nullable
+    public TxnID prepareCommit() {
         if (transaction == null) {
-            return Collections.emptyList();
+            return null;
         }
 
         TxnID txnID = transaction.getTxnID();
         transaction = null;
-        return Collections.singletonList(new PulsarCommittable(txnID));
+        return txnID;
     }
 
     /**
@@ -266,12 +262,8 @@ public class ProducerRegister implements Closeable {
         }
     }
 
-    /**
-     * Get the transaction for the current checkpoint, or create one after checkpointing.
-     *
-     * @param topic Used only for the message builder; transactions may span topics.
-     */
-    private Transaction getOrCreateTransaction(String topic) throws PulsarClientException {
+    /** Get the transaction for the current checkpoint, or create one after checkpointing. */
+    private Transaction getOrCreateTransaction() throws PulsarClientException {
         if (transaction != null) {
             return transaction;
         }

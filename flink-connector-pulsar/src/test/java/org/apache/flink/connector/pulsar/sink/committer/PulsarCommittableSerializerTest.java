@@ -24,11 +24,14 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for serializing and deserializing {@link PulsarCommittable} with {@link
@@ -58,6 +61,18 @@ class PulsarCommittableSerializerTest {
     }
 
     @Test
+    void v2SerializeAndDeserializeWithoutMessages() throws IOException {
+        PulsarCommittable committable =
+                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
+
+        byte[] bytes = INSTANCE.serialize(committable);
+        PulsarCommittable deserialized = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
+
+        assertThat(deserialized).isEqualTo(committable);
+        assertThat(deserialized.getLatestPublishedMessages()).isEmpty();
+    }
+
+    @Test
     void v1DeserializationIsCompatible() throws IOException {
         TxnID txnID =
                 new TxnID(
@@ -78,5 +93,85 @@ class PulsarCommittableSerializerTest {
         assertThat(committable.getVersion()).isEqualTo(1);
         assertThat(committable.getTxnID()).isEqualTo(txnID);
         assertThat(committable.getLatestPublishedMessages()).isEmpty();
+
+        byte[] v2Serialized = INSTANCE.serialize(committable);
+        PulsarCommittable roundTripped = INSTANCE.deserialize(INSTANCE.getVersion(), v2Serialized);
+        assertThat(roundTripped).isEqualTo(committable);
+        assertThat(roundTripped.getVersion()).isEqualTo(1);
+    }
+
+    @Test
+    void unknownVersionFailsDeserialization() {
+        assertThatThrownBy(() -> INSTANCE.deserialize(3, new byte[0]))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("Unsupported Pulsar committable version");
+    }
+
+    @Test
+    void truncatedV1StateFailsDeserialization() {
+        assertThatThrownBy(() -> INSTANCE.deserialize(1, new byte[16]))
+                .isInstanceOf(IOException.class);
+    }
+
+    @Test
+    void emptyTopicInV1StateFailsDeserialization() throws IOException {
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeLong(1L);
+            output.writeLong(2L);
+            output.writeUTF("");
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(1, serialized))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("topic must not be empty");
+    }
+
+    @Test
+    void unsupportedCommittableVersionInV2StateFailsDeserialization() throws IOException {
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeInt(3);
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("Unsupported Pulsar committable state version");
+    }
+
+    @Test
+    void negativeMessageCountInV2StateFailsDeserialization() throws IOException {
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeInt(2);
+            output.writeLong(1L);
+            output.writeLong(2L);
+            output.writeInt(-1);
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("Negative number of published messages");
+    }
+
+    @Test
+    void trailingBytesInV2StateFailDeserialization() throws IOException {
+        PulsarCommittable committable =
+                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
+        byte[] serialized = INSTANCE.serialize(committable);
+        byte[] serializedWithTrailingByte = Arrays.copyOf(serialized, serialized.length + 1);
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(2, serializedWithTrailingByte))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("Trailing bytes");
     }
 }

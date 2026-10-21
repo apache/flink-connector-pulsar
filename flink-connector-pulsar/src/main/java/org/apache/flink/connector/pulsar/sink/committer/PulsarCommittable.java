@@ -22,7 +22,6 @@ import org.apache.flink.annotation.Internal;
 
 import org.apache.pulsar.client.api.transaction.TxnID;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -38,17 +37,14 @@ public class PulsarCommittable {
     private final int version;
 
     public PulsarCommittable(TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages) {
-        this.txnID = txnID;
-        this.latestPublishedMessages = latestPublishedMessages;
-        this.version = 2;
+        this(txnID, latestPublishedMessages, 2);
     }
 
-    // This constructor should only be used by PulsarCommittableSerializer.
-    @Deprecated
-    public PulsarCommittable(TxnID txnID) {
+    PulsarCommittable(
+            TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages, int version) {
         this.txnID = txnID;
-        this.latestPublishedMessages = Collections.emptyMap();
-        this.version = 1;
+        this.latestPublishedMessages = latestPublishedMessages;
+        this.version = version;
     }
 
     public TxnID getTxnID() {
@@ -70,12 +66,13 @@ public class PulsarCommittable {
         }
         PulsarCommittable that = (PulsarCommittable) o;
         return Objects.equals(txnID, that.txnID)
-                && Objects.equals(latestPublishedMessages, that.latestPublishedMessages);
+                && Objects.equals(latestPublishedMessages, that.latestPublishedMessages)
+                && version == that.version;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(txnID, latestPublishedMessages);
+        return Objects.hash(txnID, latestPublishedMessages, version);
     }
 
     @Override
