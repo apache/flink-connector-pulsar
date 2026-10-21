@@ -185,8 +185,8 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
                                         "Failed to send data to Pulsar");
                             } else {
                                 recordLatestMessageId(topic, id);
-                        LOG.debug(
-                                "Sent message to Pulsar {} with message id {}", topic, id);
+                                LOG.debug(
+                                        "Sent message to Pulsar {} with message id {}", topic, id);
                             }
                         } finally {
                             pendingMessages.decrementAndGet();
