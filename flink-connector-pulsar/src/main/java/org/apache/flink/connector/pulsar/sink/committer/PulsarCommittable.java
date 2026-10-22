@@ -82,6 +82,8 @@ public class PulsarCommittable {
                 + txnID
                 + ", latestPublishedMessages="
                 + latestPublishedMessages
+                + ", version="
+                + version
                 + '}';
     }
 }

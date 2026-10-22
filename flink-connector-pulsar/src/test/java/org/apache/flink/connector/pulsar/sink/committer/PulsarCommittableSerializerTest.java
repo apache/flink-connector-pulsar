@@ -164,6 +164,31 @@ class PulsarCommittableSerializerTest {
     }
 
     @Test
+    void oversizedMessageCountInV2StateFailsWithoutPreallocating() throws IOException {
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeInt(2);
+            output.writeLong(1L);
+            output.writeLong(2L);
+            output.writeInt(Integer.MAX_VALUE);
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
+                .isInstanceOf(IOException.class);
+    }
+
+    @Test
+    void committableToStringIncludesVersion() {
+        PulsarCommittable committable =
+                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
+
+        assertThat(committable.toString()).contains("version=2");
+    }
+
+    @Test
     void trailingBytesInV2StateFailDeserialization() throws IOException {
         PulsarCommittable committable =
                 new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());

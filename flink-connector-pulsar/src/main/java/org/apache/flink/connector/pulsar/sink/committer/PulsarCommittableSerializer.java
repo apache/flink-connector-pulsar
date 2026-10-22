@@ -112,7 +112,7 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
                 throw new IOException("Negative number of published messages: " + messageCount);
             }
 
-            Map<String, MessageIdPojo> messages = new HashMap<>(messageCount);
+            Map<String, MessageIdPojo> messages = new HashMap<>();
             for (int i = 0; i < messageCount; i++) {
                 String topic = input.readUTF();
                 MessageIdPojo messageId =
