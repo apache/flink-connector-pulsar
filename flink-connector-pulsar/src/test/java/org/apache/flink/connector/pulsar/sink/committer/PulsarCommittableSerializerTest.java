@@ -18,9 +18,6 @@
 
 package org.apache.flink.connector.pulsar.sink.committer;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +31,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for serializing and deserializing {@link PulsarCommittable} with {@link
