@@ -31,25 +31,31 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/** A serializer used to serialize {@link PulsarCommittable}. */
+/**
+ * A serializer used to serialize {@link PulsarCommittable}.
+ *
+ * <p>Each version only appends fields to the previous one, so connector versions that only know V1
+ * can still read V2 state.
+ */
 public class PulsarCommittableSerializer implements SimpleVersionedSerializer<PulsarCommittable> {
 
-    private static final int VERSION_V1 = 1;
-    private static final int VERSION_V2 = 2;
+    private static final int CURRENT_VERSION = 2;
+    private static final String V2_LEGACY_TOPIC = "unknown_due_to_v2_serialization";
 
     @Override
     public int getVersion() {
-        return VERSION_V2;
+        return CURRENT_VERSION;
     }
 
     @Override
     public byte[] serialize(PulsarCommittable obj) throws IOException {
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes)) {
-            output.writeInt(obj.getVersion());
             TxnID txnID = obj.getTxnID();
             output.writeLong(txnID.getMostSigBits());
             output.writeLong(txnID.getLeastSigBits());
+            // V1 topic field. A transaction can now span topics, so use a descriptive placeholder.
+            output.writeUTF(V2_LEGACY_TOPIC);
 
             Map<String, MessageIdPojo> messages = obj.getLatestPublishedMessages();
             output.writeInt(messages.size());
@@ -69,65 +75,44 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
 
     @Override
     public PulsarCommittable deserialize(int version, byte[] serialized) throws IOException {
-        switch (version) {
-            case VERSION_V1:
-                return deserializeV1(serialized);
-            case VERSION_V2:
-                return deserializeV2(serialized);
-            default:
-                throw new IOException("Unsupported Pulsar committable version: " + version);
+        if (version < 1 || version > CURRENT_VERSION) {
+            throw new IOException("Unsupported Pulsar committable version: " + version);
         }
-    }
-
-    private PulsarCommittable deserializeV1(byte[] serialized) throws IOException {
         try (final ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 final DataInputStream in = new DataInputStream(bais)) {
             long mostSigBits = in.readLong();
             long leastSigBits = in.readLong();
-            // V1 state also stores a topic. A transaction can now span topics, so the field is
-            // not restored into the committable. Still read and validate it to consume the
-            // complete V1 payload and reject corrupted legacy state instead of silently
-            // accepting it.
+            TxnID txnID = new TxnID(mostSigBits, leastSigBits);
+            // V1 topic field, unused since a transaction can span topics.
             String topic = in.readUTF();
             if (topic.isEmpty()) {
                 throw new IOException("Corrupt V1 committable: topic must not be empty.");
             }
-            TxnID txnID = new TxnID(mostSigBits, leastSigBits);
-            return new PulsarCommittable(txnID, Collections.emptyMap(), VERSION_V1);
-        }
-    }
 
-    private PulsarCommittable deserializeV2(byte[] serialized) throws IOException {
-        try (ByteArrayInputStream bytes = new ByteArrayInputStream(serialized);
-                DataInputStream input = new DataInputStream(bytes)) {
-            int committableVersion = input.readInt();
-            if (committableVersion != VERSION_V1 && committableVersion != VERSION_V2) {
-                throw new IOException(
-                        "Unsupported Pulsar committable state version: " + committableVersion);
-            }
+            Map<String, MessageIdPojo> messages = Collections.emptyMap();
+            if (version >= CURRENT_VERSION) {
+                int messageCount = in.readInt();
+                if (messageCount < 0) {
+                    throw new IOException("Negative number of published messages: " + messageCount);
+                }
 
-            TxnID txnID = new TxnID(input.readLong(), input.readLong());
-            int messageCount = input.readInt();
-            if (messageCount < 0) {
-                throw new IOException("Negative number of published messages: " + messageCount);
+                messages = new HashMap<>();
+                for (int i = 0; i < messageCount; i++) {
+                    String messageTopic = in.readUTF();
+                    MessageIdPojo messageId =
+                            new MessageIdPojo(
+                                    in.readLong(),
+                                    in.readLong(),
+                                    in.readInt(),
+                                    in.readInt(),
+                                    in.readInt());
+                    messages.put(messageTopic, messageId);
+                }
             }
-
-            Map<String, MessageIdPojo> messages = new HashMap<>();
-            for (int i = 0; i < messageCount; i++) {
-                String topic = input.readUTF();
-                MessageIdPojo messageId =
-                        new MessageIdPojo(
-                                input.readLong(),
-                                input.readLong(),
-                                input.readInt(),
-                                input.readInt(),
-                                input.readInt());
-                messages.put(topic, messageId);
-            }
-            if (input.available() != 0) {
+            if (in.available() != 0) {
                 throw new IOException("Trailing bytes in Pulsar committable state");
             }
-            return new PulsarCommittable(txnID, messages, committableVersion);
+            return new PulsarCommittable(txnID, messages);
         }
     }
 }

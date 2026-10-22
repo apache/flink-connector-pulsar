@@ -34,17 +34,9 @@ public class PulsarCommittable {
 
     private final Map<String, MessageIdPojo> latestPublishedMessages;
 
-    private final int version;
-
     public PulsarCommittable(TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages) {
-        this(txnID, latestPublishedMessages, 2);
-    }
-
-    PulsarCommittable(
-            TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages, int version) {
         this.txnID = txnID;
         this.latestPublishedMessages = latestPublishedMessages;
-        this.version = version;
     }
 
     public TxnID getTxnID() {
@@ -55,10 +47,6 @@ public class PulsarCommittable {
         return latestPublishedMessages;
     }
 
-    public int getVersion() {
-        return version;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof PulsarCommittable)) {
@@ -66,13 +54,12 @@ public class PulsarCommittable {
         }
         PulsarCommittable that = (PulsarCommittable) o;
         return Objects.equals(txnID, that.txnID)
-                && Objects.equals(latestPublishedMessages, that.latestPublishedMessages)
-                && version == that.version;
+                && Objects.equals(latestPublishedMessages, that.latestPublishedMessages);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(txnID, latestPublishedMessages, version);
+        return Objects.hash(txnID, latestPublishedMessages);
     }
 
     @Override
@@ -82,8 +69,6 @@ public class PulsarCommittable {
                 + txnID
                 + ", latestPublishedMessages="
                 + latestPublishedMessages
-                + ", version="
-                + version
                 + '}';
     }
 }

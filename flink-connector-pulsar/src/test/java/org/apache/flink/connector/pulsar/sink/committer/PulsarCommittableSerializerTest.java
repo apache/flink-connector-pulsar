@@ -18,10 +18,15 @@
 
 package org.apache.flink.connector.pulsar.sink.committer;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,9 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for serializing and deserializing {@link PulsarCommittable} with {@link
@@ -57,7 +59,6 @@ class PulsarCommittableSerializerTest {
         PulsarCommittable committable1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
 
         assertThat(committable1).isEqualTo(committable);
-        assertThat(committable1.getVersion()).isEqualTo(2);
     }
 
     @Test
@@ -90,14 +91,27 @@ class PulsarCommittableSerializerTest {
 
         PulsarCommittable committable = INSTANCE.deserialize(1, serialized);
 
-        assertThat(committable.getVersion()).isEqualTo(1);
         assertThat(committable.getTxnID()).isEqualTo(txnID);
         assertThat(committable.getLatestPublishedMessages()).isEmpty();
 
         byte[] v2Serialized = INSTANCE.serialize(committable);
         PulsarCommittable roundTripped = INSTANCE.deserialize(INSTANCE.getVersion(), v2Serialized);
         assertThat(roundTripped).isEqualTo(committable);
-        assertThat(roundTripped.getVersion()).isEqualTo(1);
+    }
+
+    @Test
+    void v2StateIsReadableByV1Deserializer() throws IOException {
+        TxnID txnID = new TxnID(1L, 2L);
+        byte[] serialized =
+                INSTANCE.serialize(
+                        new PulsarCommittable(
+                                txnID, Collections.singletonMap("topic", messageId())));
+
+        // Connector versions that only know V1 ignore the serializer version and trailing bytes.
+        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(serialized))) {
+            assertThat(new TxnID(input.readLong(), input.readLong())).isEqualTo(txnID);
+            assertThat(input.readUTF()).isEqualTo("unknown_due_to_v2_serialization");
+        }
     }
 
     @Test
@@ -131,28 +145,13 @@ class PulsarCommittableSerializerTest {
     }
 
     @Test
-    void unsupportedCommittableVersionInV2StateFailsDeserialization() throws IOException {
-        byte[] serialized;
-        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                DataOutputStream output = new DataOutputStream(bytes)) {
-            output.writeInt(3);
-            output.flush();
-            serialized = bytes.toByteArray();
-        }
-
-        assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
-                .isInstanceOf(IOException.class)
-                .hasMessageContaining("Unsupported Pulsar committable state version");
-    }
-
-    @Test
     void negativeMessageCountInV2StateFailsDeserialization() throws IOException {
         byte[] serialized;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes)) {
-            output.writeInt(2);
             output.writeLong(1L);
             output.writeLong(2L);
+            output.writeUTF("topic");
             output.writeInt(-1);
             output.flush();
             serialized = bytes.toByteArray();
@@ -168,9 +167,9 @@ class PulsarCommittableSerializerTest {
         byte[] serialized;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes)) {
-            output.writeInt(2);
             output.writeLong(1L);
             output.writeLong(2L);
+            output.writeUTF("topic");
             output.writeInt(Integer.MAX_VALUE);
             output.flush();
             serialized = bytes.toByteArray();
@@ -178,14 +177,6 @@ class PulsarCommittableSerializerTest {
 
         assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
                 .isInstanceOf(IOException.class);
-    }
-
-    @Test
-    void committableToStringIncludesVersion() {
-        PulsarCommittable committable =
-                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
-
-        assertThat(committable.toString()).contains("version=2");
     }
 
     @Test
@@ -198,5 +189,9 @@ class PulsarCommittableSerializerTest {
         assertThatThrownBy(() -> INSTANCE.deserialize(2, serializedWithTrailingByte))
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("Trailing bytes");
+    }
+
+    private static MessageIdPojo messageId() {
+        return new MessageIdPojo(1L, 2L, 3, 0, -1);
     }
 }
