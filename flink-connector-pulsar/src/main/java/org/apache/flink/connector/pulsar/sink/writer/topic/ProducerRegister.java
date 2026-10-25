@@ -23,7 +23,6 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.common.metrics.ProducerMetricsInterceptor;
 import org.apache.flink.connector.pulsar.common.schema.PulsarSchemaUtils;
-import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
@@ -56,9 +55,7 @@ import javax.annotation.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -104,7 +101,7 @@ public class ProducerRegister implements Closeable {
     private final SinkWriterMetricGroup metricGroup;
     private final Map<String, Schema<byte[]>> schemas;
     private final Map<String, Map<SchemaHash, Producer<?>>> producers;
-    private final Map<String, Transaction> transactions;
+    @Nullable private Transaction transaction;
 
     public ProducerRegister(
             SinkConfiguration sinkConfiguration,
@@ -117,7 +114,6 @@ public class ProducerRegister implements Closeable {
         this.metricGroup = metricGroup;
         this.schemas = new HashMap<>();
         this.producers = new HashMap<>();
-        this.transactions = new HashMap<>();
 
         if (sinkConfiguration.isEnableMetrics()) {
             metricGroup.setCurrentSendTimeGauge(this::currentSendTimeGauge);
@@ -133,9 +129,9 @@ public class ProducerRegister implements Closeable {
 
     /**
      * Create a TypedMessageBuilder which could be sent to Pulsar directly. First, we would create a
-     * topic-related producer or use a cached one instead. Then we would try to find a topic-related
-     * transaction. We would generate a transaction instance if there is no transaction. Finally, we
-     * created the message builder and put the element into it.
+     * topic-related producer or use a cached one instead. Then we would get the transaction for the
+     * current checkpoint, creating it if necessary. Finally, we create the message builder and put
+     * the element into it.
      *
      * <p>Pulsar's Producer doesn't have {@code producer.newMessage(schema, transaction)} method. We
      * have to manually create it.
@@ -150,29 +146,23 @@ public class ProducerRegister implements Closeable {
         TransactionImpl transaction = null;
 
         if (sinkConfiguration.getDeliveryGuarantee() == DeliveryGuarantee.EXACTLY_ONCE) {
-            transaction = (TransactionImpl) getOrCreateTransaction(topic);
+            transaction = (TransactionImpl) getOrCreateTransaction();
         }
 
         return (TypedMessageBuilder<T>)
                 new TypedMessageBuilderImpl<>(producer, schema, transaction);
     }
 
-    /**
-     * Convert the transactions into a committable list for Pulsar Committer. The transactions would
-     * be removed until Flink triggered a checkpoint.
-     */
-    public List<PulsarCommittable> prepareCommit() {
-        List<PulsarCommittable> committables = new ArrayList<>(transactions.size());
-        for (Map.Entry<String, Transaction> entry : transactions.entrySet()) {
-            String topic = entry.getKey();
-            Transaction transaction = entry.getValue();
-            TxnID txnID = transaction.getTxnID();
-
-            committables.add(new PulsarCommittable(txnID, topic));
+    /** Return the transaction for the current checkpoint and clear it from the writer state. */
+    @Nullable
+    public TxnID prepareCommit() {
+        if (transaction == null) {
+            return null;
         }
-        transactions.clear();
 
-        return committables;
+        TxnID txnID = transaction.getTxnID();
+        transaction = null;
+        return txnID;
     }
 
     /**
@@ -272,18 +262,14 @@ public class ProducerRegister implements Closeable {
         }
     }
 
-    /**
-     * Get the cached topic-related transaction. Or create a new transaction after checkpointing.
-     */
-    private Transaction getOrCreateTransaction(String topic) throws PulsarClientException {
-        if (transactions.containsKey(topic)) {
-            return transactions.get(topic);
+    /** Get the transaction for the current checkpoint, or create one after checkpointing. */
+    private Transaction getOrCreateTransaction() throws PulsarClientException {
+        if (transaction != null) {
+            return transaction;
         }
 
         long timeoutMillis = sinkConfiguration.getTransactionTimeoutMillis();
-        Transaction transaction = createTransaction(pulsarClient, timeoutMillis);
-        transactions.put(topic, transaction);
-
+        transaction = createTransaction(pulsarClient, timeoutMillis);
         return transaction;
     }
 
@@ -299,19 +285,16 @@ public class ProducerRegister implements Closeable {
         }
     }
 
-    /** Abort the existed transactions. This method would be used when closing PulsarWriter. */
+    /** Abort the outstanding transaction. This method is used when closing PulsarWriter. */
     private void abortTransactions() {
-        if (coordinatorClient == null || transactions.isEmpty()) {
+        if (coordinatorClient == null || transaction == null) {
             return;
         }
 
+        TxnID txnID = transaction.getTxnID();
         try (Closer closer = Closer.create()) {
-            for (Transaction transaction : transactions.values()) {
-                TxnID txnID = transaction.getTxnID();
-                closer.register(() -> coordinatorClient.abort(txnID));
-            }
-
-            transactions.clear();
+            closer.register(() -> coordinatorClient.abort(txnID));
+            transaction = null;
         } catch (IOException e) {
             throw new FlinkRuntimeException(e);
         }

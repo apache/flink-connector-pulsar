@@ -26,6 +26,7 @@ import org.apache.flink.api.connector.sink2.CommittingSinkWriter;
 import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
+import org.apache.flink.connector.pulsar.sink.committer.MessageIdPojo;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
@@ -41,9 +42,11 @@ import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageIdAdv;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.apache.pulsar.shade.com.google.common.base.Strings;
 import org.slf4j.Logger;
@@ -51,9 +54,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.Collections.emptyList;
@@ -79,6 +85,7 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
     private final ProducerRegister producerRegister;
     private final MailboxExecutor mailboxExecutor;
     private final AtomicLong pendingMessages;
+    private final ConcurrentHashMap<String, MessageIdAdv> latestPublishedMessages;
 
     /**
      * Constructor creating a Pulsar writer.
@@ -136,6 +143,10 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
         this.producerRegister = new ProducerRegister(sinkConfiguration, pulsarCrypto, metricGroup);
         this.mailboxExecutor = initContext.getMailboxExecutor();
         this.pendingMessages = new AtomicLong(0);
+        this.latestPublishedMessages =
+                deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE
+                        ? new ConcurrentHashMap<>()
+                        : null;
     }
 
     @Override
@@ -167,16 +178,36 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
             CompletableFuture<MessageId> future = builder.sendAsync();
             future.whenComplete(
                     (id, ex) -> {
-                        pendingMessages.decrementAndGet();
-                        if (ex != null) {
-                            mailboxExecutor.execute(
-                                    () -> throwSendingException(topic, ex),
-                                    "Failed to send data to Pulsar");
-                        } else {
-                            LOG.debug("Sent message to Pulsar {} with message id {}", topic, id);
+                        try {
+                            if (ex != null) {
+                                mailboxExecutor.execute(
+                                        () -> throwSendingException(topic, ex),
+                                        "Failed to send data to Pulsar");
+                            } else {
+                                recordLatestMessageId(topic, id);
+                                LOG.debug(
+                                        "Sent message to Pulsar {} with message id {}", topic, id);
+                            }
+                        } finally {
+                            pendingMessages.decrementAndGet();
                         }
                     });
         }
+    }
+
+    private void recordLatestMessageId(String topic, MessageId messageId) {
+        if (deliveryGuarantee != DeliveryGuarantee.EXACTLY_ONCE) {
+            return;
+        }
+
+        // Producer sends return MessageIdImpl subclasses, which implement MessageIdAdv.
+        MessageIdAdv messageIdAdv = (MessageIdAdv) messageId;
+        latestPublishedMessages.compute(
+                topic,
+                (ignored, current) ->
+                        current == null || messageIdAdv.compareTo(current) > 0
+                                ? messageIdAdv
+                                : current);
     }
 
     private void throwSendingException(String topic, Throwable ex) {
@@ -266,7 +297,27 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
     @Override
     public Collection<PulsarCommittable> prepareCommit() {
         if (deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE) {
-            return producerRegister.prepareCommit();
+            TxnID txnID = producerRegister.prepareCommit();
+            if (txnID == null) {
+                return Collections.emptyList();
+            }
+
+            // Flink invokes flush() before prepareCommit(). flush() waits for all pending async
+            // sends and their callbacks, so no message ID can be added between copying and clearing
+            // the map below.
+            Map<String, MessageIdPojo> messageIds = new HashMap<>();
+            latestPublishedMessages.forEach(
+                    (topic, messageId) ->
+                            messageIds.put(
+                                    topic,
+                                    new MessageIdPojo(
+                                            messageId.getLedgerId(),
+                                            messageId.getEntryId(),
+                                            messageId.getBatchSize(),
+                                            messageId.getBatchIndex(),
+                                            messageId.getPartitionIndex())));
+            latestPublishedMessages.clear();
+            return Collections.singletonList(new PulsarCommittable(txnID, messageIds));
         } else {
             return emptyList();
         }

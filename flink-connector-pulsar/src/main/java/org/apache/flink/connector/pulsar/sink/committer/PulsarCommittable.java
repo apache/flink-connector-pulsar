@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Internal;
 
 import org.apache.pulsar.client.api.transaction.TxnID;
 
+import java.util.Map;
 import java.util.Objects;
 
 /** The writer state for Pulsar connector. We would used in Pulsar committer. */
@@ -31,41 +32,43 @@ public class PulsarCommittable {
     /** The transaction id. */
     private final TxnID txnID;
 
-    /** The topic name with partition information. */
-    private final String topic;
+    private final Map<String, MessageIdPojo> latestPublishedMessages;
 
-    public PulsarCommittable(TxnID txnID, String topic) {
+    public PulsarCommittable(TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages) {
         this.txnID = txnID;
-        this.topic = topic;
+        this.latestPublishedMessages = latestPublishedMessages;
     }
 
     public TxnID getTxnID() {
         return txnID;
     }
 
-    public String getTopic() {
-        return topic;
+    public Map<String, MessageIdPojo> getLatestPublishedMessages() {
+        return latestPublishedMessages;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof PulsarCommittable)) {
             return false;
         }
         PulsarCommittable that = (PulsarCommittable) o;
-        return Objects.equals(txnID, that.txnID) && Objects.equals(topic, that.topic);
+        return Objects.equals(txnID, that.txnID)
+                && Objects.equals(latestPublishedMessages, that.latestPublishedMessages);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(txnID, topic);
+        return Objects.hash(txnID, latestPublishedMessages);
     }
 
     @Override
     public String toString() {
-        return "PulsarCommittable{" + "txnID=" + txnID + ", topic='" + topic + '\'' + '}';
+        return "PulsarCommittable{"
+                + "txnID="
+                + txnID
+                + ", latestPublishedMessages="
+                + latestPublishedMessages
+                + '}';
     }
 }

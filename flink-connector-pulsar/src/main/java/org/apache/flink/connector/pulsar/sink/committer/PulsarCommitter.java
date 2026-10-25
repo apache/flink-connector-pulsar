@@ -75,9 +75,7 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
         for (CommitRequest<PulsarCommittable> request : requests) {
             PulsarCommittable committable = request.getCommittable();
             TxnID txnID = committable.getTxnID();
-            String topic = committable.getTopic();
-
-            LOG.debug("Start committing the Pulsar transaction {} for topic {}", txnID, topic);
+            LOG.debug("Start committing the Pulsar transaction {}", txnID);
             try {
                 client.commit(txnID);
             } catch (CoordinatorNotFoundException e) {
@@ -122,9 +120,8 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
                 request.signalFailedWithKnownReason(e);
             } catch (TransactionCoordinatorClientException e) {
                 LOG.error(
-                        "Encountered retriable exception while committing transaction {} for topic {}.",
+                        "Encountered retriable exception while committing transaction {}.",
                         committable,
-                        topic,
                         e);
                 int maxRecommitTimes = sinkConfiguration.getMaxRecommitTimes();
                 if (request.getNumberOfRetries() < maxRecommitTimes) {
