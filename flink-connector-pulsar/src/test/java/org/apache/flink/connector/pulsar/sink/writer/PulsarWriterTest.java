@@ -32,11 +32,13 @@ import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
+import org.apache.flink.connector.pulsar.sink.committer.MessageIdPojo;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.delayer.FixedMessageDelayer;
 import org.apache.flink.connector.pulsar.sink.writer.delayer.MessageDelayer;
+import org.apache.flink.connector.pulsar.sink.writer.message.PulsarMessage;
 import org.apache.flink.connector.pulsar.sink.writer.router.RoundRobinTopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRouter;
 import org.apache.flink.connector.pulsar.sink.writer.serializer.PulsarSchemaWrapper;
@@ -54,19 +56,28 @@ import org.apache.flink.runtime.metrics.groups.UnregisteredMetricGroups;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.UserCodeClassLoader;
 
+import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageIdAdv;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.OptionalLong;
 
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.flink.connector.base.DeliveryGuarantee.EXACTLY_ONCE;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_BATCHING_ENABLED;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_PRODUCER_NAME;
 import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_WRITE_SCHEMA_EVOLUTION;
+import static org.apache.flink.runtime.testutils.CommonTestUtils.waitUntilCondition;
 import static org.apache.pulsar.client.api.Schema.STRING;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,6 +102,111 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         MetadataListener listener = new MetadataListener();
 
         writeMessageAndVerify(DeliveryGuarantee.AT_LEAST_ONCE, listener, topic);
+    }
+
+    @ParameterizedTest(name = "batchingEnabled={0}")
+    @ValueSource(booleans = {false, true})
+    void duplicateOnlyCheckpointHasNoPublishedMessageIds(boolean batchingEnabled) throws Exception {
+        String topic = "persistent://public/default/writer-dedup-" + randomAlphabetic(10);
+        operator().createTopic(topic, 0);
+        operator().admin().topicPolicies().setDeduplicationStatus(topic, true);
+        waitUntilCondition(
+                () ->
+                        "Enabled"
+                                .equals(
+                                        operator()
+                                                .admin()
+                                                .topics()
+                                                .getStats(topic)
+                                                .getDeduplicationStatus()),
+                100L,
+                300);
+
+        Configuration config = operator().sinkConfig(EXACTLY_ONCE);
+        config.set(PULSAR_BATCHING_ENABLED, batchingEnabled);
+        // Keep one producer identity across checkpoints for sequence-ID deduplication.
+        config.set(PULSAR_PRODUCER_NAME, "writer-dedup-" + randomAlphabetic(10));
+        SinkConfiguration configuration = new SinkConfiguration(config);
+        PulsarSerializationSchema<Long> schema =
+                (sequenceId, context) ->
+                        PulsarMessage.builder(STRING, sequenceId.toString())
+                                .sequenceId(sequenceId)
+                                .build();
+
+        try (PulsarWriter<Long> writer =
+                        new PulsarWriter<>(
+                                configuration,
+                                schema,
+                                new MetadataListener(singletonList(topic)),
+                                new DynamicTopicRouter<>(configuration, topic),
+                                MessageDelayer.never(),
+                                PulsarCrypto.disabled(),
+                                new MockInitContext());
+                Consumer<String> consumer = operator().createConsumer(topic, STRING)) {
+            writer.write(0L, CONTEXT);
+            PulsarCommittable original = flushAndCommit(writer);
+            Message<String> firstMessage = consumer.receive(10, SECONDS);
+            assertThat(firstMessage).isNotNull();
+            assertThat(firstMessage.getValue()).isEqualTo("0");
+            assertLatestMessage(original, topic, firstMessage);
+
+            // A duplicate-only checkpoint must still commit its transaction, but has no new
+            // persisted position to include in the committable.
+            writeDuplicateAndVerifyNoAppend(writer, topic, 0L);
+            PulsarCommittable duplicate = flushAndCommit(writer);
+            assertThat(duplicate.getTxnID()).isNotEqualTo(original.getTxnID());
+            assertThat(duplicate.getLatestPublishedMessages())
+                    .as(
+                            "A checkpoint that published no messages must not record a persisted position")
+                    .isEmpty();
+
+            // Flush separately so batching cannot combine duplicates with the new message.
+            writeDuplicateAndVerifyNoAppend(writer, topic, 0L);
+            writer.write(1L, CONTEXT);
+            writer.flush(false);
+            writeDuplicateAndVerifyNoAppend(writer, topic, 0L);
+            PulsarCommittable mixed = flushAndCommit(writer);
+            Message<String> nextMessage = consumer.receive(10, SECONDS);
+            assertThat(nextMessage).isNotNull();
+            assertThat(nextMessage.getValue()).isEqualTo("1");
+            assertLatestMessage(mixed, topic, nextMessage);
+            assertThat(writer.prepareCommit()).isEmpty();
+        }
+    }
+
+    private void writeDuplicateAndVerifyNoAppend(
+            PulsarWriter<Long> writer, String topic, long sequenceId) throws Exception {
+        MessageId lastMessageId = operator().admin().topics().getLastMessageId(topic);
+        writer.write(sequenceId, CONTEXT);
+        writer.flush(false);
+        // Compare before committing, since a transaction commit appends its own marker.
+        assertThat(operator().admin().topics().getLastMessageId(topic))
+                .as("A deduplicated send must not append a ledger entry")
+                .isEqualTo(lastMessageId);
+    }
+
+    private PulsarCommittable flushAndCommit(PulsarWriter<?> writer) throws Exception {
+        writer.flush(false);
+        Collection<PulsarCommittable> committables = writer.prepareCommit();
+        assertThat(committables).hasSize(1);
+        PulsarCommittable committable = committables.iterator().next();
+        operator().coordinatorClient().commit(committable.getTxnID());
+        return committable;
+    }
+
+    private static void assertLatestMessage(
+            PulsarCommittable committable, String topic, Message<?> message) {
+        MessageIdAdv messageId = (MessageIdAdv) message.getMessageId();
+        assertThat(committable.getLatestPublishedMessages())
+                .containsOnlyKeys(topic)
+                .containsEntry(
+                        topic,
+                        new MessageIdPojo(
+                                messageId.getLedgerId(),
+                                messageId.getEntryId(),
+                                messageId.getBatchSize(),
+                                messageId.getBatchIndex(),
+                                messageId.getPartitionIndex()));
     }
 
     private void writeMessageAndVerify(
