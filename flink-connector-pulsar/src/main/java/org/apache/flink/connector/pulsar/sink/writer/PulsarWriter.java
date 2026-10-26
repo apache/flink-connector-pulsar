@@ -202,6 +202,12 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
 
         // Producer sends return MessageIdImpl subclasses, which implement MessageIdAdv.
         MessageIdAdv messageIdAdv = (MessageIdAdv) messageId;
+        // The broker acknowledges deduplicated sends with ledger/entry -1 without appending a
+        // message to the transaction.
+        if (messageIdAdv.getLedgerId() < 0 || messageIdAdv.getEntryId() < 0) {
+            return;
+        }
+
         latestPublishedMessages.compute(
                 topic,
                 (ignored, current) ->
