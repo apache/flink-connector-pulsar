@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_MEMORY_LIMIT_BYTES;
@@ -83,6 +84,7 @@ public final class PulsarSourceConfigUtils {
     public static final PulsarConfigValidator SOURCE_CONFIG_VALIDATOR =
             PulsarConfigValidator.builder()
                     .requiredOption(PULSAR_SERVICE_URL)
+                    .requiredOption(PULSAR_ADMIN_URL)
                     .requiredOption(PULSAR_SUBSCRIPTION_NAME)
                     .conflictOptions(PULSAR_AUTH_PARAMS, PULSAR_AUTH_PARAM_MAP)
                     .build();

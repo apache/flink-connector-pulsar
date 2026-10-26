@@ -52,6 +52,7 @@ Pulsar Source 提供了 builder 类来构造 `PulsarSource` 实例。下面的�
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
+    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())
@@ -82,7 +83,7 @@ env.from_source(source=pulsar_source,
 {{< /tab >}}
 {{< /tabs >}}
 
-如果使用构造类构造 `PulsarSource`，一定要提供下面几个属性：
+使用构造类构造 `PulsarSource` 时，需要配置下面几个属性：
 
 - Pulsar 数据消费的地址，使用 `setServiceUrl(String)` 方法提供。
 - Pulsar HTTP 管理地址，使用 `setAdminUrl(String)` 方法提供。
@@ -613,7 +614,7 @@ stream.sink_to(pulsar_sink)
 {{< /tab >}}
 {{< /tabs >}}
 
-下列为创建一个 `PulsarSink` 实例必需的属性：
+下列为创建一个 `PulsarSink` 实例时需要配置的属性：
 
 - Pulsar 数据消费的地址，使用 `setServiceUrl(String)` 方法提供。
 - Pulsar HTTP 管理地址，使用 `setAdminUrl(String)` 方法提供。

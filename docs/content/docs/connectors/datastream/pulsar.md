@@ -57,6 +57,7 @@ and deserializes the raw payload of the messages as strings.
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
+    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())
@@ -87,7 +88,7 @@ env.from_source(source=pulsar_source,
 {{< /tab >}}
 {{< /tabs >}}
 
-The following properties are **required** for building a PulsarSource:
+The following properties are **required** for a PulsarSource:
 
 - Pulsar service URL, configured by `setServiceUrl(String)`
 - Pulsar service HTTP URL (also known as admin URL), configured by `setAdminUrl(String)`
@@ -711,10 +712,10 @@ stream.sink_to(pulsar_sink)
 {{< /tab >}}
 {{< /tabs >}}
 
-The following properties are **required** for building PulsarSink:
+The following properties are **required** for a PulsarSink:
 
 - Pulsar service url, configured by `setServiceUrl(String)`
-- Pulsar service http url (aka. admin url), configured by `setAdminUrl(String)`
+- Pulsar service HTTP URL (also known as admin URL), configured by `setAdminUrl(String)`
 - Topics / partitions to write, see [Producing to topics](#producing-to-topics) for more details.
 - Serializer to generate Pulsar messages, see [serializer](#serializer) for more details.
 

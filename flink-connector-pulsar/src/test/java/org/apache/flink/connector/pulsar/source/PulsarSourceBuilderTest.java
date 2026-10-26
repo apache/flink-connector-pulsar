@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.source;
 import org.apache.pulsar.client.api.Schema;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link PulsarSourceBuilder}. */
@@ -46,8 +47,23 @@ class PulsarSourceBuilderTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    void adminUrlMustBeProvided() {
+        PulsarSourceBuilder<String> builder = new PulsarSourceBuilder<>();
+        builder.setServiceUrl("service-url");
+        builder.setSubscriptionName("subscription-name");
+        builder.setTopics("topic");
+        builder.setDeserializationSchema(Schema.STRING);
+
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalArgumentException.class);
+
+        builder.setAdminUrl("admin-url");
+        assertThatCode(builder::build).doesNotThrowAnyException();
+    }
+
     private void fillRequiredFields(PulsarSourceBuilder<String> builder) {
         builder.setServiceUrl("service-url");
+        builder.setAdminUrl("admin-url");
         builder.setSubscriptionName("subscription-name");
         builder.setTopics("topic");
         builder.setDeserializationSchema(Schema.STRING);

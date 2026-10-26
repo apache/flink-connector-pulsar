@@ -52,6 +52,7 @@ CREATE TABLE PulsarTable (
   'connector' = 'pulsar',
   'topics' = 'user_behavior',
   'service-url' = 'pulsar://my-broker.com:6650',
+  'admin-url' = 'http://my-broker.com:8080',
 )
 ```
 

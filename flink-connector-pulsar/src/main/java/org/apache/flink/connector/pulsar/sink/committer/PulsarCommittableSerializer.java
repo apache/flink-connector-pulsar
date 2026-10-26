@@ -34,13 +34,15 @@ import java.util.Map;
 /**
  * A serializer used to serialize {@link PulsarCommittable}.
  *
- * <p>Each version only appends fields to the previous one, so connector versions that only know V1
- * can still read V2 state.
+ * <p>Version 2 preserves the Version 1 field prefix, allowing the current connector to restore
+ * Version 1 state while adding the per-topic message IDs needed for recovery checks.
  */
 public class PulsarCommittableSerializer implements SimpleVersionedSerializer<PulsarCommittable> {
 
-    private static final int CURRENT_VERSION = 2;
-    private static final String V2_LEGACY_TOPIC = "unknown_due_to_v2_serialization";
+    /** The version used for newly created committables. */
+    public static final int CURRENT_VERSION = 2;
+
+    static final String V2_LEGACY_TOPIC = "unknown_due_to_v2_serialization";
 
     @Override
     public int getVersion() {
@@ -88,9 +90,17 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
             if (topic.isEmpty()) {
                 throw new IOException("Corrupt V1 committable: topic must not be empty.");
             }
+            if (version == CURRENT_VERSION && !V2_LEGACY_TOPIC.equals(topic)) {
+                throw new IOException(
+                        "Corrupt V2 committable: expected placeholder topic '"
+                                + V2_LEGACY_TOPIC
+                                + "' but found '"
+                                + topic
+                                + "'.");
+            }
 
             Map<String, MessageIdPojo> messages = Collections.emptyMap();
-            if (version >= CURRENT_VERSION) {
+            if (version == CURRENT_VERSION) {
                 int messageCount = in.readInt();
                 if (messageCount < 0) {
                     throw new IOException("Negative number of published messages: " + messageCount);
@@ -112,7 +122,7 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
             if (in.available() != 0) {
                 throw new IOException("Trailing bytes in Pulsar committable state");
             }
-            return new PulsarCommittable(txnID, messages);
+            return new PulsarCommittable(txnID, messages, version);
         }
     }
 }

@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
@@ -74,14 +75,15 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
  *     .setServiceUrl(operator().serviceUrl())
+ *     .setAdminUrl(operator().adminUrl())
  *     .setTopics(topic)
  *     .setSerializationSchema(Schema.STRING)
  *     .build();
  * }</pre>
  *
- * <p>The service url and the record serializer are required fields that must be set. If you don't
- * set the topics, make sure you have provided a custom {@link TopicRouter}. Otherwise, you must
- * provide the topics to produce.
+ * <p>The service URL, admin URL and record serializer are required. If you don't set the topics,
+ * make sure you have provided a custom {@link TopicRouter}. Otherwise, you must provide the topics
+ * to produce.
  *
  * <p>To specify the delivery guarantees of PulsarSink, one can call {@link
  * #setDeliveryGuarantee(DeliveryGuarantee)}. The default value of the delivery guarantee is {@link
@@ -91,6 +93,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
  *     .setServiceUrl(operator().serviceUrl())
+ *     .setAdminUrl(operator().adminUrl())
  *     .setTopics(topic)
  *     .setSerializationSchema(Schema.STRING)
  *     .setDeliveryGuarantee(deliveryGuarantee)
@@ -119,15 +122,13 @@ public class PulsarSinkBuilder<IN> {
     }
 
     /**
-     * Sets the admin endpoint for the PulsarAdmin of the PulsarSink.
+     * Sets the HTTP endpoint used by PulsarAdmin for transaction-state verification.
      *
      * @param adminUrl The url for the PulsarAdmin.
      * @return this PulsarSinkBuilder.
-     * @deprecated this method will return builder directly
      */
-    @Deprecated
     public PulsarSinkBuilder<IN> setAdminUrl(String adminUrl) {
-        return this;
+        return setConfig(PULSAR_ADMIN_URL, adminUrl);
     }
 
     /**

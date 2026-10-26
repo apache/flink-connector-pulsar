@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.flink.configuration.description.TextElement.code;
 import static org.apache.flink.configuration.description.TextElement.text;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.ADMIN_CONFIG_PREFIX;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.CLIENT_CONFIG_PREFIX;
 
 /**
@@ -41,11 +42,16 @@ import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.CLIE
  * table.
  */
 @PublicEvolving
-@ConfigGroups(groups = {@ConfigGroup(name = "PulsarClient", keyPrefix = CLIENT_CONFIG_PREFIX)})
+@ConfigGroups(
+        groups = {
+            @ConfigGroup(name = "PulsarClient", keyPrefix = CLIENT_CONFIG_PREFIX),
+            @ConfigGroup(name = "PulsarAdmin", keyPrefix = ADMIN_CONFIG_PREFIX)
+        })
 public final class PulsarOptions {
 
     // Pulsar client API config prefix.
     public static final String CLIENT_CONFIG_PREFIX = "pulsar.client.";
+    public static final String ADMIN_CONFIG_PREFIX = "pulsar.admin.";
 
     private PulsarOptions() {
         // This is a constant class
@@ -574,4 +580,50 @@ public final class PulsarOptions {
                     .stringType()
                     .noDefaultValue()
                     .withDescription("Password of SOCKS5 proxy.");
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //
+    // The configuration for PulsarAdmin part.
+    // All the configuration listed below should have the pulsar.admin prefix.
+    //
+    ///////////////////////////////////////////////////////////////////////////////
+
+    public static final ConfigOption<String> PULSAR_ADMIN_URL =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "adminUrl")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "The Pulsar service HTTP URL for the admin endpoint. For example, %s, or %s for TLS.",
+                                            code("http://my-broker.example.com:8080"),
+                                            code("https://my-broker.example.com:8443"))
+                                    .build());
+
+    public static final ConfigOption<Integer> PULSAR_CONNECT_TIMEOUT =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "connectTimeout")
+                    .intType()
+                    .defaultValue(60000)
+                    .withDescription("The connection time out (in ms) for the PulsarAdmin client.");
+
+    public static final ConfigOption<Integer> PULSAR_READ_TIMEOUT =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "readTimeout")
+                    .intType()
+                    .defaultValue(60000)
+                    .withDescription(
+                            "The server response read timeout (in ms) for the PulsarAdmin client for any request.");
+
+    public static final ConfigOption<Integer> PULSAR_REQUEST_TIMEOUT =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "requestTimeout")
+                    .intType()
+                    .defaultValue(300000)
+                    .withDescription(
+                            "The server request timeout (in ms) for the PulsarAdmin client for any request.");
+
+    public static final ConfigOption<Integer> PULSAR_AUTO_CERT_REFRESH_TIME =
+            ConfigOptions.key(ADMIN_CONFIG_PREFIX + "autoCertRefreshTime")
+                    .intType()
+                    .defaultValue(300000)
+                    .withDescription(
+                            "The auto cert refresh time (in ms) if Pulsar admin supports TLS authentication.");
 }
