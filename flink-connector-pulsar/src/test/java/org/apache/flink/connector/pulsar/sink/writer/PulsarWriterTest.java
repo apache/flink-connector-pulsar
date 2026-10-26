@@ -101,7 +101,7 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
         FixedMessageDelayer<String> delayer = MessageDelayer.never();
         MockInitContext initContext = new MockInitContext();
 
-        PulsarWriter<String> writer =
+        try (PulsarWriter<String> writer =
                 new PulsarWriter<>(
                         configuration,
                         schema,
@@ -109,31 +109,32 @@ class PulsarWriterTest extends PulsarTestSuiteBase {
                         router,
                         delayer,
                         PulsarCrypto.disabled(),
-                        initContext);
+                        initContext)) {
 
-        writer.flush(false);
-        writer.prepareCommit();
-        writer.flush(false);
-        writer.prepareCommit();
+            writer.flush(false);
+            writer.prepareCommit();
+            writer.flush(false);
+            writer.prepareCommit();
 
-        String message = randomAlphabetic(10);
-        writer.write(message, CONTEXT);
-        writer.flush(false);
+            String message = randomAlphabetic(10);
+            writer.write(message, CONTEXT);
+            writer.flush(false);
 
-        Collection<PulsarCommittable> committables = writer.prepareCommit();
-        if (guarantee != EXACTLY_ONCE) {
-            assertThat(committables).isEmpty();
-        } else {
-            assertThat(committables).hasSize(1);
-            PulsarCommittable committable =
-                    committables.stream().findFirst().orElseThrow(IllegalArgumentException::new);
-            assertThat(committable.getLatestPublishedMessages()).hasSize(1);
-            TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
-            coordinatorClient.commit(committable.getTxnID());
+            Collection<PulsarCommittable> committables = writer.prepareCommit();
+            if (guarantee != EXACTLY_ONCE) {
+                assertThat(committables).isEmpty();
+            } else {
+                assertThat(committables).hasSize(1);
+                PulsarCommittable committable =
+                        committables.stream().findFirst().orElseThrow(IllegalArgumentException::new);
+                assertThat(committable.getLatestPublishedMessages()).hasSize(1);
+                TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
+                coordinatorClient.commit(committable.getTxnID());
+            }
+
+            String consumedMessage = operator().receiveMessage(topic, STRING).getValue();
+            assertThat(consumedMessage).isEqualTo(message);
         }
-
-        String consumedMessage = operator().receiveMessage(topic, STRING).getValue();
-        assertThat(consumedMessage).isEqualTo(message);
     }
 
     private SinkConfiguration sinkConfiguration(DeliveryGuarantee deliveryGuarantee) {
