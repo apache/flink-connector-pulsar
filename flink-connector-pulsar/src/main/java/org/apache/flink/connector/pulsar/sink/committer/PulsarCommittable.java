@@ -34,9 +34,13 @@ public class PulsarCommittable {
 
     private final Map<String, MessageIdPojo> latestPublishedMessages;
 
-    public PulsarCommittable(TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages) {
+    private final transient int version;
+
+    public PulsarCommittable(
+            TxnID txnID, Map<String, MessageIdPojo> latestPublishedMessages, int version) {
         this.txnID = txnID;
         this.latestPublishedMessages = latestPublishedMessages;
+        this.version = version;
     }
 
     public TxnID getTxnID() {
@@ -45,6 +49,10 @@ public class PulsarCommittable {
 
     public Map<String, MessageIdPojo> getLatestPublishedMessages() {
         return latestPublishedMessages;
+    }
+
+    public int getVersion() {
+        return version;
     }
 
     @Override

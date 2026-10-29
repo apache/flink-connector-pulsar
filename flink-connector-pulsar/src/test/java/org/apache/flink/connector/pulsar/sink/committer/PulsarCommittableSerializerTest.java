@@ -53,18 +53,24 @@ class PulsarCommittableSerializerTest {
         messages.put("topic-a", new MessageIdPojo(1L, 2L, 3, 0, -1));
         messages.put("topic-b", new MessageIdPojo(10L, 20L, 1, 0, -1));
 
-        PulsarCommittable committable = new PulsarCommittable(txnID, messages);
+        PulsarCommittable committable =
+                new PulsarCommittable(txnID, messages, PulsarCommittableSerializer.CURRENT_VERSION);
 
         byte[] bytes = INSTANCE.serialize(committable);
         PulsarCommittable committable1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
 
         assertThat(committable1).isEqualTo(committable);
+        assertThat(committable1.getVersion())
+                .isEqualTo(PulsarCommittableSerializer.CURRENT_VERSION);
     }
 
     @Test
     void v2SerializeAndDeserializeWithoutMessages() throws IOException {
         PulsarCommittable committable =
-                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
+                new PulsarCommittable(
+                        new TxnID(1L, 2L),
+                        Collections.emptyMap(),
+                        PulsarCommittableSerializer.CURRENT_VERSION);
 
         byte[] bytes = INSTANCE.serialize(committable);
         PulsarCommittable deserialized = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
@@ -93,6 +99,7 @@ class PulsarCommittableSerializerTest {
 
         assertThat(committable.getTxnID()).isEqualTo(txnID);
         assertThat(committable.getLatestPublishedMessages()).isEmpty();
+        assertThat(committable.getVersion()).isEqualTo(1);
 
         byte[] v2Serialized = INSTANCE.serialize(committable);
         PulsarCommittable roundTripped = INSTANCE.deserialize(INSTANCE.getVersion(), v2Serialized);
@@ -105,7 +112,9 @@ class PulsarCommittableSerializerTest {
         byte[] serialized =
                 INSTANCE.serialize(
                         new PulsarCommittable(
-                                txnID, Collections.singletonMap("topic", messageId())));
+                                txnID,
+                                Collections.singletonMap("topic", messageId()),
+                                PulsarCommittableSerializer.CURRENT_VERSION));
 
         // Connector versions that only know V1 ignore the serializer version and trailing bytes.
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(serialized))) {
@@ -145,13 +154,31 @@ class PulsarCommittableSerializerTest {
     }
 
     @Test
-    void negativeMessageCountInV2StateFailsDeserialization() throws IOException {
+    void unexpectedPlaceholderTopicInV2StateFailsDeserialization() throws IOException {
         byte[] serialized;
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes)) {
             output.writeLong(1L);
             output.writeLong(2L);
             output.writeUTF("topic");
+            output.writeInt(0);
+            output.flush();
+            serialized = bytes.toByteArray();
+        }
+
+        assertThatThrownBy(() -> INSTANCE.deserialize(2, serialized))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("but found 'topic'");
+    }
+
+    @Test
+    void negativeMessageCountInV2StateFailsDeserialization() throws IOException {
+        byte[] serialized;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeLong(1L);
+            output.writeLong(2L);
+            output.writeUTF(PulsarCommittableSerializer.V2_LEGACY_TOPIC);
             output.writeInt(-1);
             output.flush();
             serialized = bytes.toByteArray();
@@ -169,7 +196,7 @@ class PulsarCommittableSerializerTest {
                 DataOutputStream output = new DataOutputStream(bytes)) {
             output.writeLong(1L);
             output.writeLong(2L);
-            output.writeUTF("topic");
+            output.writeUTF(PulsarCommittableSerializer.V2_LEGACY_TOPIC);
             output.writeInt(Integer.MAX_VALUE);
             output.flush();
             serialized = bytes.toByteArray();
@@ -182,7 +209,10 @@ class PulsarCommittableSerializerTest {
     @Test
     void trailingBytesInV2StateFailDeserialization() throws IOException {
         PulsarCommittable committable =
-                new PulsarCommittable(new TxnID(1L, 2L), Collections.emptyMap());
+                new PulsarCommittable(
+                        new TxnID(1L, 2L),
+                        Collections.emptyMap(),
+                        PulsarCommittableSerializer.CURRENT_VERSION);
         byte[] serialized = INSTANCE.serialize(committable);
         byte[] serializedWithTrailingByte = Arrays.copyOf(serialized, serialized.length + 1);
 

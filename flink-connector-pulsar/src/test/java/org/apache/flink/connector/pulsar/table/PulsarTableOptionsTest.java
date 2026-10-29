@@ -408,10 +408,14 @@ public class PulsarTableOptionsTest extends PulsarTableTestBase {
                                 + "  `physical_3` BOOLEAN\n"
                                 + ") WITH (\n"
                                 + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
                                 + "  %s\n"
                                 + "  'connector' = 'pulsar'"
                                 + ")",
-                        topicName, pulsar.operator().serviceUrl(), testConfigString);
+                        topicName,
+                        pulsar.operator().serviceUrl(),
+                        pulsar.operator().adminUrl(),
+                        testConfigString);
         tableEnv.executeSql(createTable);
     }
 

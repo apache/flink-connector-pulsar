@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
@@ -63,13 +64,14 @@ import static org.apache.flink.util.InstantiationUtil.isSerializable;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
+import static org.apache.flink.util.StringUtils.isNullOrWhitespaceOnly;
 
 /**
  * The builder class for {@link PulsarSink} to make it easier for the users to construct a {@link
  * PulsarSink}.
  *
- * <p>The following example shows the minimum setup to create a PulsarSink that reads the String
- * values from a Pulsar topic.
+ * <p>The following example shows the minimum setup to create a PulsarSink that writes String values
+ * to a Pulsar topic.
  *
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
@@ -79,9 +81,9 @@ import static org.apache.flink.util.Preconditions.checkState;
  *     .build();
  * }</pre>
  *
- * <p>The service url and the record serializer are required fields that must be set. If you don't
- * set the topics, make sure you have provided a custom {@link TopicRouter}. Otherwise, you must
- * provide the topics to produce.
+ * <p>The service URL and record serializer are required. The admin URL is required only for {@link
+ * DeliveryGuarantee#EXACTLY_ONCE}. If you don't set the topics, make sure you have provided a
+ * custom {@link TopicRouter}. Otherwise, you must provide the topics to produce.
  *
  * <p>To specify the delivery guarantees of PulsarSink, one can call {@link
  * #setDeliveryGuarantee(DeliveryGuarantee)}. The default value of the delivery guarantee is {@link
@@ -91,6 +93,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
  *     .setServiceUrl(operator().serviceUrl())
+ *     .setAdminUrl(operator().adminUrl())
  *     .setTopics(topic)
  *     .setSerializationSchema(Schema.STRING)
  *     .setDeliveryGuarantee(deliveryGuarantee)
@@ -119,15 +122,14 @@ public class PulsarSinkBuilder<IN> {
     }
 
     /**
-     * Sets the admin endpoint for the PulsarAdmin of the PulsarSink.
+     * Sets the HTTP endpoint used by PulsarAdmin for transaction-state verification. Required only
+     * for {@link DeliveryGuarantee#EXACTLY_ONCE}.
      *
      * @param adminUrl The url for the PulsarAdmin.
      * @return this PulsarSinkBuilder.
-     * @deprecated this method will return builder directly
      */
-    @Deprecated
     public PulsarSinkBuilder<IN> setAdminUrl(String adminUrl) {
-        return this;
+        return setConfig(PULSAR_ADMIN_URL, adminUrl);
     }
 
     /**
@@ -399,6 +401,10 @@ public class PulsarSinkBuilder<IN> {
             LOG.warn(
                     "You haven't set delivery guarantee or set it to NONE, this would cause data loss. Make sure you have known this shortcoming.");
         } else if (deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE) {
+            checkArgument(
+                    !isNullOrWhitespaceOnly(configBuilder.get(PULSAR_ADMIN_URL)),
+                    "Config option %s must be non-blank for EXACTLY_ONCE delivery guarantee.",
+                    PULSAR_ADMIN_URL.key());
             LOG.info(
                     "Exactly once require flink checkpoint and your pulsar cluster should support the transaction.");
             configBuilder.override(PULSAR_ENABLE_TRANSACTION, true);

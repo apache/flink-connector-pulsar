@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_CONNECT_TIMEOUT;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_STATS_INTERVAL_SECONDS;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.createKeyFormatProjection;
 import static org.apache.flink.connector.pulsar.table.PulsarTableOptionUtils.createValueFormatProjection;
@@ -159,8 +160,10 @@ public class PulsarTableOptionUtilsTest {
     void pulsarProperties() {
         final Map<String, String> options = createDefaultOptions();
         options.put(PULSAR_STATS_INTERVAL_SECONDS.key(), "30");
+        options.put(PULSAR_CONNECT_TIMEOUT.key(), "15000");
         Properties properties = getPulsarProperties(Configuration.fromMap(options));
         assertThat(properties.getProperty(PULSAR_STATS_INTERVAL_SECONDS.key())).isEqualTo("30");
+        assertThat(properties.getProperty(PULSAR_CONNECT_TIMEOUT.key())).isEqualTo("15000");
     }
 
     @Test

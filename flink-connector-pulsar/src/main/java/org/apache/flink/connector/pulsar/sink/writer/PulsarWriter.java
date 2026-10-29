@@ -28,6 +28,7 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
 import org.apache.flink.connector.pulsar.sink.committer.MessageIdPojo;
 import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
+import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittableSerializer;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContext;
 import org.apache.flink.connector.pulsar.sink.writer.context.PulsarSinkContextImpl;
@@ -323,7 +324,9 @@ public class PulsarWriter<IN> implements CommittingSinkWriter<IN, PulsarCommitta
                                             messageId.getBatchIndex(),
                                             messageId.getPartitionIndex())));
             latestPublishedMessages.clear();
-            return Collections.singletonList(new PulsarCommittable(txnID, messageIds));
+            return Collections.singletonList(
+                    new PulsarCommittable(
+                            txnID, messageIds, PulsarCommittableSerializer.CURRENT_VERSION));
         } else {
             return emptyList();
         }

@@ -130,6 +130,7 @@ class PulsarSinkITCase {
                             Duration.ofMinutes(5));
             PulsarSink<String> sink =
                     PulsarSink.builder()
+                            .setAdminUrl(operator().adminUrl())
                             .setServiceUrl(operator().serviceUrl())
                             .setDeliveryGuarantee(guarantee)
                             .setTopics(topic)
