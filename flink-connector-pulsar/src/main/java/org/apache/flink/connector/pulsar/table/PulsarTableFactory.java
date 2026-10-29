@@ -140,7 +140,9 @@ public class PulsarTableFactory implements DynamicTableSourceFactory, DynamicTab
 
         // Forward source configs
         final Properties properties = getPulsarProperties(tableOptions);
-        properties.setProperty(PULSAR_ADMIN_URL.key(), tableOptions.get(ADMIN_URL));
+        tableOptions
+                .getOptional(ADMIN_URL)
+                .ifPresent(adminUrl -> properties.setProperty(PULSAR_ADMIN_URL.key(), adminUrl));
         properties.setProperty(PULSAR_SERVICE_URL.key(), tableOptions.get(SERVICE_URL));
         // Set random subscriptionName if not provided
         properties.setProperty(
@@ -215,7 +217,9 @@ public class PulsarTableFactory implements DynamicTableSourceFactory, DynamicTab
 
         // Forward sink configs
         final Properties properties = getPulsarProperties(tableOptions);
-        properties.setProperty(PULSAR_ADMIN_URL.key(), tableOptions.get(ADMIN_URL));
+        tableOptions
+                .getOptional(ADMIN_URL)
+                .ifPresent(adminUrl -> properties.setProperty(PULSAR_ADMIN_URL.key(), adminUrl));
         properties.setProperty(PULSAR_SERVICE_URL.key(), tableOptions.get(SERVICE_URL));
 
         // Retrieve physical DataType (not including computed or metadata fields)
@@ -254,12 +258,13 @@ public class PulsarTableFactory implements DynamicTableSourceFactory, DynamicTab
 
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
-        return Stream.of(TOPICS, ADMIN_URL, SERVICE_URL).collect(Collectors.toSet());
+        return Stream.of(TOPICS, SERVICE_URL).collect(Collectors.toSet());
     }
 
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         return Stream.of(
+                        ADMIN_URL,
                         FactoryUtil.FORMAT,
                         VALUE_FORMAT,
                         SOURCE_SUBSCRIPTION_NAME,

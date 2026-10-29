@@ -57,7 +57,6 @@ and deserializes the raw payload of the messages as strings.
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())
@@ -73,7 +72,6 @@ env.fromSource(source, WatermarkStrategy.noWatermarks(), "Pulsar Source");
 ```python
 pulsar_source = PulsarSource.builder() \
     .set_service_url('pulsar://localhost:6650') \
-    .set_admin_url('http://localhost:8080') \
     .set_start_cursor(StartCursor.earliest()) \
     .set_topics("my-topic") \
     .set_deserialization_schema(SimpleStringSchema()) \
@@ -91,12 +89,13 @@ env.from_source(source=pulsar_source,
 The following properties are **required** for a PulsarSource:
 
 - Pulsar service URL, configured by `setServiceUrl(String)`
-- Pulsar service HTTP URL (also known as admin URL), configured by `setAdminUrl(String)`
 - Pulsar subscription name, configured by `setSubscriptionName(String)`
 - Topics / partitions to subscribe, see the following
   [topic-partition subscription](#topic-partition-subscription) for more details.
 - Deserializer to parse Pulsar messages, see the following
   [deserializer](#deserializer) for more details.
+
+The admin URL is optional for PulsarSource; the source does not use the admin endpoint.
 
 It is recommended to set the consumer name in Pulsar Source by `setConsumerName(String)`.
 This sets a unique name for the Flink connector in the Pulsar statistic dashboard.
@@ -683,7 +682,6 @@ DataStream<String> stream = ...
 
 PulsarSink<String> sink = PulsarSink.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setTopics("topic1")
     .setSerializationSchema(new SimpleStringSchema())
     .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
@@ -700,7 +698,6 @@ stream = ...
 
 pulsar_sink = PulsarSink.builder() \
     .set_service_url('pulsar://localhost:6650') \
-    .set_admin_url('http://localhost:8080') \
     .set_topics("topic1") \
     .set_serialization_schema(SimpleStringSchema()) \
     .set_delivery_guarantee(DeliveryGuarantee.AT_LEAST_ONCE) \
@@ -715,9 +712,11 @@ stream.sink_to(pulsar_sink)
 The following properties are **required** for a PulsarSink:
 
 - Pulsar service url, configured by `setServiceUrl(String)`
-- Pulsar service HTTP URL (also known as admin URL), configured by `setAdminUrl(String)`
 - Topics / partitions to write, see [Producing to topics](#producing-to-topics) for more details.
 - Serializer to generate Pulsar messages, see [serializer](#serializer) for more details.
+
+For `DeliveryGuarantee.EXACTLY_ONCE`, the Pulsar service HTTP URL (admin URL) must also be configured
+using `setAdminUrl(String)` for transaction-state verification. It is optional for `NONE` and `AT_LEAST_ONCE`.
 
 It is recommended to set the producer name in Pulsar Source by `setProducerName(String)`.
 This sets a unique name for the Flink connector in the Pulsar statistic dashboard.

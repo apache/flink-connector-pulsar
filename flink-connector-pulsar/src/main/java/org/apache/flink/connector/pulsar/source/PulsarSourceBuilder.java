@@ -89,15 +89,13 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PulsarSource<String> source = PulsarSource
  *     .builder()
  *     .setServiceUrl(PULSAR_BROKER_URL)
- *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
  *     .setDeserializationSchema(new SimpleStringSchema())
  *     .build();
  * }</pre>
  *
- * <p>The service URL, admin URL, subscription name, topics to consume, and record deserializer are
- * required.
+ * <p>The service URL, subscription name, topics to consume, and record deserializer are required.
  *
  * <p>To specify the starting position of PulsarSource, one can call {@link
  * #setStartCursor(StartCursor)}.
@@ -118,7 +116,6 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PulsarSource<String> source = PulsarSource
  *     .builder()
  *     .setServiceUrl(PULSAR_BROKER_URL)
- *     .setAdminUrl(PULSAR_BROKER_HTTP_URL)
  *     .setSubscriptionName("flink-source-1")
  *     .setTopics(Arrays.asList(TOPIC1, TOPIC2))
  *     .setDeserializationSchema(new SimpleStringSchema())
@@ -151,7 +148,7 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the HTTP endpoint used by PulsarAdmin.
+     * Sets the optional HTTP endpoint for PulsarAdmin. PulsarSource does not use this endpoint.
      *
      * @param adminUrl the url for the PulsarAdmin.
      * @return this PulsarSourceBuilder.

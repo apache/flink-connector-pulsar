@@ -21,6 +21,7 @@ package org.apache.flink.connector.pulsar.table;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.sink.PulsarSink;
 import org.apache.flink.connector.pulsar.sink.writer.router.TopicRoutingMode;
@@ -34,6 +35,7 @@ import org.apache.flink.connector.pulsar.table.source.PulsarTableSource;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.catalog.WatermarkSpec;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
@@ -52,12 +54,16 @@ import org.apache.flink.table.types.DataType;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
@@ -365,6 +371,95 @@ public class PulsarTableFactoryTest {
                         TopicRoutingMode.ROUND_ROBIN,
                         0);
         assertThat(actualPulsarTableSink).isEqualTo(expectedPulsarTableSink);
+    }
+
+    @ParameterizedTest
+    @MethodSource("adminUrlOptions")
+    void testTableSourceWithOptionalAdminUrl(
+            String connector, String adminUrl, String prefixedAdminUrl, String expectedAdminUrl) {
+        Map<String, String> options = getBasicSourceOptions();
+        options.put(CONNECTOR.key(), connector);
+        configureAdminUrls(options, adminUrl, prefixedAdminUrl);
+        ResolvedSchema schema = schemaForConnector(connector, options);
+
+        PulsarTableSource source = (PulsarTableSource) createTableSource(schema, options);
+        PulsarSource<RowData> runtimeSource =
+                assertPulsarSourceIsSameAsExpected(
+                        source.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE));
+        assertThat(runtimeSource)
+                .extracting("sourceConfiguration")
+                .isInstanceOfSatisfying(
+                        Configuration.class,
+                        configuration ->
+                                assertThat(configuration.get(PULSAR_ADMIN_URL))
+                                        .isEqualTo(expectedAdminUrl));
+    }
+
+    @ParameterizedTest
+    @MethodSource("adminUrlOptions")
+    void testTableSinkWithOptionalAdminUrl(
+            String connector, String adminUrl, String prefixedAdminUrl, String expectedAdminUrl) {
+        Map<String, String> options = getBasicSinkOptions();
+        options.put(CONNECTOR.key(), connector);
+        configureAdminUrls(options, adminUrl, prefixedAdminUrl);
+        ResolvedSchema schema = schemaForConnector(connector, options);
+
+        DynamicTableSink sink = createTableSink(schema, options);
+        SinkV2Provider provider =
+                (SinkV2Provider) sink.getSinkRuntimeProvider(new SinkRuntimeProviderContext(false));
+        assertThat(provider.createSink())
+                .isInstanceOf(PulsarSink.class)
+                .extracting("sinkConfiguration")
+                .isInstanceOfSatisfying(
+                        Configuration.class,
+                        configuration ->
+                                assertThat(configuration.get(PULSAR_ADMIN_URL))
+                                        .isEqualTo(expectedAdminUrl));
+    }
+
+    private static Stream<Arguments> adminUrlOptions() {
+        String prefixedAdminUrl = "https://other-broker.example.com:8443";
+        return Stream.of(PulsarTableFactory.IDENTIFIER, UpsertPulsarTableFactory.IDENTIFIER)
+                .flatMap(
+                        connector ->
+                                Stream.of(
+                                        Arguments.of(connector, null, null, null),
+                                        Arguments.of(
+                                                connector, TEST_ADMIN_URL, null, TEST_ADMIN_URL),
+                                        Arguments.of(
+                                                connector,
+                                                null,
+                                                prefixedAdminUrl,
+                                                prefixedAdminUrl),
+                                        Arguments.of(
+                                                connector,
+                                                TEST_ADMIN_URL,
+                                                prefixedAdminUrl,
+                                                TEST_ADMIN_URL)));
+    }
+
+    private static void configureAdminUrls(
+            Map<String, String> options, String adminUrl, String prefixedAdminUrl) {
+        options.remove(ADMIN_URL.key());
+        if (adminUrl != null) {
+            options.put(ADMIN_URL.key(), adminUrl);
+        }
+        if (prefixedAdminUrl != null) {
+            options.put(PULSAR_ADMIN_URL.key(), prefixedAdminUrl);
+        }
+    }
+
+    private static ResolvedSchema schemaForConnector(
+            String connector, Map<String, String> options) {
+        if (UpsertPulsarTableFactory.IDENTIFIER.equals(connector)) {
+            options.put(KEY_FORMAT.key(), TestFormatFactory.IDENTIFIER);
+            options.put("key." + FORMAT_DELIMITER_KEY, "#");
+            return new ResolvedSchema(
+                    SCHEMA.getColumns(),
+                    SCHEMA.getWatermarkSpecs(),
+                    UniqueConstraint.primaryKey("pk", Collections.singletonList(NAME)));
+        }
+        return SCHEMA;
     }
 
     private static Map<String, String> getBasicSourceOptions() {

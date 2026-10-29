@@ -51,12 +51,14 @@ CREATE TABLE PulsarTable (
 ) WITH (
   'connector' = 'pulsar',
   'topics' = 'user_behavior',
-  'service-url' = 'pulsar://my-broker.com:6650',
-  'admin-url' = 'http://my-broker.com:8080',
+  'service-url' = 'pulsar://my-broker.com:6650'
 )
 ```
 
 Connector Options
 ----------------
+
+对于 Table Source 和当前使用 `AT_LEAST_ONCE` 的 Table Sink（包括 `upsert-pulsar`），
+`admin-url` 为可选配置。只有使用 `EXACTLY_ONCE` 的 DataStream Sink 才必须配置 admin URL。
 
 {{< generated/pulsar_table_configuration >}}

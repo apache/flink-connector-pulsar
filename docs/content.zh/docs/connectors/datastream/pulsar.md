@@ -52,7 +52,6 @@ Pulsar Source 提供了 builder 类来构造 `PulsarSource` 实例。下面的�
 ```java
 PulsarSource<String> source = PulsarSource.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setStartCursor(StartCursor.earliest())
     .setTopics("my-topic")
     .setDeserializationSchema(new SimpleStringSchema())
@@ -68,7 +67,6 @@ env.fromSource(source, WatermarkStrategy.noWatermarks(), "Pulsar Source");
 ```python
 pulsar_source = PulsarSource.builder() \
     .set_service_url('pulsar://localhost:6650') \
-    .set_admin_url('http://localhost:8080') \
     .set_start_cursor(StartCursor.earliest()) \
     .set_topics("my-topic") \
     .set_deserialization_schema(SimpleStringSchema()) \
@@ -86,10 +84,11 @@ env.from_source(source=pulsar_source,
 使用构造类构造 `PulsarSource` 时，需要配置下面几个属性：
 
 - Pulsar 数据消费的地址，使用 `setServiceUrl(String)` 方法提供。
-- Pulsar HTTP 管理地址，使用 `setAdminUrl(String)` 方法提供。
 - Pulsar 订阅名称，使用 `setSubscriptionName(String)` 方法提供。
 - 需要消费的 Topic 或者是 Topic 下面的分区，详见[指定消费的 Topic 或者 Topic 分区](#指定消费的-topic-或者-topic-分区)。
 - 解码 Pulsar 消息的反序列化器，详见[反序列化器](#反序列化器)。
+
+PulsarSource 的 admin URL 为可选配置，Source 不使用 HTTP 管理端点。
 
 ### 指定消费的 Topic 或者 Topic 分区
 
@@ -585,7 +584,6 @@ DataStream<String> stream = ...
 
 PulsarSink<String> sink = PulsarSink.builder()
     .setServiceUrl(serviceUrl)
-    .setAdminUrl(adminUrl)
     .setTopics("topic1")
     .setSerializationSchema(new SimpleStringSchema())
     .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
@@ -602,7 +600,6 @@ stream = ...
 
 pulsar_sink = PulsarSink.builder() \
     .set_service_url('pulsar://localhost:6650') \
-    .set_admin_url('http://localhost:8080') \
     .set_topics("topic1") \
     .set_serialization_schema(SimpleStringSchema()) \
     .set_delivery_guarantee(DeliveryGuarantee.AT_LEAST_ONCE) \
@@ -617,9 +614,11 @@ stream.sink_to(pulsar_sink)
 下列为创建一个 `PulsarSink` 实例时需要配置的属性：
 
 - Pulsar 数据消费的地址，使用 `setServiceUrl(String)` 方法提供。
-- Pulsar HTTP 管理地址，使用 `setAdminUrl(String)` 方法提供。
 - 需要发送到的 Topic 或者是 Topic 下面的分区，详见[指定写入的 Topic 或者 Topic 分区](#指定写入的-topic-或者-topic-分区)。
 - 编码 Pulsar 消息的序列化器，详见[序列化器](#序列化器)。
+
+使用 `DeliveryGuarantee.EXACTLY_ONCE` 时，还必须通过 `setAdminUrl(String)` 配置 Pulsar HTTP 管理地址，
+用于校验事务状态。对于 `NONE` 和 `AT_LEAST_ONCE`，该配置为可选项。
 
 在创建 `PulsarSink` 时，建议使用 `setProducerName(String)` 来指定 `PulsarSink` 内部使用的 Pulsar 生产者名称。这样方便在数据监控页面找到对应的生产者监控指标。
 

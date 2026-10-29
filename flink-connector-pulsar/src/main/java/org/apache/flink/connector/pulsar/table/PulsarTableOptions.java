@@ -269,7 +269,7 @@ public final class PulsarTableOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "The Pulsar service HTTP URL for the admin endpoint. For example, %s, or %s for TLS.",
+                                            "The optional Pulsar service HTTP URL for the admin endpoint. Table sources and the current AT_LEAST_ONCE table sinks do not require it. For example, %s, or %s for TLS.",
                                             code("http://my-broker.example.com:8080"),
                                             code("https://my-broker.example.com:8443"))
                                     .build());

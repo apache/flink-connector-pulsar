@@ -595,7 +595,7 @@ public final class PulsarOptions {
                     .withDescription(
                             Description.builder()
                                     .text(
-                                            "The Pulsar service HTTP URL for the admin endpoint. For example, %s, or %s for TLS.",
+                                            "The Pulsar service HTTP URL for the admin endpoint. Required only for sinks using EXACTLY_ONCE delivery. For example, %s, or %s for TLS.",
                                             code("http://my-broker.example.com:8080"),
                                             code("https://my-broker.example.com:8443"))
                                     .build());
