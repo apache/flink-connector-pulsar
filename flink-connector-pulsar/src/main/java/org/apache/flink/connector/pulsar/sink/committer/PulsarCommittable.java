@@ -34,6 +34,7 @@ public class PulsarCommittable {
 
     private final Map<String, MessageIdPojo> latestPublishedMessages;
 
+    /** The originating version, preserved by the serializer through the placeholder field. */
     private final transient int version;
 
     public PulsarCommittable(

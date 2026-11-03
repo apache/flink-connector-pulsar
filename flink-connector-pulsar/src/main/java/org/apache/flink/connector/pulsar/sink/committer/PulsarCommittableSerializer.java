@@ -35,7 +35,10 @@ import java.util.Map;
  * A serializer used to serialize {@link PulsarCommittable}.
  *
  * <p>Version 2 preserves the Version 1 field prefix, allowing the current connector to restore
- * Version 1 state while adding the per-topic message IDs needed for recovery checks.
+ * Version 1 state while adding the per-topic message IDs needed for recovery checks. The former
+ * topic field holds a placeholder that distinguishes Version 1 origins from Version 2 origins,
+ * including across repeated snapshots. Readers that only accept the original Version 2 placeholder
+ * cannot read the restored-Version-1 placeholder.
  */
 public class PulsarCommittableSerializer implements SimpleVersionedSerializer<PulsarCommittable> {
 
@@ -44,6 +47,8 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
 
     static final String V2_LEGACY_TOPIC = "unknown_due_to_v2_serialization";
 
+    static final String V1_RESTORED_TOPIC = "restored_from_v1";
+
     @Override
     public int getVersion() {
         return CURRENT_VERSION;
@@ -51,15 +56,20 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
 
     @Override
     public byte[] serialize(PulsarCommittable obj) throws IOException {
+        int version = obj.getVersion();
+        validateVersion(version);
+        Map<String, MessageIdPojo> messages = obj.getLatestPublishedMessages();
+        if (version == 1 && !messages.isEmpty()) {
+            throw new IOException("V1 committable must not contain published message IDs.");
+        }
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
                 DataOutputStream output = new DataOutputStream(bytes)) {
             TxnID txnID = obj.getTxnID();
             output.writeLong(txnID.getMostSigBits());
             output.writeLong(txnID.getLeastSigBits());
-            // V1 topic field. A transaction can now span topics, so use a descriptive placeholder.
-            output.writeUTF(V2_LEGACY_TOPIC);
+            // Keep the V2 field layout while preserving the committable's original version.
+            output.writeUTF(version == 1 ? V1_RESTORED_TOPIC : V2_LEGACY_TOPIC);
 
-            Map<String, MessageIdPojo> messages = obj.getLatestPublishedMessages();
             output.writeInt(messages.size());
             for (Map.Entry<String, MessageIdPojo> entry : messages.entrySet()) {
                 MessageIdPojo messageId = entry.getValue();
@@ -77,26 +87,31 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
 
     @Override
     public PulsarCommittable deserialize(int version, byte[] serialized) throws IOException {
-        if (version < 1 || version > CURRENT_VERSION) {
-            throw new IOException("Unsupported Pulsar committable version: " + version);
-        }
+        validateVersion(version);
         try (final ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 final DataInputStream in = new DataInputStream(bais)) {
             long mostSigBits = in.readLong();
             long leastSigBits = in.readLong();
             TxnID txnID = new TxnID(mostSigBits, leastSigBits);
-            // V1 topic field, unused since a transaction can span topics.
+            // The V1 topic slot stores the originating version's placeholder in V2 state.
             String topic = in.readUTF();
-            if (topic.isEmpty()) {
+            if (version == 1 && topic.isEmpty()) {
                 throw new IOException("Corrupt V1 committable: topic must not be empty.");
             }
-            if (version == CURRENT_VERSION && !V2_LEGACY_TOPIC.equals(topic)) {
-                throw new IOException(
-                        "Corrupt V2 committable: expected placeholder topic '"
-                                + V2_LEGACY_TOPIC
-                                + "' but found '"
-                                + topic
-                                + "'.");
+            int committableVersion = version;
+            if (version == CURRENT_VERSION) {
+                if (V1_RESTORED_TOPIC.equals(topic)) {
+                    committableVersion = 1;
+                } else if (!V2_LEGACY_TOPIC.equals(topic)) {
+                    throw new IOException(
+                            "Corrupt V2 committable: expected placeholder topic '"
+                                    + V2_LEGACY_TOPIC
+                                    + "' or '"
+                                    + V1_RESTORED_TOPIC
+                                    + "' but found '"
+                                    + topic
+                                    + "'.");
+                }
             }
 
             Map<String, MessageIdPojo> messages = Collections.emptyMap();
@@ -104,6 +119,14 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
                 int messageCount = in.readInt();
                 if (messageCount < 0) {
                     throw new IOException("Negative number of published messages: " + messageCount);
+                }
+                if (committableVersion == 1 && messageCount != 0) {
+                    throw new IOException(
+                            "Corrupt V2 committable: placeholder '"
+                                    + V1_RESTORED_TOPIC
+                                    + "' requires zero published messages, but found "
+                                    + messageCount
+                                    + ".");
                 }
 
                 messages = new HashMap<>();
@@ -122,7 +145,13 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
             if (in.available() != 0) {
                 throw new IOException("Trailing bytes in Pulsar committable state");
             }
-            return new PulsarCommittable(txnID, messages, version);
+            return new PulsarCommittable(txnID, messages, committableVersion);
+        }
+    }
+
+    private static void validateVersion(int version) throws IOException {
+        if (version < 1 || version > CURRENT_VERSION) {
+            throw new IOException("Unsupported Pulsar committable version: " + version);
         }
     }
 }

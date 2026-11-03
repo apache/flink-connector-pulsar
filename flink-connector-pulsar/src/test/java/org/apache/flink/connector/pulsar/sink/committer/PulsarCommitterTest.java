@@ -30,10 +30,16 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
@@ -168,15 +174,47 @@ class PulsarCommitterTest {
         verify(coordinatorClient, never()).commit(any());
     }
 
-    @Test
-    void commitsSingleLegacyCommittableWithoutAdminLookups() throws Exception {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 3})
+    void commitsSingleLegacyCommittableWithoutAdminLookups(int snapshots) throws Exception {
         PulsarCommitter committer = committer();
-        CommitRequest<PulsarCommittable> request = request(legacyCommittable(TXN_ID));
+        CommitRequest<PulsarCommittable> request = request(restoredLegacyCommittable(snapshots));
         doNothing().when(coordinatorClient).commit(TXN_ID);
 
         committer.commit(Collections.singletonList(request));
 
         verify(coordinatorClient).commit(TXN_ID);
+        verify(topics, never()).getMessagesById(any(), anyLong(), anyLong());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 3})
+    void reserializedLegacyCommittableReportsCommitFailure(int snapshots) throws Exception {
+        PulsarCommitter committer = committer();
+        CommitRequest<PulsarCommittable> request = request(restoredLegacyCommittable(snapshots));
+        RuntimeException failure = new RuntimeException("commit failed");
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+
+        verify(request).signalFailedWithUnknownReason(failure);
+        verify(request, never()).signalAlreadyCommitted();
+        verify(topics, never()).getMessagesById(any(), anyLong(), anyLong());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 3})
+    void reserializedLegacyCommittableRetriesCommitFailure(int snapshots) throws Exception {
+        PulsarCommitter committer = committer();
+        CommitRequest<PulsarCommittable> request = request(restoredLegacyCommittable(snapshots));
+        doThrow(new TransactionCoordinatorClientException("retryable commit failure"))
+                .when(coordinatorClient)
+                .commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+
+        verify(request).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
         verify(topics, never()).getMessagesById(any(), anyLong(), anyLong());
     }
 
@@ -246,6 +284,26 @@ class PulsarCommitterTest {
 
     private PulsarCommittable legacyCommittable(TxnID txnId) {
         return new PulsarCommittable(txnId, Collections.emptyMap(), 1);
+    }
+
+    private PulsarCommittable restoredLegacyCommittable(int snapshots) throws IOException {
+        PulsarCommittableSerializer serializer = new PulsarCommittableSerializer();
+        byte[] state;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeLong(TXN_ID.getMostSigBits());
+            output.writeLong(TXN_ID.getLeastSigBits());
+            output.writeUTF(TOPIC);
+            output.flush();
+            state = bytes.toByteArray();
+        }
+        PulsarCommittable committable = serializer.deserialize(1, state);
+        for (int snapshot = 0; snapshot < snapshots; snapshot++) {
+            committable =
+                    serializer.deserialize(
+                            serializer.getVersion(), serializer.serialize(committable));
+        }
+        return committable;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
