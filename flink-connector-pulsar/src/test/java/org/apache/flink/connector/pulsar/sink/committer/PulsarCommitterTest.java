@@ -22,6 +22,7 @@ import org.apache.flink.api.connector.sink2.Committer.CommitRequest;
 import org.apache.flink.api.connector.sink2.CommitterInitContext;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -31,10 +32,16 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.CoordinatorNotFoundException;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.InvalidTxnStatusException;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.MetaStoreHandlerNotExistsException;
+import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException.TransactionNotFoundException;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayOutputStream;
@@ -45,9 +52,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_SERVICE_URL;
+import static org.apache.flink.connector.pulsar.sink.PulsarSinkOptions.PULSAR_MAX_RECOMMIT_TIMES;
 import static org.apache.pulsar.client.admin.internal.TopicsImpl.TXN_ABORTED;
 import static org.apache.pulsar.client.admin.internal.TopicsImpl.TXN_UNCOMMITTED;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,6 +66,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,9 +125,11 @@ class PulsarCommitterTest {
         when(topics.getMessagesById(TOPIC, 10L, 20L))
                 .thenReturn(Collections.singletonList(message));
 
-        committer.commit(Collections.singletonList(request));
-
-        verify(request).signalFailedWithKnownReason(any());
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasMessageContaining("was aborted");
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(request, never()).signalAlreadyCommitted();
         verify(coordinatorClient, never()).commit(any());
     }
 
@@ -131,6 +143,240 @@ class PulsarCommitterTest {
         committer.commit(Collections.singletonList(request));
 
         verify(request).retryLater();
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrorsAndRetryCounts")
+    void retriesCurrentTransactionStateErrors(
+            TransactionCoordinatorClientException failure, int retries) throws Exception {
+        PulsarCommitter committer = committer(2);
+        CommitRequest<PulsarCommittable> request = request();
+        when(request.getNumberOfRetries()).thenReturn(retries);
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+
+        verify(request).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(request, never()).signalFailedWithUnknownReason(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrors")
+    void failsIfTransactionAbortsBetweenLookupAndCommit(
+            TransactionCoordinatorClientException failure) throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        Message<byte[]> aborted = messageWithProperty(TXN_ABORTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(
+                        Collections.singletonList(uncommitted), Collections.singletonList(aborted));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        verify(request).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+
+        when(request.getNumberOfRetries()).thenReturn(1);
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasMessageContaining("was aborted");
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, times(1)).retryLater();
+        verify(topics, times(2)).getMessagesById(TOPIC, 10L, 20L);
+        verify(coordinatorClient, times(1)).commit(TXN_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrors")
+    void confirmsCommittedTransactionAtRetryLimit(TransactionCoordinatorClientException failure)
+            throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        Message<byte[]> committed = messageWithProperty("other", "value");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(
+                        Collections.singletonList(uncommitted),
+                        Collections.singletonList(committed));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        verify(request).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+
+        when(request.getNumberOfRetries()).thenReturn(1);
+        committer.commit(Collections.singletonList(request));
+
+        verify(request).signalAlreadyCommitted();
+        verify(request, times(1)).retryLater();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(request, never()).signalFailedWithUnknownReason(any());
+        verify(topics, times(2)).getMessagesById(TOPIC, 10L, 20L);
+        verify(coordinatorClient, times(1)).commit(TXN_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrors")
+    void recommitsOnlyAfterRecheckingUncommittedMessage(
+            TransactionCoordinatorClientException failure) throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted));
+        doThrow(failure).doNothing().when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        when(request.getNumberOfRetries()).thenReturn(1);
+        committer.commit(Collections.singletonList(request));
+
+        verify(request, times(1)).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(request, never()).signalFailedWithUnknownReason(any());
+        verify(topics, times(2)).getMessagesById(TOPIC, 10L, 20L);
+        verify(coordinatorClient, times(2)).commit(TXN_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrorsAtRetryLimit")
+    void failsCurrentTransactionStateErrorsAtRetryLimit(
+            TransactionCoordinatorClientException failure, int maxRetries, int retries)
+            throws Exception {
+        PulsarCommitter committer = committer(maxRetries);
+        CommitRequest<PulsarCommittable> request = request();
+        when(request.getNumberOfRetries()).thenReturn(retries);
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasMessageContaining(TXN_ID.toString())
+                .hasMessageContaining("after " + retries + " retries")
+                .hasCause(failure);
+
+        verify(request, never()).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(topics).getMessagesById(TOPIC, 10L, 20L);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrors")
+    void failsWhenAdminCannotVerifyAfterStateError(TransactionCoordinatorClientException failure)
+            throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted))
+                .thenThrow(new PulsarAdminException("unavailable"));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        when(request.getNumberOfRetries()).thenReturn(1);
+
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasMessageContaining("Unable to query messages");
+        verify(request, times(1)).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(coordinatorClient, times(1)).commit(TXN_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrors")
+    void failsWhenMessagesExpireBeforeReverification(TransactionCoordinatorClientException failure)
+            throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted), Collections.emptyList());
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        when(request.getNumberOfRetries()).thenReturn(1);
+
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasMessageContaining("have expired");
+        verify(request, times(1)).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+        verify(coordinatorClient, times(1)).commit(TXN_ID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("transactionStateErrorsAndRetryCounts")
+    void legacyCommittablesKeepOriginalStateErrorHandling(
+            TransactionCoordinatorClientException failure, int retries) throws Exception {
+        PulsarCommitter committer = committer();
+        CommitRequest<PulsarCommittable> request = request(restoredLegacyCommittable(1));
+        when(request.getNumberOfRetries()).thenReturn(retries);
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+
+        if (failure instanceof TransactionNotFoundException && retries == 0) {
+            verify(request).signalFailedWithKnownReason(failure);
+            verify(request, never()).signalAlreadyCommitted();
+        } else {
+            verify(request).signalAlreadyCommitted();
+            verify(request, never()).signalFailedWithKnownReason(any());
+        }
+        verify(request, never()).retryLater();
+        verify(topics, never()).getMessagesById(any(), anyLong(), anyLong());
+    }
+
+    @Test
+    void boundsRetriesForOtherCurrentTransactionCoordinatorErrors() throws Exception {
+        PulsarCommitter committer = committer(1);
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted));
+        TransactionCoordinatorClientException failure =
+                new TransactionCoordinatorClientException("temporarily unavailable");
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        committer.commit(Collections.singletonList(request));
+        when(request.getNumberOfRetries()).thenReturn(1);
+
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasCause(failure);
+        verify(request, times(1)).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonRetryableCommitErrors")
+    void failsNonRetryableCurrentTransactionErrors(Exception failure) throws Exception {
+        PulsarCommitter committer = committer();
+        CommitRequest<PulsarCommittable> request = request();
+        Message<byte[]> uncommitted = messageWithProperty(TXN_UNCOMMITTED, "true");
+        when(topics.getMessagesById(TOPIC, 10L, 20L))
+                .thenReturn(Collections.singletonList(uncommitted));
+        doThrow(failure).when(coordinatorClient).commit(TXN_ID);
+
+        assertThatThrownBy(() -> committer.commit(Collections.singletonList(request)))
+                .isInstanceOf(FlinkRuntimeException.class)
+                .hasCause(failure);
+        verify(request, never()).retryLater();
+        verify(request, never()).signalAlreadyCommitted();
+        verify(request, never()).signalFailedWithKnownReason(any());
     }
 
     @Test
@@ -259,15 +505,48 @@ class PulsarCommitterTest {
     }
 
     private PulsarCommitter committer() throws Exception {
+        return committer(PULSAR_MAX_RECOMMIT_TIMES.defaultValue());
+    }
+
+    private PulsarCommitter committer(int maxRecommitTimes) throws Exception {
         Configuration configuration = new Configuration();
         configuration.set(PULSAR_ADMIN_URL, "http://localhost:8080");
         configuration.set(PULSAR_SERVICE_URL, "pulsar://localhost:6650");
+        configuration.set(PULSAR_MAX_RECOMMIT_TIMES, maxRecommitTimes);
         PulsarCommitter committer =
                 new PulsarCommitter(
                         new SinkConfiguration(configuration), mock(CommitterInitContext.class));
         setField(committer, "pulsarAdmin", pulsarAdmin);
         setField(committer, "coordinatorClient", coordinatorClient);
         return committer;
+    }
+
+    private static Stream<TransactionCoordinatorClientException> transactionStateErrors() {
+        return Stream.of(
+                new InvalidTxnStatusException("transaction changed state"),
+                new TransactionNotFoundException("transaction metadata was removed"));
+    }
+
+    private static Stream<Arguments> transactionStateErrorsAndRetryCounts() {
+        return transactionStateErrors()
+                .flatMap(failure -> Stream.of(0, 1).map(retries -> Arguments.of(failure, retries)));
+    }
+
+    private static Stream<Arguments> transactionStateErrorsAtRetryLimit() {
+        return transactionStateErrors()
+                .flatMap(
+                        failure ->
+                                Stream.of(
+                                        Arguments.of(failure, 0, 0),
+                                        Arguments.of(failure, 1, 1),
+                                        Arguments.of(failure, 1, 2)));
+    }
+
+    private static Stream<Exception> nonRetryableCommitErrors() {
+        return Stream.of(
+                new CoordinatorNotFoundException("coordinator missing"),
+                new MetaStoreHandlerNotExistsException("metadata store missing"),
+                new RuntimeException("unexpected commit failure"));
     }
 
     private CommitRequest<PulsarCommittable> request() {

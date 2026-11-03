@@ -151,15 +151,14 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
                         String.format(
                                 "Transaction %s was aborted; messages: %s", txnID, latestMessages);
                 LOG.warn(message);
-                request.signalFailedWithKnownReason(new FlinkRuntimeException(message));
-                return;
+                throw new FlinkRuntimeException(message);
             }
 
             if ("true".equalsIgnoreCase(properties.get(TXN_UNCOMMITTED))) {
                 try {
                     client.commit(txnID);
                 } catch (Exception e) {
-                    handleError(request, txnID, committable, e);
+                    handleCurrentTransactionError(request, txnID, e);
                 }
                 return;
             }
@@ -177,7 +176,7 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
                         String.format(
                                 "Unable to query messages for transaction %s after %d retries: %s",
                                 txnID, maxRecommitTimes, latestMessages);
-                request.signalFailedWithKnownReason(new FlinkRuntimeException(message));
+                throw new FlinkRuntimeException(message);
             }
             return;
         }
@@ -186,7 +185,32 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
                 String.format(
                         "All messages for transaction %s have expired: %s", txnID, latestMessages);
         LOG.warn(message);
-        request.signalFailedWithKnownReason(new FlinkRuntimeException(message));
+        throw new FlinkRuntimeException(message);
+    }
+
+    private void handleCurrentTransactionError(
+            CommitRequest<PulsarCommittable> request, TxnID txnID, Exception e) {
+        // InvalidTxnStatusException and TransactionNotFoundException can follow either commit
+        // completion or an abort. Retry from the message-state lookup instead of assuming success.
+        if (e instanceof TransactionCoordinatorClientException
+                && !(e instanceof CoordinatorNotFoundException)
+                && !(e instanceof MetaStoreHandlerNotExistsException)
+                && request.getNumberOfRetries() < sinkConfiguration.getMaxRecommitTimes()) {
+            LOG.warn(
+                    "Failed to commit transaction {}; rechecking message state on retry.",
+                    txnID,
+                    e);
+            request.retryLater();
+            return;
+        }
+
+        // signalFailedWithKnownReason only discards the committable in Flink. Fail the operation
+        // so output with an unconfirmed transaction outcome cannot be silently dropped.
+        throw new FlinkRuntimeException(
+                String.format(
+                        "Failed to commit transaction %s after %d retries; its outcome could not be confirmed.",
+                        txnID, request.getNumberOfRetries()),
+                e);
     }
 
     private void commitLegacyTransaction(CommitRequest<PulsarCommittable> request)
@@ -198,11 +222,11 @@ public class PulsarCommitter implements Committer<PulsarCommittable>, Closeable 
         try {
             client.commit(txnID);
         } catch (Exception e) {
-            handleError(request, txnID, committable, e);
+            handleLegacyError(request, txnID, committable, e);
         }
     }
 
-    private void handleError(
+    private void handleLegacyError(
             CommitRequest<PulsarCommittable> request,
             TxnID txnID,
             PulsarCommittable committable,
