@@ -60,7 +60,7 @@ under the License.
 
         <jsr305.version>1.3.9</jsr305.version>
         <junit5.version>5.9.1</junit5.version>
-        <assertj.version>3.23.1</assertj.version>
+        <assertj.version>3.27.7</assertj.version>
         <mockito.version>4.11.0</mockito.version>
         <archunit.version>1.0.1</archunit.version>
         <testcontainers.version>2.0.4</testcontainers.version>
@@ -70,7 +70,7 @@ under the License.
 
         <protobuf.version>3.25.5</protobuf.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <log4j.version>2.17.2</log4j.version>
+        <log4j.version>2.26.1</log4j.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
         <commons-compress.version>1.26.1</commons-compress.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
@@ -81,7 +81,7 @@ under the License.
         <byte-buddy.version>1.12.20</byte-buddy.version>
         <kryo.version>2.24.0</kryo.version>
         <objenesis.version>3.3</objenesis.version>
-        <jackson-bom.version>2.22.2</jackson-bom.version>
+        <jackson-bom.version>2.22.4</jackson-bom.version>
         <snappy.java.version>1.1.10.4</snappy.java.version>
 
         <os-maven-plugin.version>1.7.0</os-maven-plugin.version>
