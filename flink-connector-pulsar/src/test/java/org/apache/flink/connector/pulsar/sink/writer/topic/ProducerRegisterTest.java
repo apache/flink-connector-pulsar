@@ -55,21 +55,22 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration =
                 new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
-        ProducerRegister register =
+        try (ProducerRegister register =
                 new ProducerRegister(
-                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup())) {
 
-        String message = randomAlphabetic(10);
-        register.createMessageBuilder(topic, Schema.STRING).value(message).send();
+            String message = randomAlphabetic(10);
+            register.createMessageBuilder(topic, Schema.STRING).value(message).send();
 
-        if (deliveryGuarantee == EXACTLY_ONCE) {
-            TxnID txnID = register.prepareCommit();
-            TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
-            coordinatorClient.commit(txnID);
+            if (deliveryGuarantee == EXACTLY_ONCE) {
+                TxnID txnID = register.prepareCommit();
+                TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
+                coordinatorClient.commit(txnID);
+            }
+
+            Message<String> receiveMessage = operator().receiveMessage(topic, Schema.STRING);
+            assertThat(receiveMessage.getValue()).isEqualTo(message);
         }
-
-        Message<String> receiveMessage = operator().receiveMessage(topic, Schema.STRING);
-        assertThat(receiveMessage.getValue()).isEqualTo(message);
     }
 
     @ParameterizedTest
@@ -83,14 +84,15 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration =
                 new SinkConfiguration(operator().sinkConfig(deliveryGuarantee));
-        ProducerRegister register =
+        try (ProducerRegister register =
                 new ProducerRegister(
-                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup())) {
 
-        String message = randomAlphabetic(10);
-        register.createMessageBuilder(topic, Schema.STRING).value(message).sendAsync();
+            String message = randomAlphabetic(10);
+            register.createMessageBuilder(topic, Schema.STRING).value(message).sendAsync();
 
-        assertThat(register.prepareCommit()).isNull();
+            assertThat(register.prepareCommit()).isNull();
+        }
     }
 
     @Test
@@ -102,21 +104,22 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
 
         SinkConfiguration configuration =
                 new SinkConfiguration(operator().sinkConfig(DeliveryGuarantee.EXACTLY_ONCE));
-        ProducerRegister register =
+        try (ProducerRegister register =
                 new ProducerRegister(
-                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup())) {
 
-        register.createMessageBuilder(firstTopic, Schema.STRING).value("first").send();
-        register.createMessageBuilder(secondTopic, Schema.STRING).value("second").send();
+            register.createMessageBuilder(firstTopic, Schema.STRING).value("first").send();
+            register.createMessageBuilder(secondTopic, Schema.STRING).value("second").send();
 
-        TxnID txnID = register.prepareCommit();
-        assertThat(txnID).isNotNull();
-        operator().coordinatorClient().commit(txnID);
+            TxnID txnID = register.prepareCommit();
+            assertThat(txnID).isNotNull();
+            operator().coordinatorClient().commit(txnID);
 
-        assertThat(operator().receiveMessage(firstTopic, Schema.STRING).getValue())
-                .isEqualTo("first");
-        assertThat(operator().receiveMessage(secondTopic, Schema.STRING).getValue())
-                .isEqualTo("second");
+            assertThat(operator().receiveMessage(firstTopic, Schema.STRING).getValue())
+                    .isEqualTo("first");
+            assertThat(operator().receiveMessage(secondTopic, Schema.STRING).getValue())
+                    .isEqualTo("second");
+        }
     }
 
     @Test
@@ -128,16 +131,17 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
         Configuration configuration = operator().sinkConfig(DeliveryGuarantee.AT_LEAST_ONCE);
         configuration.set(PULSAR_VALIDATE_SINK_MESSAGE_BYTES, true);
         SinkConfiguration sinkConfiguration = new SinkConfiguration(configuration);
-        ProducerRegister register =
+        try (ProducerRegister register =
                 new ProducerRegister(
-                        sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+                        sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup())) {
 
-        long message = ThreadLocalRandom.current().nextLong();
-        TypedMessageBuilderImpl<Object> builder =
-                (TypedMessageBuilderImpl<Object>)
-                        register.createMessageBuilder(topic, Schema.BYTES);
-        builder.value(Schema.INT64.encode(message));
-        assertThatThrownBy(() -> builder.getMessage())
-                .isInstanceOf(SchemaSerializationException.class);
+            long message = ThreadLocalRandom.current().nextLong();
+            TypedMessageBuilderImpl<Object> builder =
+                    (TypedMessageBuilderImpl<Object>)
+                            register.createMessageBuilder(topic, Schema.BYTES);
+            builder.value(Schema.INT64.encode(message));
+            assertThatThrownBy(() -> builder.getMessage())
+                    .isInstanceOf(SchemaSerializationException.class);
+        }
     }
 }
