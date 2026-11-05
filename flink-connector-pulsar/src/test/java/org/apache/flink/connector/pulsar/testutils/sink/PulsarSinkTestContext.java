@@ -68,6 +68,7 @@ public abstract class PulsarSinkTestContext extends PulsarTestContext<String>
 
         PulsarSinkBuilder<String> builder =
                 PulsarSink.builder()
+                        .setAdminUrl(operator.adminUrl())
                         .setServiceUrl(operator.serviceUrl())
                         .setDeliveryGuarantee(guarantee)
                         .setSerializationSchema(schema)

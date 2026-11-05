@@ -108,12 +108,14 @@ public class UpsertPulsarTableITCase extends PulsarTableITCase {
                                 + "  'connector' = 'upsert-pulsar',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
                                 + "  'key.format' = '%s',\n"
                                 + "  'value.format' = '%s'"
                                 + ")",
                         wordCountTable,
                         wordCountTable,
                         pulsar.operator().serviceUrl(),
+                        pulsar.operator().adminUrl(),
                         format,
                         format);
         tableEnv.executeSql(createSinkTable);
@@ -166,6 +168,7 @@ public class UpsertPulsarTableITCase extends PulsarTableITCase {
                                 + "  'connector' = 'pulsar',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
                                 + "  'key.format' = '%s',\n"
                                 + "  'key.fields' = 'word',\n"
                                 + "  'value.format' = '%s'\n"
@@ -173,6 +176,7 @@ public class UpsertPulsarTableITCase extends PulsarTableITCase {
                         rawWordCountTable,
                         wordCountTable,
                         pulsar.operator().serviceUrl(),
+                        pulsar.operator().adminUrl(),
                         format,
                         format));
 
@@ -339,10 +343,16 @@ public class UpsertPulsarTableITCase extends PulsarTableITCase {
                                 + "  'connector' = 'upsert-pulsar',\n"
                                 + "  'topics' = '%s',\n"
                                 + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
                                 + "  'key.format' = '%s',\n"
                                 + "  'value.format' = '%s'"
                                 + ")",
-                        userTable, userTable, pulsar.operator().serviceUrl(), format, format);
+                        userTable,
+                        userTable,
+                        pulsar.operator().serviceUrl(),
+                        pulsar.operator().adminUrl(),
+                        format,
+                        format);
         tableEnv.executeSql(createSinkTable);
         String initialValues =
                 "INSERT INTO " + userTable + " " + "SELECT * " + "FROM users_changelog_" + format;

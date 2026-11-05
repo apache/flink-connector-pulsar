@@ -62,6 +62,7 @@ public abstract class PulsarSourceTestContext extends PulsarTestContext<String>
         PulsarSourceBuilder<String> builder =
                 PulsarSource.builder()
                         .setDeserializationSchema(schema)
+                        .setAdminUrl(operator.adminUrl())
                         .setServiceUrl(operator.serviceUrl())
                         .setTopicPattern(topicPattern(), AllTopics)
                         .setSubscriptionName(subscriptionName())

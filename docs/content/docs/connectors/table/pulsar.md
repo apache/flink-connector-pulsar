@@ -51,11 +51,14 @@ CREATE TABLE PulsarTable (
 ) WITH (
   'connector' = 'pulsar',
   'topics' = 'user_behavior',
-  'service-url' = 'pulsar://my-broker.com:6650',
+  'service-url' = 'pulsar://my-broker.com:6650'
 )
 ```
 
 Connector Options
 ----------------
+
+The `admin-url` option is optional for table sources and the current `AT_LEAST_ONCE` table sinks,
+including `upsert-pulsar`. An admin URL is required only for DataStream sinks using `EXACTLY_ONCE`.
 
 {{< generated/pulsar_table_configuration >}}

@@ -297,6 +297,7 @@ class PulsarDeserializationSchemaTest extends PulsarTestSuiteBase {
             String topicName, PulsarDeserializationSchema<T> deserializationSchema) {
         return PulsarSource.builder()
                 .setDeserializationSchema(deserializationSchema)
+                .setAdminUrl(operator().adminUrl())
                 .setServiceUrl(operator().serviceUrl())
                 .setTopics(topicName)
                 .setSubscriptionName(topicName + "-subscription")

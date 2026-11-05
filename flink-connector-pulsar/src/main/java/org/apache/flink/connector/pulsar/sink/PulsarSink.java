@@ -58,7 +58,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <pre>{@code
  * PulsarSink<String> sink = PulsarSink.builder()
  *      .setServiceUrl(operator().serviceUrl())
- *      .setTopic(topic)
+ *      .setTopics(topic)
  *      .setSerializationSchema(Schema.STRING)
  *      .build();
  * }</pre>
@@ -75,11 +75,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *       when Flink restarts.
  *   <li>{@link DeliveryGuarantee#EXACTLY_ONCE}: In this mode the PulsarSink will write all messages
  *       in a Pulsar transaction that will be committed to Pulsar on a checkpoint. Thus, no
- *       duplicates will be seen in case of a Flink restart. However, this delays record writing
- *       effectively until a checkpoint is written, so adjust the checkpoint duration accordingly.
- *       Additionally, it is highly recommended to tweak Pulsar transaction timeout (link) >>
- *       maximum checkpoint duration + maximum restart duration or data loss may happen when Pulsar
- *       expires an uncommitted transaction.
+ *       duplicates will be seen in case of a Flink restart. This mode requires an admin URL for
+ *       transaction-state verification. However, this delays record writing effectively until a
+ *       checkpoint is written, so adjust the checkpoint duration accordingly. Additionally, it is
+ *       highly recommended to tweak Pulsar transaction timeout (link) >> maximum checkpoint
+ *       duration + maximum restart duration or data loss may happen when Pulsar expires an
+ *       uncommitted transaction.
  * </ul>
  *
  * <p>See {@link PulsarSinkBuilder} for more details.

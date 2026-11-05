@@ -256,6 +256,24 @@ public final class PulsarTableOptions {
                                                             "pulsar+ssl://pulsar.us-west.example.com:6651")))
                                     .build());
 
+    /**
+     * Exactly same as {@link
+     * org.apache.flink.connector.pulsar.common.config.PulsarOptions#PULSAR_ADMIN_URL}. Copied here
+     * because the SQL connector uses the shorter {@code admin-url} key and maps it to the
+     * DataStream connector option when creating a source or sink.
+     */
+    public static final ConfigOption<String> ADMIN_URL =
+            ConfigOptions.key("admin-url")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text(
+                                            "The optional Pulsar service HTTP URL for the admin endpoint. Table sources and the current AT_LEAST_ONCE table sinks do not require it. For example, %s, or %s for TLS.",
+                                            code("http://my-broker.example.com:8080"),
+                                            code("https://my-broker.example.com:8443"))
+                                    .build());
+
     public static final ConfigOption<Boolean> EXPLICIT =
             ConfigOptions.key("explicit")
                     .booleanType()

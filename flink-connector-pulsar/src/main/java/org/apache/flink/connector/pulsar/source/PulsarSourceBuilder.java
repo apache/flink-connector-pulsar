@@ -61,6 +61,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
@@ -94,8 +95,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *     .build();
  * }</pre>
  *
- * <p>The service url, subscription name, topics to consume, and the record deserializer are
- * required fields that must be set.
+ * <p>The service URL, subscription name, topics to consume, and record deserializer are required.
  *
  * <p>To specify the starting position of PulsarSource, one can call {@link
  * #setStartCursor(StartCursor)}.
@@ -148,15 +148,13 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the admin endpoint for the PulsarAdmin of the PulsarSource.
+     * Sets the optional HTTP endpoint for PulsarAdmin. PulsarSource does not use this endpoint.
      *
      * @param adminUrl the url for the PulsarAdmin.
      * @return this PulsarSourceBuilder.
-     * @deprecated this method will return builder directly
      */
-    @Deprecated
     public PulsarSourceBuilder<OUT> setAdminUrl(String adminUrl) {
-        return this;
+        return setConfig(PULSAR_ADMIN_URL, adminUrl);
     }
 
     /**
